@@ -1,6 +1,6 @@
 # Runtime Tuning Manual
 
-The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tune behavior without recompiling firmware.
+The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tune behavior without updating firmware.
 
 ## Exposed Tune Parameters
 
@@ -62,6 +62,91 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `SNR_MMAX` | Minimum required strongest SNR (dB-Hz) | 35 | 10 | 60 |
 | `SNR_HOLDMS` | SNR guard hold time before DR1 (ms) | 1500 | 100 | 20000 |
 | `SNR_MAXAGE` | Max age of SNR sample (ms) | 2000 | 100 | 10000 |
+
+## Parameter Reference (detailed)
+
+### Rejoin gate and timing
+
+- **RJ_BASE_M**: Base lateral gate used when evaluating rejoin. It is the starting allowed distance between the synthetic position and the real GNSS position. Increase if long DR1 periods cause large drift; decrease to reduce the chance of accepting spoofed jumps.
+- **RJ_SPD_MULT**: Speed multiplier term added to the rejoin gate. It increases tolerance at higher air/ground speeds. Too high can allow large jumps at speed; too low can prevent rejoin when moving fast.
+- **RJ_EXP_RMPS**: Expansion rate of the rejoin gate while in DR1 (meters per second). It lets the allowed gate grow over time. Higher values rejoin sooner after long DR1 periods but reduce protection against large offsets.
+- **RJ_EXP_MAXM**: Maximum cap on the expansion term. This **does not limit flight distance**; it only caps how large the rejoin gate can grow. If too low, rejoin may never happen after long DR1; if too high, very large offsets can be accepted.
+- **RJ_DOP2M**: Converts HDOP into meters for the rejoin gate. Higher values make the gate larger when HDOP is high. Lower values make rejoin stricter under poor geometry.
+- **RJ_HDOP_MUL**: Additional multiplier on the HDOP term. Use this to scale overall DOP influence without changing the base conversion.
+- **RJ_MIN_SATS**: Minimum satellites required for rejoin. Raise to demand a stronger fix; lower to rejoin sooner in weak sky conditions.
+- **RJ_MAX_HD**: Maximum HDOP allowed for rejoin. Lower values require better geometry; higher values allow rejoin under noisier GNSS.
+- **RJ_LOIT_V**: Loiter speed threshold. If GNSS quality is loose and speed stays below this, the loiter gate can be used.
+- **RJ_LOIT_MS**: How long the vehicle must remain below the loiter speed before the loiter gate applies. Longer times reduce false rejoin when moving slowly.
+- **RJ_LOIT_GM**: Loiter gate override distance. It replaces the dynamic gate after the loiter hold time. Increase for very slow loitering; decrease for tighter protection.
+- **RJ_STAB_MS**: Required stability window before rejoin/blend starts. Longer values improve safety but delay rejoin.
+- **BLEND_MS**: Duration of the DR1 to DR0 blend. Longer blends smooth transitions; shorter blends rejoin faster.
+- **DR_LOCK_MS**: Minimum lockout time after entering DR1. During this time rejoin is blocked even if GNSS looks good. Increase to avoid rapid flip-flopping; decrease for faster recovery.
+
+### Spoof guard (position jump)
+
+- **SP_JMP_MPS**: Speed-based spoof limit. If the implied speed between fixes exceeds this, DR1 triggers once armed. Lower values are stricter but can false-trigger on jitter; higher values are more permissive.
+- **SP_ABS_M**: Absolute distance step limit. If the fix jumps more than this in one update, DR1 triggers once armed. Use this to catch large teleports even at low update rates.
+
+### Guard arming (when spoof checks start)
+
+- **ARM_MIN_S**: Minimum satellites before spoof guard arms. Prevents false triggers at boot. Increase for safer arming; decrease if you need early protection.
+- **ARM_MAX_HD**: Maximum HDOP allowed for arming. Lower means higher quality required.
+- **ARM_STABMS**: Time GNSS quality must remain good before the guard arms. Longer is safer; shorter arms faster.
+
+### Altitude guards
+
+- **ALT_BSATS**: Minimum satellites to calibrate GNSS-vs-baro bias. If too high, bias may never lock in poor sky conditions.
+- **ALT_BHDOP**: Maximum HDOP allowed for bias calibration. Lower values require better geometry.
+- **ALT_CALM_V**: Max climb rate allowed during bias calibration. Prevents bias learning while maneuvering.
+- **ALT_BCMS**: Duration of the calm window for bias calibration.
+- **ALT_JMP_M**: Absolute altitude jump threshold. Large single-step changes beyond this trigger DR1.
+- **ALT_RMPS**: Altitude rate threshold (m/s). Sustained rate above this can trigger DR1 when combined with other rate settings.
+- **ALT_RDTMS**: Minimum time window used for altitude rate detection.
+- **ALT_RDH_M**: Minimum altitude delta required inside the rate window. Prevents false triggers from noise.
+- **ALT_BSEP_M**: Maximum GNSS-vs-baro separation. Exceeding this for the hold time triggers DR1.
+- **ALT_BSEPMS**: Hold time for altitude separation before triggering.
+- **ALT_RJSEP**: Maximum altitude separation allowed for rejoin. If GNSS is too far from expected baro altitude, rejoin is blocked.
+
+### DR behavior
+
+- **DR_NOFIX**: If enabled, the filter reports NO_FIX to the FC during DR1/blend. This prevents the FC from using GNSS while protected.
+- **PT_ONLY**: Pass-through-only mode. The filter only blocks GNSS during DR1; no synthetic position or blending is used.
+- **FCGPS_FWD**: Forces GNSS forwarding even in DR1. Use only for diagnostics; it defeats protection.
+- **NMEA_NOFIX**: Emits NMEA “no-fix” beacons (optional). Useful for some FC configurations that expect NMEA signals.
+
+### EKF gates
+
+- **RJ_REQEKF**: If enabled, rejoin requires an EKF OK window in addition to GNSS quality. Safer, but slower to rejoin.
+- **EKF_TRIPMS**: Time EKF must be bad before DR1 triggers. Shorter values are more sensitive; longer values tolerate brief glitches.
+- **EKF_OKRJMS**: Minimum time EKF must be good before rejoin when `RJ_REQEKF` is enabled.
+- **EKF_GRCMS**: Grace period after exiting DR1 during which EKF issues are ignored. Helps avoid immediate re-trips.
+
+### Boot north gate
+
+- **BOOT_NSATS**: Minimum satellites required before publishing GNSS on boot (if north gate is active).
+- **BOOT_NHDOP**: Maximum HDOP allowed for boot publishing.
+- **BOOT_NSTAB**: Stability window before the initial north gate unlocks.
+
+### GNSS recovery watchdog
+
+- **GN_HOTMS**: Time with zero satellites before a GNSS hotstart is triggered (during DR1).
+- **GN_COLDMS**: Time with zero satellites before a GNSS coldstart is triggered (during DR1).
+
+### GNSS handling and logging
+
+- **LOG_MS**: Status log period (ms). Lower values give more frequent logs but add traffic.
+- **NAV_AGEMS**: Maximum NAV age to consider GNSS data valid/present.
+- **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
+- **GNSS_SWAP**: Swaps GNSS RX/TX pin roles at runtime. Use if TX/RX are physically reversed.
+
+### SNR guard (nearby jammer/spoofer)
+
+- **SNR_EN**: Enables SNR-spread guard. When on, tight SNR spread can trigger DR1.
+- **SNR_MSATS**: Minimum satellites required for the SNR guard to evaluate.
+- **SNR_DMAX**: Maximum allowed SNR spread (max-min) before triggering. Lower values are stricter.
+- **SNR_MMAX**: Minimum required strongest SNR. Prevents triggering on low-signal noise.
+- **SNR_HOLDMS**: Time the SNR condition must persist before DR1 triggers.
+- **SNR_MAXAGE**: Maximum age of the SNR sample. Old samples are ignored.
 
 ## Persistence
 

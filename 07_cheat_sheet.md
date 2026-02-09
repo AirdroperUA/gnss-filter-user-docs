@@ -158,5 +158,5 @@ Flash order:
 
 
 
-See `08_recovery.md` for full steps.
+For recovery issues, contact support or replace the module.
 

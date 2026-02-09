@@ -6,7 +6,7 @@ This firmware expects **three UART links** on the STM32:
 2. FC MAVLink and STM32 (bidirectional, control/status/tuning)
 3. FC GPS and STM32 (bidirectional, raw UBX forwarding to the FC GPS UART)
 
-## Pin Map (from current `src/main.cpp`)
+## Pin Map (current firmware)
 
 | Function | STM32 Pin | Connect To |
 |---|---|---|
@@ -52,10 +52,9 @@ Also connect:
 
 - UART wiring must be **crossed** (`TX to RX`, `RX to TX`).
 - `A11/A12` are USB D-/D+ pins on BlackPill; using them as UART means you should treat that USB function as repurposed.
-- If you change pins in code, keep wiring and docs in sync.
 - If GNSS TX/RX are reversed, you can test a runtime swap using the `GNSS_SWAP` tune parameter (0/1) without reflashing.
 
 ## DR1 Event Pulse (`B5`)
 
 - On each DR0 to DR1 transition, the firmware drives `B5` high for 3 seconds, then low.
-- Logic polarity is controlled by `DR1_EVENT_ACTIVE_HIGH` in `src/main.cpp`.
+- Logic polarity is fixed by firmware; confirm the current behavior during first power-up.

@@ -47,6 +47,7 @@
 | `BOOT_NSATS` | Мін. супутників для boot north gate | 6 | 4 | 30 |
 | `BOOT_NHDOP` | Макс. HDOP для boot north gate | 4 | 0.5 | 10 |
 | `BOOT_NSTAB` | Вікно стабільності boot north gate (мс) | 1000 | 200 | 20000 |
+| `BOOT_DLYMS` | Додаткова затримка DR‑тригерів після старту (мс) | 10000 | 0 | 120000 |
 | `GN_HOTMS` | Тригер hotstart watchdog (мс) | 15000 | 1000 | 120000 |
 | `GN_COLDMS` | Тригер coldstart watchdog (мс) | 45000 | 2000 | 300000 |
 | `PT_ONLY` | Лише режим pass-through (0/1) | 1 | 0 | 1 |
@@ -126,6 +127,7 @@
 - **BOOT_NSATS**: Мін. супутників для старту публікації GNSS.
 - **BOOT_NHDOP**: Макс. HDOP для старту.
 - **BOOT_NSTAB**: Вікно стабільності для старту.
+- **BOOT_DLYMS**: Додаткова стартова затримка перед тим, як спуф/ЕКФ‑тригери зможуть перевести фільтр у DR1. Збільшуйте, якщо після вмикання живлення виникає хибний DR1 до стабілізації FC та GNSS.
 
 ### Watchdog відновлення GNSS
 
@@ -196,6 +198,15 @@ python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json
 ```bash
 python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json --strict
 ```
+
+## Mission Planner (тільки читання параметрів фільтра)
+
+Mission Planner використовуйте для параметрів STM32-фільтра лише в режимі читання.
+
+- Виберіть **STM32-фільтр (SYSID 42)** у списку систем.
+- Використовуйте лише **Read/Refresh** для перегляду значень.
+- **Не** використовуйте Mission Planner **Write** для параметрів STM32-фільтра.
+- Змінюйте параметри фільтра тільки через `tools/tune_cli.py`.
 
 ## Практичний робочий процес
 

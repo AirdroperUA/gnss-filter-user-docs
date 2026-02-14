@@ -36,6 +36,7 @@ Set the following ArduPilot GPS params:
 - Filter `SYSID` is `42`, `COMPID` is onboard computer (`191`).
 - The filter disables GNSS delivery to the FC by blocking GNSS forwarding to the FC GPS UART.
 - During DR1, raw UBX forwarding to the FC GPS UART is blocked.
+- For STM32 filter params: Mission Planner is read-only (Read/Refresh only). Use `tune_cli.py` for any parameter changes.
 
 ## 4) First Boot Checks
 
@@ -50,3 +51,17 @@ If FC says **"No GPS config data"**:
 - verify FC GPS serial protocol/baud,
 - verify UART cross wiring on `A11/A12`,
 - verify common ground.
+
+## 5) Required Commissioning Step (before flight tuning)
+
+Before normal operation, do this once to validate FC GPS path end-to-end:
+
+1. Connect to the filter (`SYSID=42`) and set:
+   - `FCGPS_FWD = 1`
+2. Wait until GNSS is healthy in filter logs (`GNS nav` increasing, satellites present).
+3. Confirm FC receives GNSS data on its GPS page/status.
+4. Set:
+   - `FCGPS_FWD = 0`
+
+Use `FCGPS_FWD=1` only for wiring/bring-up diagnostics.  
+For operational anti-spoof use, keep `FCGPS_FWD=0` so DR1 can block GNSS forwarding.

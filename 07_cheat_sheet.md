@@ -31,8 +31,20 @@ If **DR1 remains active**:
 
 - Check guard arming thresholds (`ARM_*`) and GNSS quality.
 - Check SNR guard settings (`SNR_*`) if enabled.
+- If DR1 appears immediately after power-up, increase startup delay `BOOT_DLYMS` (for example, 10000 -> 15000 ms).
 
 ## 4) tune_cli Commands
+
+Use explicit Python on Windows:
+
+```bash
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 list
+```
+
+Mission Planner note:
+
+- For STM32 filter params, Mission Planner is **read-only** (Read/Refresh only).
+- Do **not** use Mission Planner Write for filter params; use `tune_cli.py` for all changes.
 
 List params:
 
@@ -73,6 +85,20 @@ Import profile:
 python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json
 
 ```
+
+Commissioning (required once):
+
+```bash
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 1
+```
+
+Confirm FC receives GNSS, then return to operational mode:
+
+```bash
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 0
+```
+
+If `get` shows `No reply` after `set`, wait a few seconds and retry `get` (temporary save/reconnect gap).
 
 ## 5) Common DR1 Trigger Examples
 

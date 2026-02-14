@@ -31,8 +31,20 @@
 
 - перевірте пороги активації (`ARM_*`) і якість GNSS;
 - перевірте налаштування SNR (`SNR_*`), якщо увімкнено.
+- якщо DR1 з'являється одразу після подачі живлення, збільшіть `BOOT_DLYMS` (наприклад, 10000 -> 15000 мс).
 
 ## 4) Команди `tune_cli`
+
+Для Windows запускайте через явний Python:
+
+```bash
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 list
+```
+
+Примітка щодо Mission Planner:
+
+- Для параметрів STM32-фільтра Mission Planner працює лише в режимі читання (Read/Refresh).
+- Не використовуйте Mission Planner Write для параметрів фільтра; усі зміни робіть через `tune_cli.py`.
 
 Список параметрів:
 
@@ -63,6 +75,20 @@ python tools/tune_cli.py --port COM12 --baud 115200 export tune_baseline.json
 ```bash
 python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json
 ```
+
+Введення в експлуатацію (обов'язково один раз):
+
+```bash
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 1
+```
+
+Підтвердіть, що FC бачить GNSS, потім поверніть робочий режим:
+
+```bash
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 0
+```
+
+Якщо після `set` команда `get` повертає `No reply`, зачекайте кілька секунд і повторіть `get` (можливий короткий розрив під час збереження).
 
 ## 5) Типові приклади тригерів DR1
 

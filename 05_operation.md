@@ -9,6 +9,11 @@ The SNR-spread guard can also trigger DR1 when enabled (`SNR_EN`) if the differe
 
 This prevents suspect GNSS data from reaching the FC GPS input path while DR1 is active.
 
+Startup note:
+
+- `BOOT_DLYMS` adds a startup grace window before spoof/EKF trip logic can enter DR1.
+- If DR1 appears immediately after power-up and clears after reset, increase `BOOT_DLYMS`.
+
 ## Log Example (GCS)
 
 The following screenshot shows the expected status-text format in the GCS message log.

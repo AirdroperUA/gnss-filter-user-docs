@@ -47,6 +47,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `BOOT_NSATS` | Boot north gate minimum satellites | 6 | 4 | 30 |
 | `BOOT_NHDOP` | Boot north gate max HDOP | 4 | 0.5 | 10 |
 | `BOOT_NSTAB` | Boot north gate stable window (ms) | 1000 | 200 | 20000 |
+| `BOOT_DLYMS` | Startup DR trigger guard delay (ms) | 10000 | 0 | 120000 |
 | `GN_HOTMS` | GNSS hotstart watchdog trigger (ms) | 15000 | 1000 | 120000 |
 | `GN_COLDMS` | GNSS coldstart watchdog trigger (ms) | 45000 | 2000 | 300000 |
 | `PT_ONLY` | Pass-through-only mode (0/1) | 1 | 0 | 1 |
@@ -126,6 +127,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **BOOT_NSATS**: Minimum satellites required before publishing GNSS on boot (if north gate is active).
 - **BOOT_NHDOP**: Maximum HDOP allowed for boot publishing.
 - **BOOT_NSTAB**: Stability window before the initial north gate unlocks.
+- **BOOT_DLYMS**: Additional startup guard delay before spoof and EKF trip logic can enter DR1. Increase this if the FC and GNSS need extra time to stabilize after power-on and you see false DR1 right after boot.
 
 ### GNSS recovery watchdog
 
@@ -158,58 +160,53 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 Install dependency:
 
 ```bash
-
 python -m pip install pymavlink
-
 ```
 
 List current values:
 
 ```bash
-
 python tools/tune_cli.py --port COM12 --baud 115200 list
-
 ```
 
 Read one value:
 
 ```bash
-
 python tools/tune_cli.py --port COM12 --baud 115200 get BLEND_MS
-
 ```
 
 Set one value:
 
 ```bash
-
 python tools/tune_cli.py --port COM12 --baud 115200 set RJ_BASE_M 180
-
 ```
 
 Export snapshot:
 
 ```bash
-
 python tools/tune_cli.py --port COM12 --baud 115200 export tune_baseline.json
-
 ```
 
 Import snapshot:
 
 ```bash
-
 python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json
-
 ```
 
 Strict import (fail on unknown keys):
 
 ```bash
-
 python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json --strict
-
 ```
+
+## Mission Planner (read-only for filter params)
+
+Mission Planner is read-only for STM32 filter tuning parameters.
+
+- Select the **STM32 filter (SYSID 42)** in the target dropdown.
+- Use **Read/Refresh** only to inspect current values.
+- Do **not** use Mission Planner **Write** for STM32 filter params.
+- Change filter params only with `tools/tune_cli.py`.
 
 ## Practical Workflow
 

@@ -53,3 +53,20 @@ Quick verification:
 - No common ground between STM32, GNSS, and FC.
 
 If all checks pass and you still see no GNSS, capture a log screenshot and confirm wiring with a multimeter for continuity.
+
+## 5) `tune_cli.py` Runtime Issues (Windows)
+
+If `tune_cli.py` opens/closes instantly or reports import errors:
+
+1. Use explicit interpreter:
+   - `py -3 .\\tools\\tune_cli.py --port COM12 --baud 115200 list`
+2. Install missing modules:
+   - `py -3 -m ensurepip --upgrade`
+   - `py -3 -m pip install pymavlink pyserial`
+
+If you see **No reply for PARAM_NAME** right after `set`:
+
+- First check if `set` already returned `PARAM_NAME=<value>` (then write succeeded).
+- Wait 5-10 seconds and run `get` again.
+- Retry `get` 2-3 times (brief save/reconnect gaps are possible).
+- Ensure Mission Planner is not holding the same COM port during CLI access.

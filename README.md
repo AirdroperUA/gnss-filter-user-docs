@@ -12,3 +12,4 @@ In Mission Planner, use Read/Refresh for these params and do not use Write.
 5. `05_operation.md` - runtime behavior (DR0/DR1, GNSS forwarding, event pulse).
 6. `06_tuning.md` - live tuning parameters and `tune_cli.py` workflow.
 7. `07_cheat_sheet.md` - one-page quick reference for field checks and actions.
+8. `08_lab_validation.md` - safe lab validation workflow before real flights.

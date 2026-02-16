@@ -19,7 +19,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `RJ_LOIT_GM` | Loiter gate override (m) | 2500 | 10 | 1000000 |
 | `RJ_STAB_MS` | Stable window before rejoin/blend (ms) | 5000 | 500 | 120000 |
 | `BLEND_MS` | Blend duration DR1 to DR0 (ms) | 10000 | 1000 | 120000 |
-| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 120000 | 0 | 600000 |
+| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 15000 | 0 | 600000 |
 | `SP_JMP_MPS` | Spoof guard speed jump limit (m/s) | 5000 | 50 | 20000 |
 | `SP_ABS_M` | Spoof guard absolute step limit (m) | 5000 | 100 | 50000 |
 | `ARM_MIN_S` | Guard arming minimum satellites | 6 | 4 | 30 |
@@ -56,7 +56,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `LOG_MS` | Filter status log period (ms) | 15000 | 1000 | 120000 |
 | `NAV_AGEMS` | Max NAV age for valid/present GPS (ms) | 5000 | 200 | 60000 |
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
-| `GNSS_SWAP` | Swap GNSS UART RX/TX pins (0/1) | 0 | 0 | 1 |
+| `GNSS_SWAP` | Reserved on STM32F401 (runtime swap unsupported, keep 0) | 0 | 0 | 0 |
 | `SNR_EN` | Enable SNR-spread spoof guard (0/1) | 0 | 0 | 1 |
 | `SNR_MSATS` | SNR guard minimum satellites | 8 | 4 | 30 |
 | `SNR_DMAX` | Max allowed SNR spread (max-min, dB-Hz) to trigger | 6 | 1 | 40 |
@@ -139,7 +139,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **LOG_MS**: Status log period (ms). Lower values give more frequent logs but add traffic.
 - **NAV_AGEMS**: Maximum NAV age to consider GNSS data valid/present.
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
-- **GNSS_SWAP**: Swaps GNSS RX/TX pin roles at runtime. Use if TX/RX are physically reversed.
+- **GNSS_SWAP**: Reserved on STM32F401. Runtime GNSS RX/TX swap is not supported in this hardware/driver combination; keep this value at 0.
 
 ### SNR guard (nearby jammer/spoofer)
 
@@ -154,6 +154,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - Changes are applied immediately.
 - Filter auto-saves to non-volatile storage about 1.5s after the last change.
+- After any `set`, wait up to **30-45 seconds** before making more changes. During this window the filter may temporarily reset/reinitialize (can look like a reboot), briefly disappear from the GCS device list, or stop replying to `get`/`list`.
 
 ## Using `tools/tune_cli.py`
 
@@ -217,8 +218,8 @@ Mission Planner is read-only for STM32 filter tuning parameters.
 
 Notes:
 
-- `GNSS_SWAP` applies a live UART remap and triggers GNSS reconfiguration.
-- If you lose GNSS after changing `GNSS_SWAP`, set it back to previous value.
+- `GNSS_SWAP` is reserved on STM32F401 and should remain `0`.
+- To fix reversed GNSS TX/RX, correct physical wiring (GNSS TX -> A3, GNSS RX -> A2).
 
 ## Trigger Examples
 

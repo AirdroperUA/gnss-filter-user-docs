@@ -52,7 +52,7 @@ Also connect:
 
 - UART wiring must be **crossed** (`TX to RX`, `RX to TX`).
 - `A11/A12` are USB D-/D+ pins on BlackPill; using them as UART means you should treat that USB function as repurposed.
-- If GNSS TX/RX are reversed, you can test a runtime swap using the `GNSS_SWAP` tune parameter (0/1) without reflashing.
+- Runtime GNSS TX/RX swap is not supported on STM32F401 in this firmware. If GNSS TX/RX are reversed, fix physical wiring (GNSS TX -> `A3`, GNSS RX -> `A2`).
 
 ## DR1 Event Pulse (`B5`)
 

@@ -67,6 +67,6 @@ If `tune_cli.py` opens/closes instantly or reports import errors:
 If you see **No reply for PARAM_NAME** right after `set`:
 
 - First check if `set` already returned `PARAM_NAME=<value>` (then write succeeded).
-- Wait 5-10 seconds and run `get` again.
+- Wait up to **30-45 seconds** and run `get` again (the filter may briefly reset/reinitialize while saving).
 - Retry `get` 2-3 times (brief save/reconnect gaps are possible).
 - Ensure Mission Planner is not holding the same COM port during CLI access.

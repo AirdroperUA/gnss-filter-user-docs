@@ -98,7 +98,7 @@ Confirm FC receives GNSS, then return to operational mode:
 py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 0
 ```
 
-If `get` shows `No reply` after `set`, wait a few seconds and retry `get` (temporary save/reconnect gap).
+If `get` shows `No reply` after `set`, wait up to **30-45 seconds** and retry `get` (temporary save/reset/reconnect gap).
 
 ## 5) Common DR1 Trigger Examples
 

@@ -1,119 +1,89 @@
-# Cheat Sheet (Field Quick Reference)
+﻿# Cheat Sheet (Field Quick Reference)
 
-This is a one-page quick reference for setup checks, DR state meaning, and common actions.
+This is a one-page quick reference for setup checks, DR meaning, and common actions.
 
 ## 1) UART Summary
 
-- GNSS and STM32: `A2/A3` (UBX @ 460800)
+- GNSS and STM32: `A2/A3`
 - FC MAVLink and STM32: `A9/A10` (MAVLink2 @ 115200)
-- FC GPS and STM32: `A11/A12` (UBX @ 460800)
+- FC GPS and STM32: `A11/A12` (typically 460800)
 
-## 2) DR Modes
+## 2) Receiver Mode (`GNSS_TYPE`)
 
-- **DR0**: normal mode. GNSS is forwarded to the FC GPS UART.
-- **DR1**: protection mode. GNSS forwarding to the FC GPS UART is blocked.
-- **B5**: pulses high for ~3 s on each DR0 to DR1 transition.
+- `GNSS_TYPE=0`: u-blox/UBX mode.
+- `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).
+- For custom u-blox that should not be auto-configured:
+  - set `UBX_BAUD` to receiver baud (`0` means autoconfig ON),
+  - reboot STM32 to apply.
 
-## 3) Quick Diagnostics
+## 3) DR Modes
 
-If FC shows **"No GPS config data"**:
+- **DR0**: normal mode, forwarding enabled.
+- **DR1**: protection mode, forwarding blocked.
+- **B5**: high pulse (~3 s) on each DR0 -> DR1 transition.
 
-- Check FC GPS UART protocol/baud.
-- Check `A11/A12` wiring (cross TX/RX).
+## 4) Quick Diagnostics
+
+If FC shows **No GPS config data**:
+
+- Check FC GPS UART protocol and baud.
+- Check `A11/A12` TX/RX crossing.
 - Confirm common ground.
 
-If you see **GNSS jumps on the GCS map**:
+If DR1 stays active:
 
-- This can be GNSS spoofing shown by the GCS, not the FC EKF position.
-- Use the DR state and filter logs as the primary reference.
+- Check no-fix / low-satellite state.
+- Check guard thresholds (`ARM_*`, `SP_*`, `ALT_*`, `SNR_*`).
+- Increase `BOOT_DLYMS` if false DR1 appears right after boot.
 
-If **DR1 remains active**:
+If FC constantly shows **No Fix**:
 
-- Check guard arming thresholds (`ARM_*`) and GNSS quality.
-- Check SNR guard settings (`SNR_*`) if enabled.
-- If DR1 appears immediately after power-up, increase startup delay `BOOT_DLYMS` (for example, 10000 -> 15000 ms).
+- Verify RC AUX logic is not forcing GPS disable in FC settings.
 
-## 4) tune_cli Commands
+## 5) `tune_cli.py` Commands
 
-Use explicit Python on Windows:
+List params:
 
 ```bash
 py -3 .\tools\tune_cli.py --port COM12 --baud 115200 list
 ```
 
-Mission Planner note:
-
-- For STM32 filter params, Mission Planner is **read-only** (Read/Refresh only).
-- Do **not** use Mission Planner Write for filter params; use `tune_cli.py` for all changes.
-
-List params:
-
-```bash
-
-python tools/tune_cli.py --port COM12 --baud 115200 list
-
-```
-
 Read one param:
 
 ```bash
-
-python tools/tune_cli.py --port COM12 --baud 115200 get BLEND_MS
-
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 get BLEND_MS
 ```
 
 Set one param:
 
 ```bash
-
-python tools/tune_cli.py --port COM12 --baud 115200 set RJ_BASE_M 180
-
+py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set RJ_BASE_M 180
 ```
 
-Export profile:
-
-```bash
-
-python tools/tune_cli.py --port COM12 --baud 115200 export tune_baseline.json
-
-```
-
-Import profile:
-
-```bash
-
-python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json
-
-```
-
-Commissioning (required once):
+Commissioning check (one-time):
 
 ```bash
 py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 1
 ```
 
-Confirm FC receives GNSS, then return to operational mode:
+Return to operational mode:
 
 ```bash
 py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 0
 ```
 
-If `get` shows `No reply` after `set`, wait up to **30-45 seconds** and retry `get` (temporary save/reset/reconnect gap).
+## 6) Parameter Write Rules
 
-## 5) Common DR1 Trigger Examples
+- Mission Planner is read-only for filter params (Read/Refresh only).
+- Write filter params only via `tune_cli.py`.
+- After `set`, wait up to 30-45 seconds if immediate `get` returns `No reply`.
+- After any parameter changes, reboot STM32 before flight.
 
-- Position jump: large step > `SP_ABS_M` or speed > `SP_JMP_MPS`.
-- SNR spread: if `SNR_EN=1` and spread is too narrow for > `SNR_HOLDMS`.
-- Altitude: large jump (`ALT_JMP_M`) or excessive rate (`ALT_RMPS`).
+## 7) Typical DR1 Triggers
 
-## 6) Recovery (Phase-B Updates)
-
-Flash order:
-
-1) bootloader at `0x08000000`
-
-2) app at `0x08008000`
-
-3) boot_meta at `0x08007C00`
-
-For recovery issues, contact support or replace the module.
+- no-fix / low satellites (`sats < 5`),
+- position jump (`SP_ABS_M`, `SP_JMP_MPS`),
+- SNR anomaly (`SNR_*` when enabled),
+- altitude anomaly (`ALT_*`),
+- EKF unhealthy (`EKF_TRIPMS`).

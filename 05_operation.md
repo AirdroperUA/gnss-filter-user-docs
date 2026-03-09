@@ -1,35 +1,56 @@
-# Runtime Operation
+﻿# Runtime Operation
 
 ## DR0 vs DR1
 
-- **DR0**: normal operation. GNSS UBX is forwarded to the FC GPS UART.
-- **DR1**: protection mode. GNSS forwarding to the FC GPS UART is blocked.
+- **DR0**: normal operation. GNSS forwarding to FC GPS UART is enabled.
+- **DR1**: protection mode. GNSS forwarding to FC GPS UART is blocked.
 
-The SNR-spread guard can also trigger DR1 when enabled (`SNR_EN`) if the difference between the strongest and weakest satellite SNR remains abnormally narrow for the configured hold time.
+This prevents suspect GNSS data from reaching FC navigation input while DR1 is active.
 
-This prevents suspect GNSS data from reaching the FC GPS input path while DR1 is active.
+## DR1 trigger behavior (current firmware)
 
-Startup note:
+- No-fix or low-satellite condition (`sats < 5`) triggers DR1 immediately (after startup guard window).
+- Position jump, altitude checks, SNR checks, and EKF checks can also trigger DR1 based on tuning.
+- `EKF_TRIPMS=0` means EKF-based DR1 trip is immediate when EKF is unhealthy.
 
-- `BOOT_DLYMS` adds a startup grace window before spoof/EKF trip logic can enter DR1.
-- If DR1 appears immediately after power-up and clears after reset, increase `BOOT_DLYMS`.
+## Startup guard
 
-## Log Example (GCS)
+- `BOOT_DLYMS` creates a startup grace window before DR/EKF trip logic can enter DR1.
+- Increase `BOOT_DLYMS` if DR1 appears right after power-up and clears after reset.
 
-The following screenshot shows the expected status-text format in the GCS message log.
+## GNSS forwarding diagnostics
+
+- `FCGPS_FWD=1` forces forwarding even in DR1 (diagnostic only).
+- `FCGPS_FWD=0` is the normal anti-spoof setting.
+- Log field `d=<fcgps_drop>/<gnss_drop>` reports non-blocking UART write drops.
+
+## Receiver mode
+
+- `GNSS_TYPE=0`: u-blox/UBX mode.
+- `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- `GNSS_TYPE` changes require STM32 reboot.
+
+## Log example (GCS)
+
+The following screenshot shows expected status-text format in GCS messages.
 
 ![Example log output](diagrams/log_example.png)
 
-## Rejoin Sequence
+## Rejoin sequence
 
 When rejoin conditions are satisfied:
 
-1. The rejoin stability timer starts.
-2. An optional blend phase runs for `BLEND_MS`.
-3. The filter exits DR1 and restores normal forwarding (DR0).
+1. Rejoin stability timer runs.
+2. Optional blend phase runs for `BLEND_MS`.
+3. Filter exits DR1 and restores DR0 forwarding.
 
-## DR1 Event Pulse Output
+## DR1 event pulse output
 
-- Pin: `B5` (current firmware setting).
-- Behavior: high for 3 seconds on each DR0 to DR1 transition, then low.
-- Use case: trigger external logger/beacon/indicator.
+- Pin: `B5`.
+- Behavior: high for 3 seconds on each DR0 -> DR1 transition, then low.
+- Use case: external logger/beacon/indicator.
+
+## Operational checks
+
+- If FC constantly shows `No Fix`, verify RC AUX logic is not forcing GPS disable on FC.
+- If map shows jumps during spoofing, trust DR state and filter logs over map position.

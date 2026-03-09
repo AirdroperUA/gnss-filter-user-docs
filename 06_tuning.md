@@ -19,7 +19,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `RJ_LOIT_GM` | Loiter gate override (m) | 2500 | 10 | 1000000 |
 | `RJ_STAB_MS` | Stable window before rejoin/blend (ms) | 5000 | 500 | 120000 |
 | `BLEND_MS` | Blend duration DR1 to DR0 (ms) | 10000 | 1000 | 120000 |
-| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 15000 | 0 | 600000 |
+| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 120000 | 0 | 600000 |
 | `SP_JMP_MPS` | Spoof guard speed jump limit (m/s) | 5000 | 50 | 20000 |
 | `SP_ABS_M` | Spoof guard absolute step limit (m) | 5000 | 100 | 50000 |
 | `ARM_MIN_S` | Guard arming minimum satellites | 6 | 4 | 30 |
@@ -41,7 +41,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `NUDGE_EN` | Enable DR1 nudge toward GNSS (0/1) | 1 | 0 | 1 |
 | `NUDGE_MPS` | DR1 nudge speed (m/s) | 8 | 0 | 50 |
 | `NUDGE_FRAC` | DR1 max nudge fraction per step | 0.5 | 0 | 1 |
-| `EKF_TRIPMS` | EKF bad duration to trip DR1 (ms) | 1500 | 200 | 10000 |
+| `EKF_TRIPMS` | EKF bad duration to trip DR1 (ms) | 0 | 0 | 10000 |
 | `EKF_OKRJMS` | EKF good duration needed for rejoin (ms) | 3000 | 200 | 20000 |
 | `EKF_GRCMS` | EKF grace after DR0 exit (ms) | 7000 | 0 | 60000 |
 | `BOOT_NSATS` | Boot north gate minimum satellites | 6 | 4 | 30 |
@@ -56,7 +56,8 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `LOG_MS` | Filter status log period (ms) | 15000 | 1000 | 120000 |
 | `NAV_AGEMS` | Max NAV age for valid/present GPS (ms) | 5000 | 200 | 60000 |
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
-| `GNSS_SWAP` | Reserved on STM32F401 (runtime swap unsupported, keep 0) | 0 | 0 | 0 |
+| `UBX_BAUD` | u-blox baud control: 0=autoconfig ON, >0=manual baud (reboot to apply) | 0 | 0 | 2000000 |
+| `GNSS_TYPE` | Receiver mode: 0=u-blox/UBX, 1=UM980/UM981 NMEA (reboot to apply) | 0 | 0 | 1 |
 | `SNR_EN` | Enable SNR-spread spoof guard (0/1) | 0 | 0 | 1 |
 | `SNR_MSATS` | SNR guard minimum satellites | 8 | 4 | 30 |
 | `SNR_DMAX` | Max allowed SNR spread (max-min, dB-Hz) to trigger | 6 | 1 | 40 |
@@ -118,7 +119,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 ### EKF gates
 
 - **RJ_REQEKF**: If enabled, rejoin requires an EKF OK window in addition to GNSS quality. Safer, but slower to rejoin.
-- **EKF_TRIPMS**: Time EKF must be bad before DR1 triggers. Shorter values are more sensitive; longer values tolerate brief glitches.
+- **EKF_TRIPMS**: Time EKF must be bad before DR1 triggers. `0` means immediate trip with no delay.
 - **EKF_OKRJMS**: Minimum time EKF must be good before rejoin when `RJ_REQEKF` is enabled.
 - **EKF_GRCMS**: Grace period after exiting DR1 during which EKF issues are ignored. Helps avoid immediate re-trips.
 
@@ -131,15 +132,16 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 ### GNSS recovery watchdog
 
-- **GN_HOTMS**: Time with zero satellites before a GNSS hotstart is triggered (during DR1).
-- **GN_COLDMS**: Time with zero satellites before a GNSS coldstart is triggered (during DR1).
+- **GN_HOTMS**: Time in DR1 with no valid fix before GNSS hotstart is triggered (also used when satellites are zero).
+- **GN_COLDMS**: Time in DR1 with no valid fix before GNSS coldstart is triggered (also used when satellites are zero).
 
 ### GNSS handling and logging
 
 - **LOG_MS**: Status log period (ms). Lower values give more frequent logs but add traffic.
 - **NAV_AGEMS**: Maximum NAV age to consider GNSS data valid/present.
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
-- **GNSS_SWAP**: Reserved on STM32F401. Runtime GNSS RX/TX swap is not supported in this hardware/driver combination; keep this value at 0.
+- **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior). Any value `>0` disables autoconfig and uses this manual baud directly. Applied after reboot.
+- **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981 NMEA. Change is saved immediately but applied after STM32 reboot.
 
 ### SNR guard (nearby jammer/spoofer)
 
@@ -154,7 +156,10 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - Changes are applied immediately.
 - Filter auto-saves to non-volatile storage about 1.5s after the last change.
-- After any `set`, wait up to **30-45 seconds** before making more changes. During this window the filter may temporarily reset/reinitialize (can look like a reboot), briefly disappear from the GCS device list, or stop replying to `get`/`list`.
+- `GNSS_TYPE` is an exception for runtime behavior: value is saved immediately but takes effect only after reboot.
+- `UBX_BAUD` also requires reboot to apply.
+- After `set`, wait about **2-3 seconds** to allow the save cycle to complete.
+- Recommended field procedure: reboot STM32 (`NRST` or power cycle) after a tuning session before flight use.
 
 ## Using `tools/tune_cli.py`
 
@@ -200,6 +205,28 @@ Strict import (fail on unknown keys):
 python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json --strict
 ```
 
+## Parameter Smoke Test
+
+Use the smoke test script after firmware update or wiring changes:
+
+```bash
+python tools/param_smoke_test.py --port COM12 --baud 115200
+```
+
+Optional persistence verification (manual reboot during script run):
+
+```bash
+python tools/param_smoke_test.py --port COM12 --baud 115200 --check-persistence --reboot-wait 60
+```
+
+Default smoke coverage:
+
+- `FCGPS_FWD`
+- `DR_LOCK_MS`
+- `LOG_MS`
+
+The script restores original values unless you pass `--no-restore`.
+
 ## Mission Planner (read-only for filter params)
 
 Mission Planner is read-only for STM32 filter tuning parameters.
@@ -218,7 +245,7 @@ Mission Planner is read-only for STM32 filter tuning parameters.
 
 Notes:
 
-- `GNSS_SWAP` is reserved on STM32F401 and should remain `0`.
+- If your custom u-blox receiver does not accept filter autoconfig, set `UBX_BAUD` to the receiver baud and reboot.
 - To fix reversed GNSS TX/RX, correct physical wiring (GNSS TX -> A3, GNSS RX -> A2).
 
 ## Trigger Examples

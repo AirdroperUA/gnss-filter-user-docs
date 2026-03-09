@@ -1,14 +1,14 @@
-# Wiring Guide (STM32F401 BlackPill)
+﻿# Wiring Guide (STM32F401 BlackPill)
 
-This firmware expects **three UART links** on the STM32:
+This firmware expects **three UART links** on STM32:
 
-1. GNSS and STM32 (bidirectional, UBX input for parsing)
-2. FC MAVLink and STM32 (bidirectional, control/status/tuning)
-3. FC GPS and STM32 (bidirectional, raw UBX forwarding to the FC GPS UART)
+1. GNSS and STM32 (bidirectional receiver link for filter parsing)
+2. FC MAVLink and STM32 (bidirectional control/status/tuning)
+3. FC GPS and STM32 (bidirectional raw GNSS forwarding to FC GPS UART)
 
-## Pin Map (current firmware)
+## Pin map (current firmware)
 
-| Function | STM32 Pin | Connect To |
+| Function | STM32 Pin | Connect to |
 |---|---|---|
 | GNSS RX | `A3` | GNSS TX |
 | GNSS TX | `A2` | GNSS RX |
@@ -18,14 +18,14 @@ This firmware expects **three UART links** on the STM32:
 | FC GPS TX | `A11` | FC GPS RX (FC GPS UART) |
 | DR1 event output | `B5` | Optional external logic input |
 
-## Signal Direction (TX -> RX)
+## Signal direction (TX -> RX)
 
-- GNSS **TX** -> STM32 `A3` (GNSS RX in firmware).
-- GNSS **RX** <- STM32 `A2` (GNSS TX in firmware).
-- FC MAV **TX** -> STM32 `A10` (MAV RX).
-- FC MAV **RX** <- STM32 `A9` (MAV TX).
-- FC GPS **TX** -> STM32 `A12` (GPS RX).
-- FC GPS **RX** <- STM32 `A11` (GPS TX).
+- GNSS **TX** -> STM32 `A3`.
+- GNSS **RX** <- STM32 `A2`.
+- FC MAV **TX** -> STM32 `A10`.
+- FC MAV **RX** <- STM32 `A9`.
+- FC GPS **TX** -> STM32 `A12`.
+- FC GPS **RX** <- STM32 `A11`.
 
 ## Diagrams
 
@@ -33,7 +33,7 @@ This firmware expects **three UART links** on the STM32:
 
 ![Wiring OK example](diagrams/wiring_ok_example.png)
 
-## Board Photos (reference)
+## Board photos (reference)
 
 These are two common BlackPill STM32F401 variants. Pin labels and functions are the same.
 
@@ -45,16 +45,22 @@ If GNSS or MAVLink does not work after wiring, see `03_wiring_debug.md`.
 
 Also connect:
 
-- `GND` (STM32) to GNSS GND and FC GND (common ground required).
-- Power rails per your hardware design (GNSS module and FC are not powered from UART pins).
+- `GND` (STM32) to GNSS GND and FC GND (common ground is required).
+- Power rails according to your hardware design (do not power GNSS/FC from UART pins).
 
-## Important Notes
+## Important notes
 
-- UART wiring must be **crossed** (`TX to RX`, `RX to TX`).
-- `A11/A12` are USB D-/D+ pins on BlackPill; using them as UART means you should treat that USB function as repurposed.
-- Runtime GNSS TX/RX swap is not supported on STM32F401 in this firmware. If GNSS TX/RX are reversed, fix physical wiring (GNSS TX -> `A3`, GNSS RX -> `A2`).
+- UART wiring must be crossed (`TX -> RX`, `RX -> TX`).
+- `A11/A12` are USB D-/D+ pins on BlackPill; in this project they are repurposed as UART.
+- Runtime GNSS TX/RX swap is not supported on STM32F401 in this firmware; fix wiring physically if reversed.
+- Receiver protocol mode is selected by `GNSS_TYPE`:
+  - `0`: u-blox/UBX
+  - `1`: UM980/UM981 NMEA
+- u-blox autoconfig behavior is controlled by `UBX_BAUD`:
+  - `UBX_BAUD=0`: autoconfig enabled (default).
+  - `UBX_BAUD>0`: autoconfig disabled, use this manual baud (reboot required).
 
-## DR1 Event Pulse (`B5`)
+## DR1 event pulse (`B5`)
 
-- On each DR0 to DR1 transition, the firmware drives `B5` high for 3 seconds, then low.
-- Logic polarity is fixed by firmware; confirm the current behavior during first power-up.
+- On each DR0 -> DR1 transition, firmware drives `B5` high for 3 seconds, then low.
+- Verify polarity with your external circuit during first power-up.

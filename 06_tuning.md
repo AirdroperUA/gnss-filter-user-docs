@@ -158,90 +158,34 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - Filter auto-saves to non-volatile storage about 1.5s after the last change.
 - `GNSS_TYPE` is an exception for runtime behavior: value is saved immediately but takes effect only after reboot.
 - `UBX_BAUD` also requires reboot to apply.
-- After `set`, wait about **2-3 seconds** to allow the save cycle to complete.
-- Recommended field procedure: reboot STM32 (`NRST` or power cycle) after a tuning session before flight use.
+- After a parameter write, wait about **2-3 seconds** to allow the save cycle to complete.
+- Reboot after every parameter change is **not** required.
+- Reboot STM32 (`NRST` or power cycle) when changing `GNSS_TYPE` or `UBX_BAUD`, or if behavior does not match updated values.
 
-## Using `tools/tune_cli.py`
+## Using Mission Planner for Parameter Writes
 
-Install dependency:
+Use Mission Planner to read and write all STM32 filter params:
 
-```bash
-python -m pip install pymavlink
-```
+1. Open `Config/Tuning` -> `Full Parameter List`.
+2. Select the STM32 filter target (**SYSID 42**) in the system dropdown.
+3. Click **Refresh Params**.
+4. Edit one or more values.
+5. Click **Write Params**.
+6. Click **Refresh Params** again to verify saved values.
 
-List current values:
+Notes:
 
-```bash
-python tools/tune_cli.py --port COM12 --baud 115200 list
-```
-
-Read one value:
-
-```bash
-python tools/tune_cli.py --port COM12 --baud 115200 get BLEND_MS
-```
-
-Set one value:
-
-```bash
-python tools/tune_cli.py --port COM12 --baud 115200 set RJ_BASE_M 180
-```
-
-Export snapshot:
-
-```bash
-python tools/tune_cli.py --port COM12 --baud 115200 export tune_baseline.json
-```
-
-Import snapshot:
-
-```bash
-python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json
-```
-
-Strict import (fail on unknown keys):
-
-```bash
-python tools/tune_cli.py --port COM12 --baud 115200 import tune_baseline.json --strict
-```
-
-## Parameter Smoke Test
-
-Use the smoke test script after firmware update or wiring changes:
-
-```bash
-python tools/param_smoke_test.py --port COM12 --baud 115200
-```
-
-Optional persistence verification (manual reboot during script run):
-
-```bash
-python tools/param_smoke_test.py --port COM12 --baud 115200 --check-persistence --reboot-wait 60
-```
-
-Default smoke coverage:
-
-- `FCGPS_FWD`
-- `DR_LOCK_MS`
-- `LOG_MS`
-
-The script restores original values unless you pass `--no-restore`.
-
-## Mission Planner (read-only for filter params)
-
-Mission Planner is read-only for STM32 filter tuning parameters.
-
-- Select the **STM32 filter (SYSID 42)** in the target dropdown.
-- Use **Read/Refresh** only to inspect current values.
-- Do **not** use Mission Planner **Write** for STM32 filter params.
-- Change filter params only with `tools/tune_cli.py`.
+- If a value does not update on the first try, click **Write Params** again.
+- After writing, allow up to 30-45 seconds for link recovery in heavy telemetry conditions.
+- Reboot is needed for `GNSS_TYPE` and `UBX_BAUD`; most other params apply without reboot.
 
 ## Practical Workflow
 
-1. Export baseline JSON.
+1. In Mission Planner, click **Save to file** to store a baseline profile.
 2. Change one or two params at a time.
-3. Flight test and log.
-4. Keep known-good JSON profiles so you can roll back quickly.
+3. Click **Write Params**, then **Refresh Params** to confirm values.
+4. Flight test and review logs.
+5. Keep known-good saved files so you can roll back quickly.
 
 Notes:
 

@@ -41,44 +41,22 @@ If FC constantly shows **No Fix**:
 
 - Verify RC AUX logic is not forcing GPS disable in FC settings.
 
-## 5) `tune_cli.py` Commands
+## 5) Mission Planner Parameter Write Flow
 
-List params:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 list
-```
-
-Read one param:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 get BLEND_MS
-```
-
-Set one param:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set RJ_BASE_M 180
-```
-
-Commissioning check (one-time):
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 1
-```
-
-Return to operational mode:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 0
-```
+1. `Config/Tuning` -> `Full Parameter List`.
+2. Select STM32 target (`SYSID 42`).
+3. Click `Refresh Params`.
+4. Edit values.
+5. Click `Write Params`.
+6. Click `Refresh Params` to confirm.
 
 ## 6) Parameter Write Rules
 
-- Mission Planner is read-only for filter params (Read/Refresh only).
-- Write filter params only via `tune_cli.py`.
-- After `set`, wait up to 30-45 seconds if immediate `get` returns `No reply`.
-- After any parameter changes, reboot STM32 before flight.
+- Parameter read/write is done in Mission Planner Full Parameter List.
+- If write does not apply on first click, repeat `Write Params`.
+- Allow up to 30-45 seconds for telemetry link recovery after writes.
+- Reboot is required for `GNSS_TYPE` and `UBX_BAUD`.
+- Reboot is not required for most other parameters.
 
 ## 7) Typical DR1 Triggers
 

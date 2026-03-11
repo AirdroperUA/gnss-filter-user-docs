@@ -55,8 +55,11 @@ Flight controller parameters:
 
 - Filter IDs: `SYSID=42`, `COMPID=191`.
 - DR1 protection is implemented by blocking forwarding from GNSS input to FC GPS UART.
-- Mission Planner for filter params is read-only (Read/Refresh). Use `tune_cli.py` for writes.
-- After changing any filter parameter, reboot STM32 (`NRST` or power cycle) before flight use.
+- Filter params are changed in Mission Planner:
+  - `Config/Tuning` -> `Full Parameter List`
+  - select STM32 (`SYSID=42`)
+  - `Refresh Params` -> edit value -> `Write Params`
+- Reboot is not required after every parameter write.
 
 Receiver mode selection on STM32:
 

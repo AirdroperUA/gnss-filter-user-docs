@@ -41,44 +41,22 @@
 
 - Перевірте, чи AUX-логіка RC не примусово вимикає GPS у налаштуваннях FC.
 
-## 5) Команди `tune_cli.py`
+## 5) Схема запису параметрів у Mission Planner
 
-Список параметрів:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 list
-```
-
-Читання одного параметра:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 get BLEND_MS
-```
-
-Зміна одного параметра:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set RJ_BASE_M 180
-```
-
-Діагностична перевірка при введенні в експлуатацію (один раз):
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 1
-```
-
-Повернення у штатний режим:
-
-```bash
-py -3 .\tools\tune_cli.py --port COM12 --baud 115200 set FCGPS_FWD 0
-```
+1. `Config/Tuning` -> `Full Parameter List`.
+2. Виберіть STM32 (`SYSID 42`).
+3. Натисніть `Refresh Params`.
+4. Змініть значення.
+5. Натисніть `Write Params`.
+6. Натисніть `Refresh Params` для перевірки.
 
 ## 6) Правила запису параметрів
 
-- Mission Planner для параметрів фільтра - лише читання (Read/Refresh).
-- Змінюйте параметри фільтра тільки через `tune_cli.py`.
-- Після `set` зачекайте до 30-45 секунд, якщо `get` одразу повертає `No reply`.
-- Після будь-яких змін параметрів перезавантажте STM32 перед польотом.
+- Читання і запис параметрів виконуються у Mission Planner (Full Parameter List).
+- Якщо значення не записалося з першого разу, натисніть `Write Params` повторно.
+- Після запису можливе коротке відновлення телеметрії до 30-45 секунд.
+- Для `GNSS_TYPE` і `UBX_BAUD` потрібен reboot STM32.
+- Для більшості інших параметрів reboot не потрібен.
 
 ## 7) Типові тригери DR1
 

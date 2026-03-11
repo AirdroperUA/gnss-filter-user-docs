@@ -46,17 +46,20 @@ Quick verification:
 ## 3) MAVLink path (STM32 <-> FC telemetry)
 
 Symptoms:
-- `tune_cli.py` cannot list/get params.
+- Mission Planner cannot read/write STM32 params.
 - No filter status text in GCS.
 
 Checks:
 1. **UART pins**: STM32 `A9/A10` to FC telemetry UART with TX/RX crossed.
 2. **Protocol**: FC telemetry port set to MAVLink2 at 115200.
 3. **Target IDs**: filter defaults are `SYSID=42`, `COMPID=191`.
-4. **Port lock**: do not use Mission Planner and `tune_cli.py` on the same COM port at the same time.
+4. **Single-owner COM port**: close other serial tools when using Mission Planner.
 
 Quick verification:
-- Run `py -3 .\tools\tune_cli.py --port COM12 --baud 115200 list`.
+- In Mission Planner:
+  1. `Config/Tuning` -> `Full Parameter List`
+  2. select STM32 (`SYSID 42`)
+  3. click `Refresh Params` and verify values populate.
 
 ## 4) Common mistakes
 
@@ -67,19 +70,13 @@ Quick verification:
 - `UBX_BAUD` changed but STM32 not rebooted.
 - Testing DR recovery during startup while `BOOT_DLYMS` still active.
 
-## 5) `tune_cli.py` runtime issues (Windows)
+## 5) Mission Planner parameter write issues
 
-If `tune_cli.py` opens/closes instantly or reports import errors:
+If parameter write/read is unstable:
 
-1. Use explicit interpreter:
-   - `py -3 .\tools\tune_cli.py --port COM12 --baud 115200 list`
-2. Install missing modules:
-   - `py -3 -m ensurepip --upgrade`
-   - `py -3 -m pip install pymavlink pyserial`
-
-If `get` shows `No reply` right after `set`:
-
-- Check whether `set` already printed `PARAM=value` (write may already be successful).
-- Wait up to 30-45 seconds, then retry `get`.
-- Retry `get` 2-3 times if needed.
-- Reboot STM32 (`NRST` or power cycle) after parameter updates before flight use.
+1. Open only one GCS instance on the COM port.
+2. In `Full Parameter List`, click `Refresh Params` before editing.
+3. Edit value, click `Write Params`, then `Refresh Params` again.
+4. If value did not persist, click `Write Params` again.
+5. If link drops temporarily, wait up to 30-45 seconds and refresh again.
+6. Reboot STM32 only when changing `GNSS_TYPE` or `UBX_BAUD`, or if value still does not apply.

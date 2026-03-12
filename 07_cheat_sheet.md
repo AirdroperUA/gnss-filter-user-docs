@@ -12,6 +12,9 @@ This is a one-page quick reference for setup checks, DR meaning, and common acti
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- For `GNSS_TYPE=1`, use one physical UM980 stream only:
+  - `COM1` -> STM32 `A2/A3`
+  - STM32 forwards that same stream to FC GPS UART
 - After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).
 - For custom u-blox that should not be auto-configured:
   - set `UBX_BAUD` to receiver baud (`0` means autoconfig ON),
@@ -65,3 +68,10 @@ If FC constantly shows **No Fix**:
 - SNR anomaly (`SNR_*` when enabled),
 - altitude anomaly (`ALT_*`),
 - EKF unhealthy (`EKF_TRIPMS`).
+
+## 8) Mission Planner Log Timing
+
+- In Mission Planner `Messages`, STM32 filter status logs normally show up about every **10 seconds** by default.
+- Usually two lines appear together:
+  - `ARM=... DR=... BLEND=... LAT=... LONG=...`
+  - `data=... age=... SATS=... SNR=...`

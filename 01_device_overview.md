@@ -23,6 +23,10 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 - Receiver mode is selected by `GNSS_TYPE`:
   - `GNSS_TYPE=0`: u-blox/UBX mode.
   - `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- In `GNSS_TYPE=1`, the filter expects one physical UM980 receiver stream:
+  - `COM1` -> STM32 `A2/A3`
+  - the STM32 reads spoofing/SNR data from that stream
+  - the STM32 forwards that same stream to the FC GPS UART
 - `GNSS_TYPE` is saved immediately but applied only after STM32 reboot.
 - First flights should be on a low-cost, easy-to-recover airframe (for example, a 10-inch FPV quad with ArduPilot or a small fixed wing such as Reptile Dragon V2). Validate behavior before installing on an expensive UAV.
 
@@ -41,6 +45,8 @@ There are three UART links:
 - GNSS and STM32: receiver input for quality checks.
 - FC MAVLink and STM32: status, commands, and tuning.
 - FC GPS and STM32: raw GNSS forwarding to FC GPS UART.
+
+For UM980/UM981, one physical receiver UART is enough. The STM32 consumes that single GNSS stream and mirrors it to the FC GPS UART.
 
 In DR0, GNSS data is forwarded to FC GPS UART.
 

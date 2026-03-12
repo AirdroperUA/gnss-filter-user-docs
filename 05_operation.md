@@ -22,17 +22,23 @@ This prevents suspect GNSS data from reaching FC navigation input while DR1 is a
 
 - `FCGPS_FWD=1` forces forwarding even in DR1 (diagnostic only).
 - `FCGPS_FWD=0` is the normal anti-spoof setting.
-- Log field `d=<fcgps_drop>/<gnss_drop>` reports non-blocking UART write drops.
 
 ## Receiver mode
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
 - `GNSS_TYPE` changes require STM32 reboot.
+- In `GNSS_TYPE=1`, the STM32 expects one physical UM980 receiver stream on `A2/A3` and forwards that same stream to the FC GPS UART.
 
 ## Log example (GCS)
 
 The following screenshot shows expected status-text format in GCS messages.
+
+- In Mission Planner `Messages`, these periodic STM32 filter logs normally appear about once every **10 seconds** by default.
+- You typically see two back-to-back lines in the same moment:
+  - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
+  - GNSS summary line: `data=... age=... SATS=... SNR=...`
+- `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output.
 
 ![Example log output](diagrams/log_example.png)
 

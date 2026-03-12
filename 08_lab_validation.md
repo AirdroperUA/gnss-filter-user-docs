@@ -52,7 +52,7 @@ Use controlled, authorized anomaly sources and verify expected filter behavior:
 ## 6) What to Verify in Logs
 
 - DR state changes (`DR=0` -> `DR=1` -> `DR=0`).
-- GNSS health trend before and during anomaly windows (`GNS nav`, `age`, satellite count).
+- GNSS health trend before and during anomaly windows (`age`, `SATS`, `SNR`, DR state).
 - Presence of trigger messages describing why DR1 was entered.
 - Rejoin messages when returning to DR0.
 - No unexpected FC navigation jumps during DR1.

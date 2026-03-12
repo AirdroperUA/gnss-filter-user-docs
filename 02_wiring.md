@@ -70,10 +70,15 @@ If GNSS or MAVLink does not work after wiring, see `03_wiring_debug.md`.
 ## Important notes
 
 - `A11/A12` are USB D-/D+ pins on BlackPill; in this project they are repurposed as UART.
+- If you need to free `A11/A12` for USB work, set `FCGPS_UART=0` in Mission Planner. That releases the FC GPS UART and puts `A11/A12` into input mode. Set `FCGPS_UART=1` to enable the FC GPS UART again.
 - Runtime GNSS TX/RX swap is not supported on STM32F401 in this firmware; fix wiring physically if reversed.
 - Receiver protocol mode is selected by `GNSS_TYPE`:
   - `0`: u-blox/UBX
   - `1`: UM980/UM981 NMEA
+- For `GNSS_TYPE=1`, the filter expects one physical UM980 link only:
+  - UM980 `COM1` -> STM32 `A2/A3`
+  - the STM32 reads spoofing/SNR data from that same stream
+  - the STM32 forwards that same stream to the FC GPS UART on `A11/A12`
 - u-blox autoconfig behavior is controlled by `UBX_BAUD`:
   - `UBX_BAUD=0`: autoconfig enabled (default)
   - `UBX_BAUD>0`: autoconfig disabled, manual baud is used (reboot required)

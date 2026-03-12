@@ -7,6 +7,9 @@ Important: STM32 filter parameters are changed in Mission Planner:
 - choose STM32 system (`SYSID 42`)
 - `Refresh Params` -> edit value -> `Write Params`
 
+Boards for normal flight use are expected to ship with a normal build already installed.
+`*_usbmaint` builds are maintenance-only service images and should not be left on the board for normal operation.
+
 Reboot is not required after every parameter write.
 - `GNSS_TYPE` and `UBX_BAUD` require STM32 reboot (`NRST` or power cycle) to apply.
 - Most other parameters apply immediately.

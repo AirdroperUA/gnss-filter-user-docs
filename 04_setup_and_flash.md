@@ -3,6 +3,7 @@
 ## 1) Prerequisites
 
 - STM32F401 filter board is installed and preflashed (no user flashing required).
+- The board should be running a normal flight build, not a `*_usbmaint` maintenance build.
 - FC firmware is ArduPilot 4.6.1 or later.
 - The airframe already has baseline calibration done with a known-good GPS path:
   - accelerometer calibrated,
@@ -31,6 +32,11 @@ Set ArduPilot GPS parameters for u-blox workflows:
 - `GPS_AUTO_CONFIG = 0`
 
 If you use a different receiver family (for example UM980/UM981), FC GPS protocol settings must match the receiver output used in your installation.
+For `GNSS_TYPE=1`, the STM32 expects one physical UM980 stream only:
+
+- UM980 `COM1` -> STM32 `A2/A3`
+- STM32 parses spoofing/SNR from that stream
+- STM32 forwards that same stream to the FC GPS UART on `A11/A12`
 
 ## 3) CAN node mode (UCAN transport)
 
@@ -70,6 +76,7 @@ Receiver mode selection on STM32:
   - `UBX_BAUD=0`: autoconfig enabled (default).
   - `UBX_BAUD>0`: autoconfig disabled; filter uses this baud directly.
   - `UBX_BAUD` changes also require reboot to apply.
+- For UM980/UM981 deployments, configure the receiver `COM1` stream to match the FC GPS protocol and baud you intend to forward through STM32.
 
 ## 5) First boot checks
 
@@ -90,8 +97,13 @@ If FC shows **No GPS config data**:
 Before normal operation, validate FC GPS path end-to-end once:
 
 1. Connect to filter (`SYSID=42`) and set `FCGPS_FWD=1`.
-2. Wait for healthy GNSS in logs (`GNS nav` increasing, satellites present).
+2. Wait for healthy GNSS in logs (`age` stays low, satellites are present, no repeated no-fix condition).
 3. Confirm FC receives GNSS data.
 4. Set `FCGPS_FWD=0` for operational anti-spoof mode.
 
 `FCGPS_FWD=1` is diagnostic only.
+
+## 7) Build-state note
+
+- Normal operation uses the normal board firmware already installed by the supplier or service process.
+- If `A11/A12` stop behaving like the FC GPS UART after a maintenance session, confirm the board is no longer running a `*_usbmaint` image.

@@ -5,8 +5,8 @@ Use this guide when GNSS is not detected, DR1 stays active, or MAVLink tuning do
 ## 1) GNSS path (STM32 <-> GNSS)
 
 Symptoms:
-- `GNS nav=0` persists and `age` keeps increasing.
-- `s` may be non-zero but fix is still invalid.
+- `data=... age=9999ms ...` persists or `age` keeps growing.
+- Satellites may be present, but fix is still invalid.
 - DR1 stays active because no-fix/low-sat guard trips.
 
 Checks:
@@ -15,14 +15,17 @@ Checks:
 3. **Receiver mode**:
    - u-blox receiver: set `GNSS_TYPE=0`.
    - UM980/UM981 NMEA receiver: set `GNSS_TYPE=1`.
+   - In UM980/UM981 mode, use one physical receiver port only: `COM1` -> STM32 `A2/A3`.
+     The filter reads spoofing/SNR data from that stream and forwards the same stream to the FC GPS UART.
 4. **u-blox custom firmware case**:
    - If your u-blox unit does not accept filter autoconfig, set `UBX_BAUD` to your receiver baud.
    - `UBX_BAUD=0` keeps autoconfig enabled (default).
+   - If `UBX_BAUD>0`, the filter skips the full UBX autoconfig path. It still makes a best-effort request for `NAV-SAT`, but `SNR=NA` is still possible if the receiver ignores that request.
 5. **Reboot after mode/baud change**: `GNSS_TYPE` and `UBX_BAUD` are applied only after STM32 reboot.
 6. **Sky/test conditions**: for live GNSS checks, test with clear sky view.
 
 Quick verification:
-- In logs, `GNS nav` should increase and `age` should stay low.
+- In logs, `age` should stay low and `SATS` should reflect the real receiver state.
 - If `age` grows for a long time, the filter is not receiving valid fixes.
 
 ## 2) FC GPS path (STM32 <-> FC GPS UART)
@@ -35,6 +38,7 @@ Checks:
 2. **FC serial protocol/baud**:
    - Typical u-blox setup: GPS protocol + 460800 baud.
    - For UM980/UM981 workflows, FC GPS protocol must match your receiver output.
+   - If UM980 is configured as a single mixed `COM1` stream, the FC must match that same forwarded stream.
 3. **DR state**: in DR1, forwarding is blocked by design.
 4. **Diagnostic override**: set `FCGPS_FWD=1` temporarily to validate FC GPS path, then return to `0`.
 5. **RC AUX GPS disable**: if FC/RC uses GPS-disable AUX logic, make sure that switch is not active.
@@ -68,6 +72,7 @@ Quick verification:
 - Missing common ground.
 - `GNSS_TYPE` changed but STM32 not rebooted.
 - `UBX_BAUD` changed but STM32 not rebooted.
+- A `*_usbmaint` service image is still installed when the board is expected to work as a normal FC GPS filter.
 - Testing DR recovery during startup while `BOOT_DLYMS` still active.
 
 ## 5) Mission Planner parameter write issues

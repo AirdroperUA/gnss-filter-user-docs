@@ -19,7 +19,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `RJ_LOIT_GM` | Loiter gate override (m) | 2500 | 10 | 1000000 |
 | `RJ_STAB_MS` | Stable window before rejoin/blend (ms) | 5000 | 500 | 120000 |
 | `BLEND_MS` | Blend duration DR1 to DR0 (ms) | 10000 | 1000 | 120000 |
-| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 120000 | 0 | 600000 |
+| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 15000 | 0 | 600000 |
 | `SP_JMP_MPS` | Spoof guard speed jump limit (m/s) | 5000 | 50 | 20000 |
 | `SP_ABS_M` | Spoof guard absolute step limit (m) | 5000 | 100 | 50000 |
 | `ARM_MIN_S` | Guard arming minimum satellites | 6 | 4 | 30 |
@@ -47,13 +47,13 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `BOOT_NSATS` | Boot north gate minimum satellites | 6 | 4 | 30 |
 | `BOOT_NHDOP` | Boot north gate max HDOP | 4 | 0.5 | 10 |
 | `BOOT_NSTAB` | Boot north gate stable window (ms) | 1000 | 200 | 20000 |
-| `BOOT_DLYMS` | Startup DR trigger guard delay (ms) | 10000 | 0 | 120000 |
+| `BOOT_DLYMS` | Startup DR trigger guard delay (ms) | 20000 | 0 | 120000 |
 | `GN_HOTMS` | GNSS hotstart watchdog trigger (ms) | 15000 | 1000 | 120000 |
 | `GN_COLDMS` | GNSS coldstart watchdog trigger (ms) | 45000 | 2000 | 300000 |
 | `PT_ONLY` | Pass-through-only mode (0/1) | 1 | 0 | 1 |
 | `FCGPS_FWD` | Force FC GPS forwarding even in DR1 (0/1) | 0 | 0 | 1 |
 | `NMEA_NOFIX` | Emit NMEA no-fix beacons (0/1) | 0 | 0 | 1 |
-| `LOG_MS` | Filter status log period (ms) | 15000 | 1000 | 120000 |
+| `LOG_MS` | Filter status log period (ms) | 10000 | 1000 | 120000 |
 | `NAV_AGEMS` | Max NAV age for valid/present GPS (ms) | 5000 | 200 | 60000 |
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
 | `UBX_BAUD` | u-blox baud control: 0=autoconfig ON, >0=manual baud (reboot to apply) | 0 | 0 | 2000000 |
@@ -138,9 +138,10 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 ### GNSS handling and logging
 
 - **LOG_MS**: Status log period (ms). Lower values give more frequent logs but add traffic.
+- In Mission Planner `Messages`, the default user-visible behavior is roughly one periodic log pair every **10 seconds**.
 - **NAV_AGEMS**: Maximum NAV age to consider GNSS data valid/present.
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
-- **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior). Any value `>0` disables autoconfig and uses this manual baud directly. Applied after reboot.
+- **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior). Any value `>0` disables the full autoconfig path and uses this manual baud directly. Applied after reboot. In manual mode the filter still makes a best-effort request for `NAV-SAT` so SNR can work, but if the receiver ignores that request, `SNR=NA` is still expected.
 - **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981 NMEA. Change is saved immediately but applied after STM32 reboot.
 
 ### SNR guard (nearby jammer/spoofer)
@@ -305,6 +306,6 @@ Rejoin can start as soon as GNSS quality and geometry checks are stable for `RJ_
 
 - `RJ_REQEKF=1`
 - `EKF_OKRJMS=5000`
-- `DR_LOCK_MS=120000`
+- `DR_LOCK_MS=15000`
 
 Even with good GNSS, DR0 restore waits for both EKF-good window and lockout expiry.

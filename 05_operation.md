@@ -38,7 +38,8 @@ The following screenshot shows expected status-text format in GCS messages.
 - You typically see two back-to-back lines in the same moment:
   - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
   - GNSS summary line: `data=... age=... SATS=... SNR=...`
-- `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output.
+- `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With UM980/981, it means no `GSV` sentences are arriving.
+- If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds, a `WARNING: SNR_EN=1 but SNR=NA` is logged. The SNR guard cannot trip while SNR data is absent.
 
 ![Example log output](diagrams/log_example.png)
 
@@ -55,6 +56,21 @@ When rejoin conditions are satisfied:
 - Pin: `B5`.
 - Behavior: high for 3 seconds on each DR0 -> DR1 transition, then low.
 - Use case: external logger/beacon/indicator.
+
+## GNSS recovery watchdog
+
+The filter automatically attempts to recover a stuck GNSS receiver when no valid fix is received.
+
+- After **15 s** without fix: hot restart is issued.
+- After **45 s** without fix: cold/factory restart is issued.
+- Every **60 s** after the cold restart, if still no fix: another cold restart is retried.
+- All timers reset as soon as a valid fix is received.
+
+**u-blox**: hot restart uses UBX `CFG-RST` with `navBbrMask=0x0000`; cold restart uses `navBbrMask=0xFFFF`.
+
+**UM980/981**: hot restart sends `RESET\r\n` over the GNSS UART; cold/factory restart sends `FRESET\r\n`.
+
+Recovery status messages are logged to GCS (`INFO` for hot, `WARNING` for cold/retry).
 
 ## Operational checks
 

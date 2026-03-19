@@ -51,6 +51,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `GN_HOTMS` | GNSS hotstart watchdog trigger (ms) | 15000 | 1000 | 120000 |
 | `GN_COLDMS` | GNSS coldstart watchdog trigger (ms) | 45000 | 2000 | 300000 |
 | `PT_ONLY` | Pass-through-only mode (0/1) | 1 | 0 | 1 |
+| `FCGPS_UART` | FC GPS UART on A11/A12: 1=enabled (normal), 0=released (A11/A12 in input mode) | 1 | 0 | 1 |
 | `FCGPS_FWD` | Force FC GPS forwarding even in DR1 (0/1) | 0 | 0 | 1 |
 | `NMEA_NOFIX` | Emit NMEA no-fix beacons (0/1) | 0 | 0 | 1 |
 | `LOG_MS` | Filter status log period (ms) | 10000 | 1000 | 120000 |
@@ -113,6 +114,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - **DR_NOFIX**: If enabled, the filter reports NO_FIX to the FC during DR1/blend. This prevents the FC from using GNSS while protected.
 - **PT_ONLY**: Pass-through-only mode. The filter only blocks GNSS during DR1; no synthetic position or blending is used.
+- **FCGPS_UART**: Controls the FC GPS UART on `A11/A12`. `1` = normal operation (GPS forwarding active). `0` = releases `A11/A12` into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.
 - **FCGPS_FWD**: Forces GNSS forwarding even in DR1. Use only for diagnostics; it defeats protection.
 - **NMEA_NOFIX**: Emits NMEA “no-fix” beacons (optional). Useful for some FC configurations that expect NMEA signals.
 
@@ -142,6 +144,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **NAV_AGEMS**: Maximum NAV age to consider GNSS data valid/present.
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
 - **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior). Any value `>0` disables the full autoconfig path and uses this manual baud directly. Applied after reboot. In manual mode the filter still makes a best-effort request for `NAV-SAT` so SNR can work, but if the receiver ignores that request, `SNR=NA` is still expected.
+- **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA (no GSV from receiver?)`. This means the receiver is not providing SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`.
 - **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981 NMEA. Change is saved immediately but applied after STM32 reboot.
 
 ### SNR guard (nearby jammer/spoofer)
@@ -176,7 +179,7 @@ Use Mission Planner to read and write all STM32 filter params:
 
 Notes:
 
-- If a value does not update on the first try, click **Write Params** again.
+- If a value does not update on the first try, click **Write Params** again. 1-2 attempts are normal; 3+ attempts indicate a very busy MAVLink link.
 - After writing, allow up to 30-45 seconds for link recovery in heavy telemetry conditions.
 - Reboot is needed for `GNSS_TYPE` and `UBX_BAUD`; most other params apply without reboot.
 

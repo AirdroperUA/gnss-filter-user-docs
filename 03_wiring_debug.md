@@ -50,7 +50,7 @@ Quick verification:
 ## 3) MAVLink path (STM32 <-> FC telemetry)
 
 Symptoms:
-- Mission Planner cannot read/write STM32 params.
+- Mission Planner cannot reliably read/write STM32 params.
 - No filter status text in GCS.
 
 Checks:
@@ -72,7 +72,6 @@ Quick verification:
 - Missing common ground.
 - `GNSS_TYPE` changed but STM32 not rebooted.
 - `UBX_BAUD` changed but STM32 not rebooted.
-- A `*_usbmaint` service image is still installed when the board is expected to work as a normal FC GPS filter.
 - Testing DR recovery during startup while `BOOT_DLYMS` still active.
 
 ## 5) Mission Planner parameter write issues
@@ -83,5 +82,6 @@ If parameter write/read is unstable:
 2. In `Full Parameter List`, click `Refresh Params` before editing.
 3. Edit value, click `Write Params`, then `Refresh Params` again.
 4. If value did not persist, click `Write Params` again.
-5. If link drops temporarily, wait up to 30-45 seconds and refresh again.
-6. Reboot STM32 only when changing `GNSS_TYPE` or `UBX_BAUD`, or if value still does not apply.
+5. On a busy telemetry link, 2-5 write attempts can be normal before the value sticks.
+6. If link drops temporarily, wait up to 30-45 seconds and refresh again.
+7. Reboot STM32 only when changing `GNSS_TYPE` or `UBX_BAUD`, or if value still does not apply.

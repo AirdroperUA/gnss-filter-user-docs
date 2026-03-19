@@ -12,6 +12,8 @@ This is a one-page quick reference for setup checks, DR meaning, and common acti
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- `FCGPS_UART=1`: A11/A12 active as FC GPS UART (normal operation, default).
+- `FCGPS_UART=0`: A11/A12 released into input mode. Do not use during flight.
 - For `GNSS_TYPE=1`, use one physical UM980 stream only:
   - `COM1` -> STM32 `A2/A3`
   - STM32 forwards that same stream to FC GPS UART
@@ -56,7 +58,7 @@ If FC constantly shows **No Fix**:
 ## 6) Parameter Write Rules
 
 - Parameter read/write is done in Mission Planner Full Parameter List.
-- If write does not apply on first click, repeat `Write Params`.
+- If write does not apply on first click, repeat `Write Params`. 1-2 attempts are normal; 3+ suggests a very busy MAVLink link.
 - Allow up to 30-45 seconds for telemetry link recovery after writes.
 - Reboot is required for `GNSS_TYPE` and `UBX_BAUD`.
 - Reboot is not required for most other parameters.

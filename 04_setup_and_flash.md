@@ -3,7 +3,7 @@
 ## 1) Prerequisites
 
 - STM32F401 filter board is installed and preflashed (no user flashing required).
-- The board should be running a normal flight build, not a `*_usbmaint` maintenance build.
+- The board should be running a normal flight build.
 - FC firmware is ArduPilot 4.6.1 or later.
 - The airframe already has baseline calibration done with a known-good GPS path:
   - accelerometer calibrated,
@@ -66,6 +66,7 @@ Flight controller parameters:
   - select STM32 (`SYSID=42`)
   - `Refresh Params` -> edit value -> `Write Params`
 - Reboot is not required after every parameter write.
+- On a busy MAVLink link, `Write Params` may need 1-2 attempts. More than 2 attempts indicates high telemetry load.
 
 Receiver mode selection on STM32:
 
@@ -105,5 +106,4 @@ Before normal operation, validate FC GPS path end-to-end once:
 
 ## 7) Build-state note
 
-- Normal operation uses the normal board firmware already installed by the supplier or service process.
-- If `A11/A12` stop behaving like the FC GPS UART after a maintenance session, confirm the board is no longer running a `*_usbmaint` image.
+Normal operation uses the normal board firmware already installed by the supplier or service process.

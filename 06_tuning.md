@@ -1,5 +1,7 @@
 # Runtime Tuning Manual
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tune behavior without updating firmware.
 
 ## Exposed Tune Parameters
@@ -144,7 +146,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - In Mission Planner `Messages`, the default user-visible behavior is roughly one periodic log pair every **10 seconds**.
 - **NAV_AGEMS**: Maximum age to consider GNSS position/altitude data valid. If updates get older than this, the filter treats the fix as stale for rejoin, forwarding, and receiver recovery logic.
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
-- **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior). Any value `>0` disables the full autoconfig path and uses this manual baud directly. Applied after reboot. In manual mode the filter still makes a best-effort request for `NAV-SAT` so SNR can work, but if the receiver ignores that request, `SNR=NA` is still expected.
+- **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior) for direct single-receiver u-blox modules. Any value `>0` disables the full autoconfig path and uses this manual baud directly. Applied after reboot. In manual mode the filter still makes a best-effort request for `NAV-SAT` so SNR can work, but if the receiver ignores that request, `SNR=NA` is still expected. Gateway modules with an intermediary MCU - including dual-F9P products such as Quadro GPS and UNA3 / UNA4-SFE - must use manual baud (`UBX_BAUD` set explicitly); filter autobaud is not possible for that class of device.
 - **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)`. This means the receiver is not providing fresh SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`.
 - **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981 NMEA. Change is saved immediately but applied after STM32 reboot.
 - **UM980_HIGHDYN**: UM980/UM981 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Applied at next boot — the auto-config sends the corresponding `MODE` command to the receiver.

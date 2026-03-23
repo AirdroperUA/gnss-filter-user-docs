@@ -1,5 +1,7 @@
 ﻿# Cheat Sheet (Field Quick Reference)
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 This is a one-page quick reference for setup checks, DR meaning, and common actions.
 
 ## 1) UART Summary
@@ -21,6 +23,10 @@ This is a one-page quick reference for setup checks, DR meaning, and common acti
 - For custom u-blox that should not be auto-configured:
   - set `UBX_BAUD` to receiver baud (`0` means autoconfig ON),
   - reboot STM32 to apply.
+- For gateway / dual-F9P modules such as Quadro GPS, UNA3, and UNA4-SFE:
+  - use `GNSS_TYPE=0`,
+  - set the exact `UBX_BAUD`,
+  - do not use filter autobaud.
 
 ## 3) DR Modes
 

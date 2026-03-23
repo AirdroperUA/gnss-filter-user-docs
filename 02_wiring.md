@@ -1,5 +1,7 @@
 ﻿# Wiring Guide (STM32F401 BlackPill)
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 This firmware uses three UART links on STM32F401:
 
 1. GNSS <-> STM32 (receiver parsing)

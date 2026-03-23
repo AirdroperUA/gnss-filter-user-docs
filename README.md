@@ -1,5 +1,7 @@
 # User Documentation
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 Ukrainian translation set: `docs/user/uk/README.md`.
 
 Important: STM32 filter parameters are changed in Mission Planner:

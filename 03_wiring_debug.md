@@ -1,5 +1,7 @@
 ﻿# Wiring Debug Guide
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 Use this guide when GNSS is not detected, DR1 stays active, or MAVLink tuning does not work.
 
 ## 1) GNSS path (STM32 <-> GNSS)
@@ -21,6 +23,7 @@ Checks:
    - If your u-blox unit does not accept filter autoconfig, set `UBX_BAUD` to your receiver baud.
    - `UBX_BAUD=0` keeps autoconfig enabled (default).
    - If `UBX_BAUD>0`, the filter skips the full UBX autoconfig path. It still makes a best-effort request for `NAV-SAT`, but `SNR=NA` is still possible if the receiver ignores that request.
+   - This same manual-baud rule applies to gateway modules with an intermediary MCU (for example Quadro GPS, UNA3, UNA4-SFE, or similar dual-F9P products). Set `UBX_BAUD` to the exact output baud; do not rely on filter autobaud.
 5. **Reboot after mode/baud change**: `GNSS_TYPE` and `UBX_BAUD` are applied only after STM32 reboot.
 6. **Sky/test conditions**: for live GNSS checks, test with clear sky view.
 

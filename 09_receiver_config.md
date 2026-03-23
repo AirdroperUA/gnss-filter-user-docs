@@ -1,10 +1,12 @@
 # GNSS Receiver Configuration
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 Set `GNSS_TYPE` in Mission Planner to match your receiver, then reboot the STM32.
 
 | `GNSS_TYPE` | Receiver family | ArduPilot `GPS1_TYPE` |
 |---|---|---|
-| `0` | u-blox M8 / M9 / M10 | `1` (AUTO) or `2` (u-blox) |
+| `0` | u-blox M8 / M9 / M10 / F9 / F10, plus u-blox-compatible gateway modules | `1` (AUTO) or `2` (u-blox) |
 | `1` | Unicore UM980 / UM981 | `24` (UnicoreNMEA) |
 
 ---
@@ -89,10 +91,38 @@ SAVECONFIG
 
 ---
 
-## u-blox M8 / M9 / M10
+## u-blox M8 / M9 / M10 / F9 / F10
 
-The STM32 filter automatically configures u-blox receivers over UBX protocol at startup.
-No manual receiver configuration is needed.
+For direct single-receiver u-blox modules, the STM32 filter automatically configures the
+receiver over UBX protocol at startup. No manual receiver configuration is needed for that path.
+
+This direct u-blox path is intended for modules that expose a normal single-UART UBX
+receiver stream and support the NAV-PVT / NAV-DOP / NAV-SAT message set used by the filter.
+Typical examples include:
+
+- M8-class modules such as `NEO-M8*`, `SAM-M8*`, `ZOE-M8*`
+- M9-class modules such as `NEO-M9N`
+- M10-class modules such as `MAX-M10*` and `MIA-M10*`
+- F9-class modules such as `NEO-F9P` and `ZED-F9P`
+- F10-class modules such as `NEO-F10N` and `DAN-F10N`
+
+Older u-blox generations before M8 are not documented here because this project's default
+profile relies on newer UBX navigation messages.
+
+### Gateway / dual-receiver modules
+
+Some GPS products put one or more internal u-blox receivers behind their own MCU and export
+only one downstream GPS stream to the outside world. This includes dual-F9P products such as
+Quadro GPS and UNA3 / UNA4-SFE style modules.
+
+These modules can still be used with `GNSS_TYPE=0` if their external output is a normal
+UBX / u-blox-compatible stream, but the STM32 filter cannot autobaud or fully auto-configure
+them at boot. For this class of module:
+
+1. Pre-configure the module on the vendor side so it emits the baud and UBX messages you want.
+2. Set `GNSS_TYPE=0`.
+3. Set `UBX_BAUD` to the exact downstream output baud in Mission Planner.
+4. Reboot the STM32.
 
 ### Default auto-config profile (recommended, `UBX_BAUD = 0`)
 
@@ -141,7 +171,8 @@ Nothing to do on the receiver side.
 
 ### Manual baud mode (`UBX_BAUD` set to receiver baud rate)
 
-Use this if the u-blox must stay at a fixed baud (e.g. another device shares the port).
+Use this if the u-blox must stay at a fixed baud (e.g. another device shares the port), or
+if the GPS is a gateway module that outputs a preconfigured downstream UBX stream.
 
 1. Pre-configure the u-blox in u-center with your target baud rate.
 2. Enable UBX output and disable NMEA on the UART connected to the filter.
@@ -160,12 +191,16 @@ UBX-CFG-MSG    NAV-SAT  rate=2
 It does **not** change UART1 baud, does **not** disable NMEA, and does **not** save to
 BBR/Flash in manual mode.
 
+Manual baud mode is the required path for gateway modules with an intermediary MCU, including
+dual-F9P products such as Quadro GPS and UNA3 / UNA4-SFE. Do not use `UBX_BAUD=0` for those
+modules; set the exact output baud explicitly.
+
 ### STM32 filter settings for u-blox
 
 | Parameter | Value |
 |---|---|
 | `GNSS_TYPE` | `0` |
-| `UBX_BAUD` | `0` for auto, or exact baud (e.g. `460800`) for manual |
+| `UBX_BAUD` | `0` for direct single-receiver auto-config, or exact baud (e.g. `460800`) for manual / gateway modules |
 
 ### ArduPilot FC settings for u-blox
 

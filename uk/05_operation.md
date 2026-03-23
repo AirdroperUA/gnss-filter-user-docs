@@ -1,5 +1,7 @@
 ﻿# Робота під час виконання
 
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 ## DR0 vs DR1
 
 - **DR0**: штатний режим. Передавання GNSS на GPS UART FC увімкнене.

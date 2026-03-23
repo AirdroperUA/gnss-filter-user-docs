@@ -1,5 +1,7 @@
 ﻿# Runtime Operation
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 ## DR0 vs DR1
 
 - **DR0**: normal operation. GNSS forwarding to FC GPS UART is enabled.

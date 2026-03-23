@@ -1,5 +1,7 @@
 ﻿# Device Overview
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 This document describes how the STM32 filter operates between the GNSS receiver and the flight controller (FC).
 
 ## Terminology (quick glossary)
@@ -8,7 +10,7 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 - **DR0**: normal mode. GNSS data is forwarded to the FC GPS UART.
 - **DR1**: protection mode. Live GNSS forwarding is blocked so suspect GNSS data does not reach the FC. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART receives periodic NMEA NO_FIX beacons instead.
 - **FC**: flight controller (ArduPilot).
-- **GNSS**: global navigation satellite receiver (for example u-blox F9/F10 or UM980/UM981-class receivers).
+- **GNSS**: global navigation satellite receiver (for example u-blox M8/M9/M10/F9/F10-class receivers or UM980/UM981-class receivers).
 - **GPS**: in this documentation, the GNSS input path and FC GPS UART path.
 - **UART**: serial interface with TX/RX lines.
 - **MAVLink**: telemetry/control protocol between STM32 and FC.

@@ -1,5 +1,7 @@
 ﻿# Інструкція з підключення (STM32F401 BlackPill)
 
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 Ця прошивка використовує три UART-лінії на STM32F401:
 
 1. GNSS <-> STM32 (парсинг даних приймача)

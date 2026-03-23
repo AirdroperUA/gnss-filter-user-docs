@@ -1,5 +1,7 @@
 # Anti-Spoof Lab Validation (Defensive Only)
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 This document is focused only on defensive validation of spoofing resilience.
 
 ## 1) Scope and Boundaries

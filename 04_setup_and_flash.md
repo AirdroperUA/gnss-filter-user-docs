@@ -1,5 +1,7 @@
 ﻿# Setup Manual
 
+> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+
 ## 1) Prerequisites
 
 - STM32F401 filter board is installed and preflashed (no user flashing required).
@@ -77,6 +79,7 @@ Receiver mode selection on STM32:
   - `UBX_BAUD=0`: autoconfig enabled (default).
   - `UBX_BAUD>0`: autoconfig disabled; filter uses this baud directly.
   - `UBX_BAUD` changes also require reboot to apply.
+  - Gateway modules with their own MCU and dual/internal receivers (for example Quadro GPS, UNA3, UNA4-SFE, or similar dual-F9P products) must use `UBX_BAUD>0`; filter autobaud is not possible for that class of module.
 - For UM980/UM981 deployments, configure the receiver `COM1` stream to match the FC GPS protocol and baud you intend to forward through STM32.
 
 ## 5) First boot checks

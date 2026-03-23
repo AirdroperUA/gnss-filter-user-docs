@@ -6,7 +6,7 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 
 - **DR (dead-reckoning)**: estimating aircraft position from inertial data (IMU), heading, and speed when GNSS is not trusted. It keeps navigation continuity but accumulates drift over time.
 - **DR0**: normal mode. GNSS data is forwarded to the FC GPS UART.
-- **DR1**: protection mode. GNSS forwarding is blocked so suspect GNSS data does not reach the FC.
+- **DR1**: protection mode. Live GNSS forwarding is blocked so suspect GNSS data does not reach the FC. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART receives periodic NMEA NO_FIX beacons instead.
 - **FC**: flight controller (ArduPilot).
 - **GNSS**: global navigation satellite receiver (for example u-blox F9/F10 or UM980/UM981-class receivers).
 - **GPS**: in this documentation, the GNSS input path and FC GPS UART path.
@@ -36,7 +36,7 @@ The filter sits between GNSS and FC and performs three core tasks:
 
 1. Parses GNSS data and evaluates quality/anomalies.
 2. Controls DR state (DR0/DR1) from guard logic.
-3. Controls GNSS forwarding to FC GPS UART (blocked in DR1).
+3. Controls GNSS forwarding to FC GPS UART (live forwarding blocked in DR1, with optional NMEA NO_FIX beacons).
 
 ## 2) Data paths
 
@@ -50,7 +50,7 @@ For UM980/UM981, one physical receiver UART is enough. The STM32 consumes that s
 
 In DR0, GNSS data is forwarded to FC GPS UART.
 
-In DR1, GNSS forwarding is blocked.
+In DR1, live GNSS forwarding is blocked. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART receives periodic NMEA NO_FIX beacons instead.
 
 ## 3) DR0 and DR1
 
@@ -61,7 +61,8 @@ In DR1, GNSS forwarding is blocked.
 
 ### DR1 (protection mode)
 
-- GNSS forwarding disabled.
+- Live GNSS forwarding disabled.
+- If `DR_NOFIX=1` and `NMEA_NOFIX=1`, periodic NMEA NO_FIX beacons are sent on the FC GPS UART instead.
 - `B5` outputs a high pulse for about 3 seconds on each DR0 -> DR1 transition.
 
 ## 4) What can trigger DR1 (examples)
@@ -102,7 +103,7 @@ If conditions pass, optional blend (`BLEND_MS`) runs, then DR0 is restored.
 
 ## 6) Key operational notes
 
-- `FCGPS_FWD=1` is for diagnostics only and bypasses DR1 blocking behavior.
+- `FCGPS_FWD=1` is for diagnostics only and bypasses DR1 blocking / NO_FIX presentation behavior.
 - `BOOT_DLYMS` delays DR triggers right after power-up to reduce startup false trips.
 - GCS map can show GNSS jumps during spoofing; use DR state and filter logs as primary truth.
 - Save a baseline parameter profile before changing field settings.

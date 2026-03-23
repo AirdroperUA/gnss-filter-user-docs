@@ -3,9 +3,9 @@
 ## DR0 vs DR1
 
 - **DR0**: normal operation. GNSS forwarding to FC GPS UART is enabled.
-- **DR1**: protection mode. GNSS forwarding to FC GPS UART is blocked.
+- **DR1**: protection mode. Live GNSS forwarding to FC GPS UART is blocked. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, periodic NMEA NO_FIX beacons are sent instead.
 
-This prevents suspect GNSS data from reaching FC navigation input while DR1 is active.
+This prevents suspect live GNSS data from reaching FC navigation input while DR1 is active.
 
 ## DR1 trigger behavior (current firmware)
 
@@ -20,7 +20,7 @@ This prevents suspect GNSS data from reaching FC navigation input while DR1 is a
 
 ## GNSS forwarding diagnostics
 
-- `FCGPS_FWD=1` forces forwarding even in DR1 (diagnostic only).
+- `FCGPS_FWD=1` forces live GNSS forwarding even in DR1 (diagnostic only).
 - `FCGPS_FWD=0` is the normal anti-spoof setting.
 
 ## Receiver mode
@@ -37,11 +37,12 @@ The following screenshot shows expected status-text format in GCS messages.
 - In Mission Planner `Messages`, these periodic STM32 filter logs normally appear about once every **10 seconds** by default.
 - You typically see two back-to-back lines in the same moment:
   - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
-  - GNSS summary line: `data=... age=... SATS=... SNR=...`
+  - GNSS summary line: `data=... fix=... nav=... SATS=... SNR=...`
+- `fix` is the age of the last valid position/altitude fix; `nav` is the age of the last valid GNSS nav-data frame seen by the filter.
 - `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With UM980/981, it means no `GSV` sentences are arriving.
-- If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds, a `WARNING: SNR_EN=1 but SNR=NA` is logged. The SNR guard cannot trip while SNR data is absent.
+- If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds, a `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)` message is logged. The SNR guard cannot trip while SNR data is absent.
 
-![Example log output](diagrams/log_example.png)
+![Example log output](diagrams/log_example.jpg)
 
 ## Rejoin sequence
 
@@ -49,7 +50,7 @@ When rejoin conditions are satisfied:
 
 1. Rejoin stability timer runs.
 2. Optional blend phase runs for `BLEND_MS`.
-3. Filter exits DR1 and restores DR0 forwarding.
+3. Filter exits DR1 and restores DR0 forwarding (or stops NO_FIX beacons if they were enabled).
 
 ## DR1 event pulse output
 
@@ -69,6 +70,8 @@ The filter automatically attempts to recover a stuck GNSS receiver when no valid
 **u-blox**: hot restart uses UBX `CFG-RST` with `navBbrMask=0x0000`; cold restart uses `navBbrMask=0xFFFF`.
 
 **UM980/981**: hot restart sends `RESET\r\n` over the GNSS UART; cold/factory restart sends `FRESET\r\n`.
+After `FRESET`, the STM32 waits for the receiver to boot, rescans the active GNSS baud,
+and reapplies the full UM980 profile before saving it again.
 
 Recovery status messages are logged to GCS (`INFO` for hot, `WARNING` for cold/retry).
 

@@ -5,7 +5,7 @@ Use this guide when GNSS is not detected, DR1 stays active, or MAVLink tuning do
 ## 1) GNSS path (STM32 <-> GNSS)
 
 Symptoms:
-- `data=... age=9999ms ...` persists or `age` keeps growing.
+- `data=... fix=9999ms nav=9999ms ...` persists, or `fix` / `nav` keeps growing.
 - Satellites may be present, but fix is still invalid.
 - DR1 stays active because no-fix/low-sat guard trips.
 
@@ -25,8 +25,9 @@ Checks:
 6. **Sky/test conditions**: for live GNSS checks, test with clear sky view.
 
 Quick verification:
-- In logs, `age` should stay low and `SATS` should reflect the real receiver state.
-- If `age` grows for a long time, the filter is not receiving valid fixes.
+- In logs, `fix` and `nav` should stay low and `SATS` should reflect the real receiver state.
+- If `nav` grows for a long time, the filter is not receiving valid GNSS nav data.
+- If `fix` grows for a long time, the filter is not receiving valid position fixes.
 
 ## 2) FC GPS path (STM32 <-> FC GPS UART)
 
@@ -39,7 +40,7 @@ Checks:
    - Typical u-blox setup: GPS protocol + 460800 baud.
    - For UM980/UM981 workflows, FC GPS protocol must match your receiver output.
    - If UM980 is configured as a single mixed `COM1` stream, the FC must match that same forwarded stream.
-3. **DR state**: in DR1, forwarding is blocked by design.
+3. **DR state**: in DR1, live forwarding is blocked by design. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART will see periodic NMEA NO_FIX beacons instead.
 4. **Diagnostic override**: set `FCGPS_FWD=1` temporarily to validate FC GPS path, then return to `0`.
 5. **RC AUX GPS disable**: if FC/RC uses GPS-disable AUX logic, make sure that switch is not active.
 

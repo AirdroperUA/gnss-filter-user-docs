@@ -25,7 +25,7 @@ This is a one-page quick reference for setup checks, DR meaning, and common acti
 ## 3) DR Modes
 
 - **DR0**: normal mode, forwarding enabled.
-- **DR1**: protection mode, forwarding blocked.
+- **DR1**: protection mode, live forwarding blocked. With `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART sees periodic NMEA NO_FIX beacons instead.
 - **B5**: high pulse (~3 s) on each DR0 -> DR1 transition.
 
 ## 4) Quick Diagnostics
@@ -76,4 +76,4 @@ If FC constantly shows **No Fix**:
 - In Mission Planner `Messages`, STM32 filter status logs normally show up about every **10 seconds** by default.
 - Usually two lines appear together:
   - `ARM=... DR=... BLEND=... LAT=... LONG=...`
-  - `data=... age=... SATS=... SNR=...`
+  - `data=... fix=... nav=... SATS=... SNR=...`

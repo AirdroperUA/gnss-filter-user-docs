@@ -22,3 +22,4 @@ Reboot is not required after every parameter write.
 6. `06_tuning.md` - live tuning parameters and Mission Planner workflow.
 7. `07_cheat_sheet.md` - one-page quick reference for field checks and actions.
 8. `08_lab_validation.md` - safe lab validation workflow before real flights.
+9. `09_receiver_config.md` - GNSS receiver configuration for UM980 and u-blox (command profiles, ArduPilot GPS type settings).

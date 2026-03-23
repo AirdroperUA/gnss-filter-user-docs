@@ -43,7 +43,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `NUDGE_FRAC` | DR1 max nudge fraction per step | 0.5 | 0 | 1 |
 | `EKF_TRIPMS` | EKF bad duration to trip DR1 (ms) | 0 | 0 | 10000 |
 | `EKF_OKRJMS` | EKF good duration needed for rejoin (ms) | 3000 | 200 | 20000 |
-| `EKF_GRCMS` | EKF grace after DR0 exit (ms) | 7000 | 0 | 60000 |
+| `EKF_GRCMS` | EKF grace after DR1 exit (ms) | 7000 | 0 | 60000 |
 | `BOOT_NSATS` | Boot north gate minimum satellites | 6 | 4 | 30 |
 | `BOOT_NHDOP` | Boot north gate max HDOP | 4 | 0.5 | 10 |
 | `BOOT_NSTAB` | Boot north gate stable window (ms) | 1000 | 200 | 20000 |
@@ -59,6 +59,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
 | `UBX_BAUD` | u-blox baud control: 0=autoconfig ON, >0=manual baud (reboot to apply) | 0 | 0 | 2000000 |
 | `GNSS_TYPE` | Receiver mode: 0=u-blox/UBX, 1=UM980/UM981 NMEA (reboot to apply) | 0 | 0 | 1 |
+| `UM980_HIGHDYN` | UM980/UM981 rover mode: 0=MODE ROVER UAV, 1=MODE ROVER UAV HIGHDYN (reboot to apply) | 0 | 0 | 1 |
 | `SNR_EN` | Enable SNR-spread spoof guard (0/1) | 0 | 0 | 1 |
 | `SNR_MSATS` | SNR guard minimum satellites | 8 | 4 | 30 |
 | `SNR_DMAX` | Max allowed SNR spread (max-min, dB-Hz) to trigger | 6 | 1 | 40 |
@@ -112,11 +113,11 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 ### DR behavior
 
-- **DR_NOFIX**: If enabled, the filter reports NO_FIX to the FC during DR1/blend. This prevents the FC from using GNSS while protected.
+- **DR_NOFIX**: Enables NO_FIX presentation on the FC GPS UART during DR1/blend. With `NMEA_NOFIX=1`, the filter emits periodic NMEA no-fix beacons instead of forwarding live GNSS.
 - **PT_ONLY**: Pass-through-only mode. The filter only blocks GNSS during DR1; no synthetic position or blending is used.
 - **FCGPS_UART**: Controls the FC GPS UART on `A11/A12`. `1` = normal operation (GPS forwarding active). `0` = releases `A11/A12` into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.
 - **FCGPS_FWD**: Forces GNSS forwarding even in DR1. Use only for diagnostics; it defeats protection.
-- **NMEA_NOFIX**: Emits NMEA “no-fix” beacons (optional). Useful for some FC configurations that expect NMEA signals.
+- **NMEA_NOFIX**: Emits periodic NMEA no-fix beacons on the FC GPS UART when `DR_NOFIX=1` and DR1/blend is active. Useful for FC GPS setups that expect NMEA rather than silence.
 
 ### EKF gates
 
@@ -141,11 +142,12 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - **LOG_MS**: Status log period (ms). Lower values give more frequent logs but add traffic.
 - In Mission Planner `Messages`, the default user-visible behavior is roughly one periodic log pair every **10 seconds**.
-- **NAV_AGEMS**: Maximum NAV age to consider GNSS data valid/present.
+- **NAV_AGEMS**: Maximum age to consider GNSS position/altitude data valid. If updates get older than this, the filter treats the fix as stale for rejoin, forwarding, and receiver recovery logic.
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
 - **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior). Any value `>0` disables the full autoconfig path and uses this manual baud directly. Applied after reboot. In manual mode the filter still makes a best-effort request for `NAV-SAT` so SNR can work, but if the receiver ignores that request, `SNR=NA` is still expected.
-- **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA (no GSV from receiver?)`. This means the receiver is not providing SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`.
+- **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)`. This means the receiver is not providing fresh SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`.
 - **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981 NMEA. Change is saved immediately but applied after STM32 reboot.
+- **UM980_HIGHDYN**: UM980/UM981 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Applied at next boot — the auto-config sends the corresponding `MODE` command to the receiver.
 
 ### SNR guard (nearby jammer/spoofer)
 
@@ -160,11 +162,10 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - Changes are applied immediately.
 - Filter auto-saves to non-volatile storage about 1.5s after the last change.
-- `GNSS_TYPE` is an exception for runtime behavior: value is saved immediately but takes effect only after reboot.
-- `UBX_BAUD` also requires reboot to apply.
+- `GNSS_TYPE`, `UBX_BAUD`, and `UM980_HIGHDYN` require reboot to apply.
 - After a parameter write, wait about **2-3 seconds** to allow the save cycle to complete.
 - Reboot after every parameter change is **not** required.
-- Reboot STM32 (`NRST` or power cycle) when changing `GNSS_TYPE` or `UBX_BAUD`, or if behavior does not match updated values.
+- Reboot STM32 (`NRST` or power cycle) when changing `GNSS_TYPE`, `UBX_BAUD`, or `UM980_HIGHDYN`, or if behavior does not match updated values.
 
 ## Using Mission Planner for Parameter Writes
 

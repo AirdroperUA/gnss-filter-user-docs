@@ -43,7 +43,7 @@ Checks:
    - Typical u-blox setup: GPS protocol + 460800 baud.
    - For UM980/UM981 workflows, FC GPS protocol must match your receiver output.
    - If UM980 is configured as a single mixed `COM1` stream, the FC must match that same forwarded stream.
-3. **DR state**: in DR1, live forwarding is blocked by design. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART will see periodic NMEA NO_FIX beacons instead.
+3. **DR state**: in DR1, live forwarding is blocked by design. The FC GPS UART receives silence.
 4. **Diagnostic override**: set `FCGPS_FWD=1` temporarily to validate FC GPS path, then return to `0`.
 5. **RC AUX GPS disable**: if FC/RC uses GPS-disable AUX logic, make sure that switch is not active.
 

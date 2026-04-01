@@ -13,81 +13,107 @@ Set `GNSS_TYPE` in Mission Planner to match your receiver, then reboot the STM32
 
 ## UM980 / UM981
 
-**No manual pre-configuration required.** When `GNSS_TYPE=1`, the STM32 automatically
-sends the full configuration profile to the UM980 over COM1 at every boot — the same
-way it auto-configures u-blox receivers. The receiver mode, anti-jam settings, and all
-output messages are applied and saved to the UM980's non-volatile memory.
+**Manual pre-configuration required.** Use UPrecise to apply the command profile
+below before first flight. The STM32 performs passive autobaud detection at boot
+(finds whatever baud the UM980 is saved at) and forwards the raw NMEA/binary
+stream to the FC GPS port unchanged. It does **not** send configuration commands
+to the UM980.
 
-### STM32 filter settings for UM980
+### Step 1 — Configure the UM980 via UPrecise
 
-| Parameter | Value | Notes |
-|---|---|---|
-| `GNSS_TYPE` | `1` | Selects UM980/UM981 path, reboot to apply |
-| `UM980_HIGHDYN` | `0` | Standard UAV mode (default) |
-| `UM980_HIGHDYN` | `1` | High-dynamic UAV mode — use for aggressive airframes |
-| `UBX_BAUD` | `0` | Leave at default (unused for UM980) |
+Connect the UM980 to UPrecise and send the following commands one at a time.
+Use the **Standard UAV** profile for most airframes, or the **High-Dynamic UAV**
+variant for aggressive platforms.
 
-After changing `UM980_HIGHDYN`, reboot the STM32 so the new `MODE ROVER UAV [HIGHDYN]`
-command is sent to the receiver.
-
-### ArduPilot FC settings for UM980
-
-| Parameter | Value |
-|---|---|
-| `GPS1_TYPE` | `24` (UnicoreNMEA) |
-| `SERIAL3_BAUD` (GPS1 serial) | `460` |
-
-### What the auto-config applies
-
-The following profile is sent to the UM980 at every boot:
+#### Standard UAV profile
 
 ```text
+FRESET
 UNLOG COM1
 
-MODE ROVER UAV          (or MODE ROVER UAV HIGHDYN if UM980_HIGHDYN=1)
+MODE ROVER UAV
 CONFIG ANTIJAM FORCE
 CONFIG MMP ENABLE
 CONFIG PVTALG MULTI
 CONFIG SMOOTH PSRVEL ENABLE
 MASK 5
 CONFIG NMEA0183 V410
+CONFIG COM1 460800
 
-AGRICA COM1 1
-GNGGA COM1 1
-GPGGA COM1 1
-GPRMC COM1 1
-GPGSA COM1 1
-GPGSV COM1 1
-GPGBS COM1 1
-GPGST COM1 1
-PVTSLNB COM1 1
-OBSVMCMPB COM1 0.1
-SATSINFOB COM1 1
-BESTSATB COM1 1
-STADOPB COM1 1
-JAMSTATUSB COM1 1
-FREQJAMSTATUSB COM1 1
-HWSTATUSB COM1 1
-AGCB COM1 1
-RTKSTATUSB COM1 1
-RTCMSTATUSB COM1 ONCHANGED
+GNGGA COM1 0.2
+GNRMC COM1 0.2
+AGRICA COM1 0.2
 
 SAVECONFIG
 ```
 
-### Notes
+#### High-Dynamic UAV profile
 
-- `GPGGA`, `GPRMC`, `PVTSLNB`, and `AGRICA` are configured at **1 Hz**.
-  Values of 0.1 Hz cause ArduPilot to intermittently show "GPS 1: not healthy"
-  because its health watchdog times out between 10-second updates.
-- `GNGGA` is also enabled at 1 Hz so the filter sees all-constellation satellite counts,
-  while `GPGGA` remains enabled for FC compatibility.
-- `GPGSV` is used for SNR data only. The filter's low-satellite guard uses the
-  satellites-in-use count from `GGA`, not the satellites-in-view count from `GSV`.
+Same as above but replace the MODE line:
+
+```text
+MODE ROVER UAV HIGHDYN
+```
+
+### Step 2 — STM32 filter settings
+
+| Parameter | Value | Notes |
+|---|---|---|
+| `GNSS_TYPE` | `1` | Selects UM980/UM981 path, reboot to apply |
+
+### Step 3 — ArduPilot FC settings
+
+| Parameter | Value | Notes |
+|---|---|---|
+| `GPS1_TYPE` | `24` (UnicoreNMEA) | |
+| `GPS_AUTO_CONFIG` | `0` | **Required.** Prevents ArduPilot from overwriting UM980 settings (see below) |
+| `SERIAL3_BAUD` (GPS1 serial) | `460` | |
+
+### Why these settings matter
+
+- **`MODE ROVER UAV`** — sets the UM980 internal Kalman filter to UAV dynamics.
+  Without this, the receiver uses a generic motion model that produces noisy
+  velocity and position, causing red EKF bars in Mission Planner.
+- **`CONFIG COM1 460800`** — matches the STM32 default GNSS baud. The autobaud
+  scan finds 460800 first, so boot is fastest at this baud.
+- **`GNGGA` at 5 Hz** — ArduPilot needs position updates at 5 Hz minimum.
+  `GN`-prefix gives multi-constellation satellite counts. The driver uses GGA
+  for fix status, satellite count, and HDOP.
+- **`GNRMC` at 5 Hz** — provides date/time and backup velocity to ArduPilot.
+- **`AGRICA` at 5 Hz** — ArduPilot's UnicoreNMEA driver uses AGRICA for
+  high-precision 3D NED velocity, velocity accuracy, position accuracy, and
+  undulation. Without AGRICA the EKF has no speed accuracy data and uses
+  conservative defaults that degrade flight performance.
+- **`GPS_AUTO_CONFIG = 0`** — **critical.** ArduPilot 4.6.x's UnicoreNMEA
+  auto-config sends `MODE MOVINGBASE` and `CONFIG COM1 230400` to the UM980
+  on every config cycle. `MODE MOVINGBASE` overwrites your `MODE ROVER UAV`,
+  switching the receiver to a mode intended for moving RTK base stations.
+  `CONFIG COM1 230400` changes the baud to 230400 while the FC serial port
+  stays at 460800, breaking communication. Disabling auto-config prevents
+  ArduPilot from touching the UM980 at all.
+- **`CONFIG ANTIJAM FORCE`** — hardware anti-jamming always active.
+- **`MASK 5`** — 5-degree elevation mask, filters low-elevation noisy satellites.
 - `COM2` is not needed for the filter. Leave unused or use for diagnostics only.
-- The auto-config does **not** change the COM1 baud rate. The STM32 autobaud scan
-  finds the receiver at its current speed; that speed is preserved in `SAVECONFIG`.
-  UM980 factory default is 460800 — no action needed for a fresh receiver.
+- **GPGSA / GPGSV / GPGST are not needed** — the UnicoreNMEA driver does not
+  parse these sentences. The driver gets DOP from GGA and accuracy data from
+  AGRICA. Omitting them saves serial bandwidth.
+
+### Common mistakes
+
+- **Leaving `GPS_AUTO_CONFIG` at default (enabled)** — ArduPilot overwrites
+  `MODE ROVER UAV` with `MODE MOVINGBASE` and changes baud to 230400, causing
+  red velocity/position and intermittent GPS dropouts. Always set
+  `GPS_AUTO_CONFIG = 0` when using a pre-configured UM980.
+- Using the Holybro "factory reset" config without `MODE ROVER UAV` — this is
+  a minimal reset profile, not a flight-ready config. Missing the rover mode
+  causes red velocity/position in Mission Planner.
+- Setting `CONFIG COM1 230400` — works but slower autobaud detection at boot.
+  Use 460800 for fastest startup.
+- Setting message rates to 1 Hz (period `1`) instead of 5 Hz (period `0.2`) —
+  ArduPilot works but EKF performance is worse with 1 Hz GPS updates.
+- Adding `GPGGA`, `GPRMC`, `GPGSA`, `GPGSV`, `GPGST` — the driver only needs
+  `GNGGA`, `GNRMC`, and `AGRICA`. Extra sentences waste bandwidth and can slow
+  parsing on the FC.
 
 ---
 
@@ -209,5 +235,5 @@ modules; set the exact output baud explicitly.
 | `GPS1_TYPE` | `1` (AUTO) or `2` (u-blox binary) |
 | `SERIAL3_BAUD` (GPS1 serial) | `460` |
 
-The filter forwards the raw UBX binary stream to the FC GPS port —
+The filter forwards the raw UBX binary stream to the FC GPS port,
 set the FC to u-blox or AUTO type, not NMEA.

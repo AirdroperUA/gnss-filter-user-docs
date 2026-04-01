@@ -8,7 +8,7 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 
 - **DR (dead-reckoning)**: estimating aircraft position from inertial data (IMU), heading, and speed when GNSS is not trusted. It keeps navigation continuity but accumulates drift over time.
 - **DR0**: normal mode. GNSS data is forwarded to the FC GPS UART.
-- **DR1**: protection mode. Live GNSS forwarding is blocked so suspect GNSS data does not reach the FC. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART receives periodic NMEA NO_FIX beacons instead.
+- **DR1**: protection mode. Live GNSS forwarding is blocked — the FC GPS UART receives silence so suspect GNSS data does not reach the FC.
 - **FC**: flight controller (ArduPilot).
 - **GNSS**: global navigation satellite receiver (for example u-blox M8/M9/M10/F9/F10-class receivers or UM980/UM981-class receivers).
 - **GPS**: in this documentation, the GNSS input path and FC GPS UART path.
@@ -38,21 +38,41 @@ The filter sits between GNSS and FC and performs three core tasks:
 
 1. Parses GNSS data and evaluates quality/anomalies.
 2. Controls DR state (DR0/DR1) from guard logic.
-3. Controls GNSS forwarding to FC GPS UART (live forwarding blocked in DR1, with optional NMEA NO_FIX beacons).
+3. Controls GNSS forwarding to FC GPS UART (blocked in DR1).
 
-## 2) Data paths
+## 2) System architecture
+
+```
+┌──────────────┐                ┌───────────────────┐                ┌──────────────┐
+│              │   UART 460800  │                   │  MAVLink 115200│              │
+│  GNSS        │───────────────►│   STM32 Filter    │◄──────────────►│  Flight      │
+│  Receiver    │   A2/A3        │   (BlackPill)     │  A9/A10        │  Controller  │
+│              │                │                   │                │              │
+│  u-blox or   │                │  ┌─────────────┐  │   UART 460800  │  ArduPilot   │
+│  UM980       │                │  │ Guard Logic │  │───────────────►│  GPS input   │
+│              │                │  │ DR0 / DR1   │  │  A11/A12       │              │
+└──────────────┘                │  └─────────────┘  │                └──────────────┘
+                                │                   │
+                                │  B5: event pulse  │
+                                └───────┬───────────┘
+                                        │
+                                   (DR0→DR1 pulse)
+```
+
+## 3) Data paths
 
 There are three UART links:
 
-- GNSS and STM32: receiver input for quality checks.
-- FC MAVLink and STM32: status, commands, and tuning.
-- FC GPS and STM32: raw GNSS forwarding to FC GPS UART.
+| Link | STM32 pins | Baud | Purpose |
+|------|-----------|------|---------|
+| GNSS ↔ STM32 | A2 (TX) / A3 (RX) | 460800 | Receiver input for quality checks |
+| FC MAVLink ↔ STM32 | A9 (TX) / A10 (RX) | 115200 | Status, commands, tuning |
+| FC GPS ← STM32 | A11 (TX) / A12 (RX) | 460800 | Raw GNSS forwarding to FC |
 
 For UM980/UM981, one physical receiver UART is enough. The STM32 consumes that single GNSS stream and mirrors it to the FC GPS UART.
 
-In DR0, GNSS data is forwarded to FC GPS UART.
-
-In DR1, live GNSS forwarding is blocked. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART receives periodic NMEA NO_FIX beacons instead.
+**DR0**: GNSS data forwarded to FC GPS UART.
+**DR1**: FC GPS UART receives silence — no GNSS data reaches the FC.
 
 ## 3) DR0 and DR1
 
@@ -64,7 +84,7 @@ In DR1, live GNSS forwarding is blocked. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the
 ### DR1 (protection mode)
 
 - Live GNSS forwarding disabled.
-- If `DR_NOFIX=1` and `NMEA_NOFIX=1`, periodic NMEA NO_FIX beacons are sent on the FC GPS UART instead.
+- FC GPS UART receives silence (no GNSS data forwarded).
 - `B5` outputs a high pulse for about 3 seconds on each DR0 -> DR1 transition.
 
 ## 4) What can trigger DR1 (examples)
@@ -105,7 +125,7 @@ If conditions pass, optional blend (`BLEND_MS`) runs, then DR0 is restored.
 
 ## 6) Key operational notes
 
-- `FCGPS_FWD=1` is for diagnostics only and bypasses DR1 blocking / NO_FIX presentation behavior.
+- `FCGPS_FWD=1` is for diagnostics only and bypasses DR1 blocking.
 - `BOOT_DLYMS` delays DR triggers right after power-up to reduce startup false trips.
 - GCS map can show GNSS jumps during spoofing; use DR state and filter logs as primary truth.
 - Save a baseline parameter profile before changing field settings.

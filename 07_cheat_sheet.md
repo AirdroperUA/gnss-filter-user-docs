@@ -31,7 +31,7 @@ This is a one-page quick reference for setup checks, DR meaning, and common acti
 ## 3) DR Modes
 
 - **DR0**: normal mode, forwarding enabled.
-- **DR1**: protection mode, live forwarding blocked. With `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART sees periodic NMEA NO_FIX beacons instead.
+- **DR1**: protection mode, live forwarding blocked. FC GPS UART receives silence.
 - **B5**: high pulse (~3 s) on each DR0 -> DR1 transition.
 
 ## 4) Quick Diagnostics

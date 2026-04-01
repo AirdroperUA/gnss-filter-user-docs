@@ -62,7 +62,7 @@ Flight controller parameters:
 ## 4) Filter control expectations
 
 - Filter IDs: `SYSID=42`, `COMPID=191`.
-- DR1 protection blocks live forwarding from GNSS input to FC GPS UART. If `DR_NOFIX=1` and `NMEA_NOFIX=1`, the FC GPS UART receives periodic NMEA NO_FIX beacons instead.
+- DR1 protection blocks live forwarding from GNSS input to FC GPS UART. The FC receives silence during DR1.
 - Filter params are changed in Mission Planner:
   - `Config/Tuning` -> `Full Parameter List`
   - select STM32 (`SYSID=42`)

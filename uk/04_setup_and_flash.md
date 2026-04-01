@@ -62,7 +62,7 @@
 ## 4) Очікувана поведінка фільтра
 
 - ID фільтра: `SYSID=42`, `COMPID=191`.
-- Захист DR1 блокує живе пересилання GNSS із входу приймача на GPS UART FC. Якщо `DR_NOFIX=1` і `NMEA_NOFIX=1`, на FC GPS UART натомість передаються періодичні NMEA NO_FIX маяки.
+- Захист DR1 блокує живе пересилання GNSS із входу приймача на GPS UART FC — FC отримує тишу.
 - Параметри фільтра змінюються у Mission Planner:
   - `Config/Tuning` -> `Full Parameter List`
   - виберіть STM32 (`SYSID=42`)

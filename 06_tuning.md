@@ -38,7 +38,6 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `ALT_BSEP_M` | Alt-vs-baro separation trip (m) | 100 | 10 | 500 |
 | `ALT_BSEPMS` | Alt-vs-baro hold time (ms) | 1500 | 100 | 20000 |
 | `ALT_RJSEP` | Rejoin max altitude separation (m) | 50 | 5 | 500 |
-| `DR_NOFIX` | Expose NO_FIX during DR/blend (0/1) | 1 | 0 | 1 |
 | `RJ_REQEKF` | Require EKF OK window for rejoin (0/1) | 0 | 0 | 1 |
 | `NUDGE_EN` | Enable DR1 nudge toward GNSS (0/1) | 1 | 0 | 1 |
 | `NUDGE_MPS` | DR1 nudge speed (m/s) | 8 | 0 | 50 |
@@ -55,7 +54,6 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `PT_ONLY` | Pass-through-only mode (0/1) | 1 | 0 | 1 |
 | `FCGPS_UART` | FC GPS UART on A11/A12: 1=enabled (normal), 0=released (A11/A12 in input mode) | 1 | 0 | 1 |
 | `FCGPS_FWD` | Force FC GPS forwarding even in DR1 (0/1) | 0 | 0 | 1 |
-| `NMEA_NOFIX` | Emit NMEA no-fix beacons (0/1) | 0 | 0 | 1 |
 | `LOG_MS` | Filter status log period (ms) | 10000 | 1000 | 120000 |
 | `NAV_AGEMS` | Max NAV age for valid/present GPS (ms) | 5000 | 200 | 60000 |
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
@@ -115,11 +113,9 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 ### DR behavior
 
-- **DR_NOFIX**: Enables NO_FIX presentation on the FC GPS UART during DR1/blend. With `NMEA_NOFIX=1`, the filter emits periodic NMEA no-fix beacons instead of forwarding live GNSS.
-- **PT_ONLY**: Pass-through-only mode. The filter only blocks GNSS during DR1; no synthetic position or blending is used.
+- **PT_ONLY**: Pass-through-only mode. The filter acts as a clean DR0/DR1 switch — raw GNSS bytes or silence. No synthetic position or blending is used.
 - **FCGPS_UART**: Controls the FC GPS UART on `A11/A12`. `1` = normal operation (GPS forwarding active). `0` = releases `A11/A12` into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.
 - **FCGPS_FWD**: Forces GNSS forwarding even in DR1. Use only for diagnostics; it defeats protection.
-- **NMEA_NOFIX**: Emits periodic NMEA no-fix beacons on the FC GPS UART when `DR_NOFIX=1` and DR1/blend is active. Useful for FC GPS setups that expect NMEA rather than silence.
 
 ### EKF gates
 

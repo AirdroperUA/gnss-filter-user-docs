@@ -25,3 +25,5 @@ Reboot is not required after every parameter write.
 7. `07_cheat_sheet.md` - one-page quick reference for field checks and actions.
 8. `08_lab_validation.md` - safe lab validation workflow before real flights.
 9. `09_receiver_config.md` - GNSS receiver configuration for UM980 and u-blox (command profiles, ArduPilot GPS type settings).
+10. `10_self_install.md` - self-install guide for flashing firmware onto a blank board using a license key.
+11. `11_faq.md` - frequently asked questions (hardware, setup, operation, UM980, licensing).

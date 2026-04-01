@@ -74,7 +74,7 @@ For UM980/UM981, one physical receiver UART is enough. The STM32 consumes that s
 **DR0**: GNSS data forwarded to FC GPS UART.
 **DR1**: FC GPS UART receives silence — no GNSS data reaches the FC.
 
-## 3) DR0 and DR1
+## 4) DR0 and DR1
 
 ### DR0 (normal mode)
 
@@ -87,7 +87,7 @@ For UM980/UM981, one physical receiver UART is enough. The STM32 consumes that s
 - FC GPS UART receives silence (no GNSS data forwarded).
 - `B5` outputs a high pulse for about 3 seconds on each DR0 -> DR1 transition.
 
-## 4) What can trigger DR1 (examples)
+## 5) What can trigger DR1 (examples)
 
 ### Example A: no-fix or low satellites
 
@@ -112,7 +112,7 @@ For UM980/UM981, one physical receiver UART is enough. The STM32 consumes that s
 
 - FC EKF reports unhealthy horizontal state for at least `EKF_TRIPMS`.
 
-## 5) Returning from DR1 (rejoin)
+## 6) Returning from DR1 (rejoin)
 
 The filter returns to DR0 only after configured quality and timing gates are satisfied:
 
@@ -123,14 +123,14 @@ The filter returns to DR0 only after configured quality and timing gates are sat
 
 If conditions pass, optional blend (`BLEND_MS`) runs, then DR0 is restored.
 
-## 6) Key operational notes
+## 7) Key operational notes
 
 - `FCGPS_FWD=1` is for diagnostics only and bypasses DR1 blocking.
 - `BOOT_DLYMS` delays DR triggers right after power-up to reduce startup false trips.
 - GCS map can show GNSS jumps during spoofing; use DR state and filter logs as primary truth.
 - Save a baseline parameter profile before changing field settings.
 
-## 7) Receiver choice: UM980/UM981 vs u-blox (for this filter use case)
+## 8) Receiver choice: UM980/UM981 vs u-blox (for this filter use case)
 
 UM980/UM981 can be a better fit than u-blox for long anti-spoof runs in this project, mainly because:
 

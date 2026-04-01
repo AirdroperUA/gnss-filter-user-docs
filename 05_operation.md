@@ -69,7 +69,7 @@ The following screenshot shows expected status-text format in GCS messages.
 - `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With UM980/981, it means no `GSV` sentences are arriving.
 - If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds, a `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)` message is logged. The SNR guard cannot trip while SNR data is absent.
 
-![Example log output](diagrams/log_example.png)
+![Example log output](diagrams/log_example.jpg)
 
 ## Rejoin sequence
 

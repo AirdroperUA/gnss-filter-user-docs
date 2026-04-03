@@ -1,8 +1,8 @@
-﻿# Device Overview
+# Device Overview
 
 > Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
 
-This document describes how the STM32 filter operates between the GNSS receiver and the flight controller (FC).
+This document describes how the STM32 filter operates between the GNSS receiver and the flight controller (FC). For wiring instructions, see the [Wiring Guide](#wiring). For first-time setup, see [Setup & Flash](#setup-flash).
 
 ## Key terms
 
@@ -29,16 +29,16 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 - Requires **ArduPilot 4.6.1 or later**.
 - Supported GPS receivers:
   - **u-blox** (M8, M9, M10, F9, F10) — set `GNSS_TYPE=0`
-  - **UM980 / UM981** — set `GNSS_TYPE=1`
+  - **UM980 / UM981** — set `GNSS_TYPE=1` (requires one-time setup, see [Receiver Config](#receiver-config))
 - **Important:** Test on a low-cost, easy-to-recover drone first (e.g., a small FPV quad or fixed wing). Validate behavior before installing on an expensive aircraft.
 
 ## 1) Purpose
 
-The filter sits between GNSS and FC and performs three core tasks:
+The filter sits between your GPS module and flight controller and performs three core tasks:
 
-1. Parses GNSS data and evaluates quality/anomalies.
-2. Controls DR state (DR0/DR1) from guard logic.
-3. Controls GNSS forwarding to FC GPS UART (blocked in DR1).
+1. Monitors GPS data quality and checks for anomalies (spoofing, jamming, signal loss).
+2. Decides whether GPS is trustworthy (DR0) or suspect (DR1).
+3. Blocks GPS data from reaching the flight controller when DR1 is active.
 
 ## 2) System architecture
 
@@ -58,6 +58,8 @@ The filter sits between GNSS and FC and performs three core tasks:
                                         │
                                    (DR0→DR1 pulse)
 ```
+
+For detailed wiring instructions, see the [Wiring Guide](#wiring).
 
 ## 3) How data flows
 
@@ -80,56 +82,50 @@ For UM980/UM981, one physical receiver connection is enough — the filter reads
 
 ### DR0 (normal mode)
 
-- GNSS forwarding enabled.
-- Guards monitor quality continuously.
+- GPS data forwarded to your flight controller.
+- Guards monitor quality continuously in the background.
 
 ### DR1 (protection mode)
 
-- Live GNSS forwarding disabled.
-- FC GPS UART receives silence (no GNSS data forwarded).
-- `B5` outputs a high pulse for about 3 seconds on each DR0 -> DR1 transition.
+- GPS data blocked — your flight controller receives silence.
+- Pin B5 outputs a 3-second pulse on each DR0→DR1 transition (you can connect an LED or buzzer to it).
+
+See [Operation](#operation) for the full state machine and [Tuning](#tuning) to adjust sensitivity.
 
 ## 5) What can trigger DR1 (examples)
 
 ### Example A: no-fix or low satellites
 
-- GNSS fix becomes invalid, or satellite count drops below 5.
-- The filter enters DR1 immediately (outside boot guard delay).
+- GPS fix becomes invalid, or satellite count drops below 5.
+- The filter enters DR1 immediately.
 
 ### Example B: position jump
 
 - Sudden large location step or unrealistic implied speed.
-- Guard exceeds `SP_ABS_M` or `SP_JMP_MPS`.
+- Common during active spoofing attacks.
 
 ### Example C: SNR anomaly (near jammer/spoofer)
 
-- High satellite count with abnormally narrow SNR spread.
-- Condition holds longer than `SNR_HOLDMS` with `SNR_EN=1`.
+- High satellite count with abnormally narrow signal strength spread.
+- A classic spoofing fingerprint — all satellites appear at similar strength.
 
 ### Example D: altitude anomaly
 
-- Large single-step altitude jump, high altitude rate, or persistent GNSS-vs-baro separation.
+- Large single-step altitude jump, high altitude rate, or persistent GPS-vs-barometer separation.
 
 ### Example E: EKF flags trip
 
-- FC EKF reports unhealthy horizontal state for at least `EKF_TRIPMS`.
+- The flight controller's own navigation filter reports unhealthy state.
 
 ## 6) Returning from DR1 (rejoin)
 
-The filter returns to DR0 only after configured quality and timing gates are satisfied:
-
-- quality (`RJ_MIN_SATS`, `RJ_MAX_HD`),
-- stability window (`RJ_STAB_MS`),
-- DR1 lock window (`DR_LOCK_MS`),
-- optional EKF gate (`RJ_REQEKF`, `EKF_OKRJMS`).
-
-If conditions pass, optional blend (`BLEND_MS`) runs, then DR0 is restored.
+The filter returns to DR0 (normal GPS) only after all quality checks pass for a stable period. This prevents false recoveries. See [Tuning](#tuning) for adjustable thresholds (`RJ_MIN_SATS`, `RJ_MAX_HD`, `RJ_STAB_MS`, `DR_LOCK_MS`).
 
 ## 7) Key operational notes
 
-- `FCGPS_FWD=1` is for diagnostics only and bypasses DR1 blocking.
+- `FCGPS_FWD=1` is for diagnostics only — it bypasses DR1 blocking (see [Cheat Sheet](#cheat-sheet)).
 - `BOOT_DLYMS` delays DR triggers right after power-up to reduce startup false trips.
-- GCS map can show GNSS jumps during spoofing; use DR state and filter logs as primary truth.
+- The GCS map can show GPS jumps during spoofing; use DR state and the [Cloud Dashboard](https://gnss-filter.online/dashboard) as primary truth.
 - Save a baseline parameter profile before changing field settings.
 
 ## 8) Which GPS receiver to choose?
@@ -138,4 +134,4 @@ Both u-blox and UM980/UM981 work well. For areas with heavy jamming or spoofing,
 
 **u-blox** is still a great choice and is auto-configured by the filter at boot — just plug it in.
 
-We recommend testing with your specific setup and region to see which works best for you.
+For UM980 setup instructions, see [Receiver Config](#receiver-config). For general wiring, see the [Wiring Guide](#wiring).

@@ -26,8 +26,8 @@ locked to your specific board and cannot be copied to another.
    [st.com](https://www.st.com/en/development-tools/stm32cubeprog.html)
    and install. After installation, the provisioning app will find it automatically.
 
-2. **AirDroper GNSS Filter** app — download from [gps.airdroper.org/download/app](https://gps.airdroper.org/download/app).
-   This is the graphical tool that handles everything for you.
+2. **[AirDroper GNSS Filter](https://gps.airdroper.org/download/app)** app — download from the link.
+   This is the graphical Windows tool that handles everything for you.
 
 ---
 
@@ -92,8 +92,10 @@ Provisioning complete!
 
 1. Disconnect the ST-Link
 2. Power the board via USB or your aircraft power supply
-3. Connect to Mission Planner and check for the filter boot message in the
+3. Connect to [Mission Planner](https://ardupilot.org/planner/) and check for the filter boot message in the
    Messages tab (e.g. `GNSS filter v1.5.0 UID=12345678`)
+
+**Next steps:** Wire the filter into your drone using the [Wiring Guide](#wiring), then configure your flight controller in [Setup & Flash](#setup-flash).
 
 ---
 

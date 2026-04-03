@@ -1,10 +1,12 @@
-﻿# Cheat Sheet (Field Quick Reference)
+# Cheat Sheet (Field Quick Reference)
 
 > Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
 
-This is a one-page quick reference for setup checks, DR meaning, and common actions.
+This is a one-page quick reference for setup checks, DR meaning, and common actions. For detailed explanations, see the [Device Overview](#device-overview).
 
 ## 1) UART Summary
+
+See the [Wiring Guide](#wiring) for full diagrams.
 
 - GNSS and STM32: `A2/A3`
 - FC MAVLink and STM32: `A9/A10` (MAVLink2 @ 115200)
@@ -13,13 +15,14 @@ This is a one-page quick reference for setup checks, DR meaning, and common acti
 ## 2) Receiver Mode (`GNSS_TYPE`)
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
-- `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- `GNSS_TYPE=1`: UM980/UM981 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
 - `FCGPS_UART=1`: A11/A12 active as FC GPS UART (normal operation, default).
 - `FCGPS_UART=0`: A11/A12 released into input mode. Do not use during flight.
-- For `GNSS_TYPE=1`, use one physical UM980 stream only:
-  - `COM1` -> STM32 `A2/A3`
-  - STM32 forwards that same stream to FC GPS UART
 - After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).
+
+<details>
+<summary><strong>Advanced: Custom baud and gateway modules</strong></summary>
+
 - For custom u-blox that should not be auto-configured:
   - set `UBX_BAUD` to receiver baud (`0` means autoconfig ON),
   - reboot STM32 to apply.
@@ -28,42 +31,46 @@ This is a one-page quick reference for setup checks, DR meaning, and common acti
   - set the exact `UBX_BAUD`,
   - do not use filter autobaud.
 
+</details>
+
 ## 3) DR Modes
 
-- **DR0**: normal mode, forwarding enabled.
-- **DR1**: protection mode, live forwarding blocked. FC GPS UART receives silence.
-- **B5**: high pulse (~3 s) on each DR0 -> DR1 transition.
+- **DR0**: normal mode — GPS data flows to your flight controller.
+- **DR1**: protection mode — GPS blocked, FC uses dead-reckoning.
+- **B5 pin**: outputs a high pulse (~3 s) on each DR0→DR1 transition (connect an LED or buzzer).
+
+See the [Device Overview](#device-overview) for a full explanation.
 
 ## 4) Quick Diagnostics
 
-If FC shows **No GPS config data**:
+**FC shows "No GPS config data":**
 
-- Check FC GPS UART protocol and baud.
-- Check `A11/A12` TX/RX crossing.
-- Confirm common ground.
+1. Check FC GPS UART protocol and baud — see [Wiring Guide](#wiring)
+2. Check `A11/A12` TX/RX crossing
+3. Confirm common ground
 
-If DR1 stays active:
+**DR1 stays active:**
 
-- Check no-fix / low-satellite state.
-- Check guard thresholds (`ARM_*`, `SP_*`, `ALT_*`, `SNR_*`).
-- Increase `BOOT_DLYMS` if false DR1 appears right after boot.
+1. Check no-fix / low-satellite state
+2. Review guard thresholds — see [Tuning](#tuning) for `ARM_*`, `SP_*`, `ALT_*`, `SNR_*` parameters
+3. Increase `BOOT_DLYMS` if false DR1 appears right after boot
 
-If FC constantly shows **No Fix**:
+**FC constantly shows "No Fix":**
 
-- Verify RC AUX logic is not forcing GPS disable in FC settings.
+- Verify RC AUX logic is not forcing GPS disable in FC settings
+- See [Wiring Debug](#wiring-debug) for step-by-step troubleshooting
 
 ## 5) Mission Planner Parameter Write Flow
 
-1. `Config/Tuning` -> `Full Parameter List`.
-2. Select STM32 target (`SYSID 42`).
-3. Click `Refresh Params`.
-4. Edit values.
-5. Click `Write Params`.
-6. Click `Refresh Params` to confirm.
+1. Open [Mission Planner](https://ardupilot.org/planner/) → `Config/Tuning` → `Full Parameter List`
+2. Select STM32 target (`SYSID 42` in the dropdown)
+3. Click `Refresh Params`
+4. Edit values — see [Tuning](#tuning) for parameter descriptions
+5. Click `Write Params`
+6. Click `Refresh Params` to confirm
 
 ## 6) Parameter Write Rules
 
-- Parameter read/write is done in Mission Planner Full Parameter List.
 - If write does not apply on first click, repeat `Write Params`. 1-2 attempts are normal; 3+ suggests a very busy MAVLink link.
 - Allow up to 30-45 seconds for telemetry link recovery after writes.
 - Reboot is required for `GNSS_TYPE` and `UBX_BAUD`.
@@ -71,15 +78,23 @@ If FC constantly shows **No Fix**:
 
 ## 7) Typical DR1 Triggers
 
-- no-fix / low satellites (`sats < 5`),
-- position jump (`SP_ABS_M`, `SP_JMP_MPS`),
-- SNR anomaly (`SNR_*` when enabled),
-- altitude anomaly (`ALT_*`),
-- EKF unhealthy (`EKF_TRIPMS`).
+| Trigger | Parameters | Description |
+|---------|-----------|-------------|
+| No fix / low satellites | — | Triggers if satellite count < 5 |
+| Position jump | `SP_ABS_M`, `SP_JMP_MPS` | Sudden large location step |
+| SNR anomaly | `SNR_EN`, `SNR_HOLDMS` | Abnormal signal strength pattern |
+| Altitude anomaly | `ALT_*` | Large altitude jump or GPS/baro mismatch |
+| EKF unhealthy | `EKF_TRIPMS` | Flight controller reports nav problems |
 
-## 8) Mission Planner Log Timing
+See [Tuning](#tuning) to adjust these thresholds.
 
-- In Mission Planner `Messages`, STM32 filter status logs normally show up about every **10 seconds** by default.
-- Usually two lines appear together:
-  - `ARM=... DR=... BLEND=... LAT=... LONG=...`
-  - `data=... fix=... nav=... SATS=... SNR=...`
+## 8) Status Log Messages
+
+In Mission Planner `Messages`, filter status appears about every **10 seconds** (configurable via `LOG_MS`):
+
+```
+ARM=... DR=... BLEND=... LAT=... LONG=...
+data=... fix=... nav=... SATS=... SNR=...
+```
+
+See [Operation](#operation) for how to interpret these messages.

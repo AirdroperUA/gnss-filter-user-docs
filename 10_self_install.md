@@ -154,11 +154,20 @@ satellite count, signal strength, and the detection reason.
 
 ### Downloading logs
 
+**Option A — USB-C (easiest, no extra hardware):**
+
+1. Connect the BlackPill to your PC with a USB-C cable
+2. In the app, set Port to **(USB-C auto-detect)**
+3. Enter your license key and UID
+4. Click **Download Logs** and press the **reset button** on the BlackPill when prompted
+5. The app finds the board automatically, downloads events, uploads to your cloud dashboard, and clears the on-board log
+
+**Option B — USB-UART adapter:**
+
 1. Connect a USB-UART adapter (same wiring as firmware updates)
-2. In the app, click **Download Logs (UART)**
-3. Enter your license key when prompted
-4. The app reads all stored events, uploads them to your cloud dashboard,
-   and clears the on-board log
+2. In the app, select the COM port of your adapter
+3. Enter your license key and UID
+4. Click **Download Logs** and press **reset** when prompted
 
 The license key is required to download logs — if someone finds a crashed
 aircraft, they cannot access the flight data without the key.

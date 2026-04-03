@@ -182,7 +182,7 @@ PA9/PA10 (no ST-Link needed). See the update section in the [Self-Install Guide]
 
 ### How do I download spoofing logs?
 
-Connect a USB-UART adapter and use the [AirDroper GNSS Filter](https://gps.airdroper.org/download/app) app to download logs and upload them to the [Cloud Dashboard](https://gnss-filter.online/dashboard). See the logs section in the [Self-Install Guide](#self-install).
+The easiest way is **USB-C** — just plug in a USB-C cable, select "(USB-C auto-detect)" as the port in the [AirDroper GNSS Filter](https://gps.airdroper.org/download/app) app, and press reset on the board. You can also use a USB-UART adapter if you prefer. Logs are uploaded to the [Cloud Dashboard](https://gnss-filter.online/dashboard). See the logs section in the [Self-Install Guide](#self-install).
 
 ### What if my board dies?
 

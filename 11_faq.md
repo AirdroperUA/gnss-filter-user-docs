@@ -28,6 +28,22 @@ Rover). The filter communicates via standard MAVLink2 telemetry.
 
 Not currently. The filter's MAVLink integration is designed for ArduPilot.
 
+### Which EW systems does it protect against?
+
+All of them. The filter detects GPS spoofing and jamming based on signal
+anomalies (position jumps, SNR patterns, altitude divergence, satellite
+count drops), not by identifying specific EW hardware.
+
+**Tested/designed against:**
+
+- **Ukrainian:** Lima, Patelnia, Pokrova (GPS spoofing); Bukovel, Nota, Damba, Enclave (GNSS jamming); Dandelion, PARASOL, Piranha AVD 360 (drone suppression)
+- **Russian:** Pole-21/Field-21, Shipovnik-Aero (GPS spoofing); R-330Zh Zhitel (GNSS jamming+spoofing); Krasukha-2/4 (radar jamming); Borisoglebsk-2, Leer-3, Murmansk-BN, Palantin (comms jamming); Repellent-1, Infauna (drone/IED suppression)
+- **Belarusian:** Groza (GNSS jamming)
+
+It also works against any future EW system that affects GNSS signals.
+See [Device Overview — EW Systems Compatibility](#device-overview) for
+a full table with frequencies and capabilities.
+
 ---
 
 ## Hardware
@@ -168,7 +184,10 @@ everything to the UM980's non-volatile flash. Configure once, fly forever.
 
 ### Can I install the firmware myself?
 
-Yes. Purchase a license key from the [store](https://airdroper.org/product/gps-spoofing-filter/) and follow the [Self-Install Guide](#self-install). You'll need an ST-Link V2 programmer (~$3).
+Yes. Purchase a license key from the [store](https://airdroper.org/product/gps-spoofing-filter/) and follow the [Self-Install Guide](#self-install). Two options for initial provisioning:
+
+- **USB-C (no extra hardware)**: Hold BOOT0, press RESET to enter DFU mode, then run the provisioning tool.
+- **ST-Link V2 (~$3)**: Connect via SWD pins. Required if the board already has RDP1 protection (see below).
 
 ### Can I use my license on multiple boards?
 
@@ -177,8 +196,14 @@ that board's unique hardware ID.
 
 ### How do I update the firmware?
 
-After the initial flash, updates use a USB-UART adapter connected to
-PA9/PA10 (no ST-Link needed). See the update section in the [Self-Install Guide](#self-install).
+Connect a USB-C cable, select "(USB-C auto-detect)" as the port, and press RESET. The tool detects the board and installs the update automatically. You can also use a USB-UART adapter on PA9/PA10 if you prefer. See the update section in the [Self-Install Guide](#self-install).
+
+### Can I re-provision a board that already has firmware?
+
+If the board already has RDP1 (readout protection), you need to remove it first — this erases the flash. **USB DFU cannot remove RDP1** — this is a hardware limitation of the STM32 chip, not a bug. You need either:
+
+- **ST-Link adapter** ($3-5): connect via SWD, the provisioning tool handles RDP removal automatically.
+- **STM32CubeProgrammer GUI**: manually set Option Bytes > Read Out Protection = Level 0 (triggers mass erase), then re-provision via USB DFU.
 
 ### How do I download spoofing logs?
 

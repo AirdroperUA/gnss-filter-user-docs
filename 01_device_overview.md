@@ -128,7 +128,58 @@ The filter returns to DR0 (normal GPS) only after all quality checks pass for a 
 - The GCS map can show GPS jumps during spoofing; use DR state and the [Cloud Dashboard](https://gnss-filter.online/dashboard) as primary truth.
 - Save a baseline parameter profile before changing field settings.
 
-## 8) Which GPS receiver to choose?
+## 8) Electronic warfare systems compatibility
+
+The GPS Spoofing Filter is designed to protect against GPS spoofing and jamming attacks from any electronic warfare system. The filter's guard algorithms detect anomalies in satellite signals regardless of the EW source — the detection is physics-based, not signature-based.
+
+### Ukrainian EW systems
+
+| System | Type | Notes |
+|--------|------|-------|
+| **Lima** | GPS spoofing | Spoofs GPS/GLONASS to deflect UMPK glide bombs off course. The filter detects the resulting position/altitude jumps and SNR anomalies. |
+| **Patelnia** ("Frying Pan") | GPS spoofing | Similar to Lima — deflects glide bombs via false GPS coordinates. |
+| **Pokrova** | GPS spoofing | Replaces satellite signals to confuse drone/missile navigation. |
+| **Bukovel** (Proximus) | GNSS jamming | Jams GPS/GLONASS/Galileo/BeiDou at 15–20 km range. The filter detects fix loss and satellite count drops. |
+| **Nota** (Tritel) | Drone suppression | Detects UAVs at 20 km, suppresses at 15 km. Includes cellular and navigation jamming. |
+| **Damba** | GNSS jamming | Area-denial GPS jamming system. Filter detects loss of fix and reduced satellite count. |
+| **Enclave** (Anklav) | GNSS jamming | Creates GLONASS/GPS interference up to 40 km range. |
+| **Enclave-Malyuk** | GNSS jamming (portable) | Compact 15 kg version of Enclave with 6 hours autonomous operation. |
+| **Dandelion** (Kulbaba) | FPV drone suppression | Multi-band dome jammer (700–1010 MHz), 150 m protection radius. |
+| **PARASOL** | Drone suppression | Trench EW system, protects positions at 200 m radius. |
+| **Piranha AVD 360** | Armored vehicle protection | Anti-drone EW for armored vehicles. |
+| **Hecate** (Hekata) | SIGINT / detection | Detects and classifies radar/EW signals at up to 450 km (not a jammer). |
+
+### Russian EW systems
+
+| System | Type | Notes |
+|--------|------|-------|
+| **Pole-21** (R-340RP / Field-21) | GPS spoofing | Russia's primary GPS spoofing system. Covers all GNSS L1/L2 bands (1.176–1.602 GHz). Creates GPS denial/spoofing zones around protected objects. Deployed at military bases and in field operations. |
+| **Shipovnik-Aero** | GPS spoofing | Specifically designed to hijack drone navigation by feeding false GPS coordinates. |
+| **R-330Zh Zhitel** | GNSS jamming + spoofing | Operates 0.1–2 GHz, covers GPS L1 (1575 MHz). One of the primary Russian GPS denial systems, capable of both jamming and spoofing. |
+| **Krasukha-2** (1L269) | Radar jamming | Jams airborne radar (AWACS) at 250 km. S-band 2.3–3.7 GHz. |
+| **Krasukha-4** (1RL257) | Radar jamming | Jams airborne radar at 8.5–17.7 GHz. |
+| **Borisoglebsk-2** (RB-310B) | Broadband comms jamming | 0.003–3 GHz. Communications suppression. |
+| **Leer-3** (RB-341V) | Cellular jamming | Uses Orlan-10 drones for cellular network suppression. 0.935–1.785 GHz. |
+| **Murmansk-BN** | HF comms jamming | Strategic long-range (up to 5000 km) HF jamming at 3–30 MHz. |
+| **Palantin** | Comms jamming + SIGINT | Communications suppression and signals intelligence. |
+| **Tirada-2** | Satellite comms jamming | Targets satellite communication links at 3–14 GHz. |
+| **Rtut-BM** (Mercury-BM) | Proximity fuse jamming | Causes artillery proximity fuses to detonate prematurely (80–900 MHz). |
+| **Repellent-1** | Drone suppression | Anti-UAV system operating at 0.2–6 GHz. |
+| **Infauna** (RB-531B) | Comms jamming + IED protection | Vehicle-mounted force protection (30–1000 MHz). |
+| **Lesochek** (RP-377UVM) | IED jamming | Vehicle-mounted IED jammer (20–1000 MHz). |
+| **Avtobaza-M** | SIGINT / passive detection | Passive electronic intelligence at 0.2–18 GHz (not a jammer). |
+| **Moskva-1** (1L267) | SIGINT / passive detection | Detects emitters, cues other EW systems. |
+| **Bylina** (RB-109A) | EW command and control | Automated coordination of multiple EW systems. |
+
+### Belarusian EW systems
+
+| System | Type | Notes |
+|--------|------|-------|
+| **Groza** (KB Radar) | GNSS jamming | Designed to jam satellite navigation signals. Belarus has supplied these to Russia. |
+
+> **Note:** The filter detects spoofing and jamming based on signal anomalies (position jumps, SNR patterns, altitude divergence, satellite count drops), not by identifying specific EW hardware. This means it works against **any** EW system that affects GNSS signals — including systems not listed here and future systems not yet deployed.
+
+## 9) Which GPS receiver to choose?
 
 Both u-blox and UM980/UM981 work well. For areas with heavy jamming or spoofing, **UM980/UM981 tends to perform better** — it has stronger satellite lock, faster recovery after interference, and simpler setup (no auto-configuration needed).
 

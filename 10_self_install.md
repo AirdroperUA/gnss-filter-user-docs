@@ -27,9 +27,9 @@ locked to your specific board and cannot be copied to another.
    and install. The provisioning tool needs `STM32_Programmer_CLI` on your PATH.
 
 2. **Provisioning tool** — download `gnss-provision.exe` from the store downloads page.
-   Or if you have Python 3.8+:
+   Or if you have Python 3.10+:
    ```
-   pip install requests pyserial pynacl
+   pip install requests pyserial
    ```
    Then use `tools/gnss_provision.py` from the firmware repository.
 
@@ -102,7 +102,7 @@ Connecting to target via ST-Link...
 Reading board UID...
 Board UID: aabbccddeeff1122334455 (short: 12345678)
 Contacting license server...
-Firmware version: 1.4.3
+Firmware version: 1.5.0
   Bootloader: 32696 bytes
   Application: 73732 bytes
   Metadata: 148 bytes
@@ -120,7 +120,7 @@ Provisioning complete!
 1. Disconnect the ST-Link
 2. Power the board via USB or your aircraft power supply
 3. Connect to Mission Planner and check for the filter boot message in the
-   Messages tab (e.g. `GNSS filter v1.4.3 UID=12345678`)
+   Messages tab (e.g. `GNSS filter v1.5.0 UID=12345678`)
 
 ---
 
@@ -169,6 +169,58 @@ These are the same pins used for FC MAVLink telemetry.
 3. When prompted, **press the reset button** on the BlackPill
 4. The tool will flash the new firmware over UART (~30-60 seconds)
 5. The board resets automatically when done
+
+---
+
+## GUI tool (alternative)
+
+If you prefer a graphical interface, use **AirDroper GNSS Filter.exe** instead
+of the command-line tool. It supports the same two workflows:
+
+- **Activate (ST-Link)** — first-time provisioning of a blank board.
+- **Update (UART)** — firmware updates over a USB-UART adapter.
+
+The GUI auto-detects available COM ports for UART updates. If the board is
+already in RDP Level 1 from a previous activation, the tool automatically
+removes readout protection, performs a mass erase, and re-provisions the
+board from scratch — no manual steps required.
+
+The interface is available in English and Ukrainian (language toggle in the
+top-right corner).
+
+---
+
+## Spoofing event logs and cloud dashboard
+
+Starting with firmware v1.5.0 the filter records every spoofing event to
+on-board flash memory. Each event includes the timestamp, GPS coordinates,
+satellite count, SNR values, and the detection reason.
+
+### Downloading logs
+
+1. Connect a USB-UART adapter (same wiring as firmware updates — TX→PA10,
+   RX→PA9, GND→GND)
+2. In the GUI tool click **Download Logs (UART)**
+3. Enter your license key when prompted
+4. The tool reads all stored events, uploads them to your cloud dashboard,
+   and clears the on-board log
+
+The license key is required to download logs — if someone finds a crashed
+aircraft, they cannot access the flight data without the key.
+
+### Cloud dashboard
+
+Visit `https://gnss-filter.online/dashboard` and enter your license key to
+view:
+
+- **Event map** — all spoofing events plotted on a map with colour-coded
+  markers by detection reason
+- **Statistics** — total events, board count, reason breakdown
+- **Event list** — scrollable timeline with coordinates, altitude,
+  satellite count, and SNR data
+
+The dashboard is accessible from any browser. Each license key can only see
+its own data.
 
 ---
 

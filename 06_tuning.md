@@ -160,10 +160,10 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - Changes are applied immediately.
 - Filter auto-saves to non-volatile storage about 1.5s after the last change.
-- `GNSS_TYPE`, `UBX_BAUD`, and `UM980_HIGHDYN` require reboot to apply.
+- `GNSS_TYPE` and `UBX_BAUD` require reboot to apply.
 - After a parameter write, wait about **2-3 seconds** to allow the save cycle to complete.
 - Reboot after every parameter change is **not** required.
-- Reboot STM32 (`NRST` or power cycle) when changing `GNSS_TYPE`, `UBX_BAUD`, or `UM980_HIGHDYN`, or if behavior does not match updated values.
+- Reboot STM32 (`NRST` or power cycle) when changing `GNSS_TYPE` or `UBX_BAUD`, or if behavior does not match updated values.
 
 ## Using Mission Planner for Parameter Writes
 

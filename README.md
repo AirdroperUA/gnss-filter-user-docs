@@ -27,3 +27,4 @@ Reboot is not required after every parameter write.
 9. `09_receiver_config.md` - GNSS receiver configuration for UM980 and u-blox (command profiles, ArduPilot GPS type settings).
 10. `10_self_install.md` - self-install guide for flashing firmware onto a blank board using a license key.
 11. `11_faq.md` - frequently asked questions (hardware, setup, operation, UM980, licensing).
+12. `../../CHANGELOG.md` - full firmware version history and release notes.

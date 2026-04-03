@@ -86,7 +86,7 @@ Power the BlackPill from the ST-Link 3V3 (or USB, either works).
 Open a terminal and run:
 
 ```
-gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://license.airdroper.org
+gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdroper.org
 ```
 
 The tool will:
@@ -162,7 +162,7 @@ These are the same pins used for FC MAVLink telemetry.
 1. Wire the USB-UART adapter as shown above
 2. Open a terminal and run:
    ```
-   gnss-provision update --license GF-XXXX-XXXX-XXXX --uid <your-24-char-uid> --uart COM5 --server https://license.airdroper.org
+   gnss-provision update --license GF-XXXX-XXXX-XXXX --uid <your-24-char-uid> --uart COM5 --server https://gps.airdroper.org
    ```
    Replace `COM5` with your adapter's port. The UID is the full 24-character
    hex string shown during initial activation.

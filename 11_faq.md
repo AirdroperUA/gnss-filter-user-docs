@@ -60,10 +60,10 @@ all devices share a common ground.
 
 ### My FC shows "No GPS" or "GPS: not healthy"
 
-1. Check wiring — TX and RX must be crossed (see `02_wiring.md`)
+1. Check wiring — TX and RX must be crossed (see the **Wiring Guide**)
 2. Check that `SERIAL_BAUD` matches (460800 for GPS UART, 115200 for MAVLink)
 3. Set `FCGPS_FWD=1` temporarily to bypass DR1 and verify data reaches the FC
-4. For UM980: make sure `GPS_AUTO_CONFIG=0` in ArduPilot (see `09_receiver_config.md`)
+4. For UM980: make sure `GPS_AUTO_CONFIG=0` in ArduPilot (see **Receiver Config**)
 
 ### How do I know which GNSS_TYPE to use?
 
@@ -74,7 +74,7 @@ all devices share a common ground.
 
 Yes. The STM32 does **not** auto-configure the UM980. You must apply the
 configuration profile via UPrecise before first flight. See
-`09_receiver_config.md` for the exact commands.
+**Receiver Config** for the exact commands.
 
 ### Do I need to configure my u-blox receiver?
 
@@ -139,7 +139,7 @@ Most likely causes:
    UM980 config with `MODE MOVINGBASE`, which is wrong for a single-antenna
    UAV. Set `GPS_AUTO_CONFIG=0`.
 2. **Missing `MODE ROVER UAV`** in your UM980 config — apply the full profile
-   from `09_receiver_config.md`.
+   from **Receiver Config**.
 
 ### What messages does ArduPilot need from the UM980?
 
@@ -158,7 +158,7 @@ everything to the UM980's non-volatile flash. Configure once, fly forever.
 ### Can I install the firmware myself?
 
 Yes. Purchase a license key from the store and follow the self-install
-guide (`10_self_install.md`). You'll need an ST-Link V2 programmer (~$3).
+guide (see **Self-Install Guide**). You'll need an ST-Link V2 programmer (~$3).
 
 ### Can I use my license on multiple boards?
 
@@ -168,7 +168,7 @@ that board's unique hardware ID.
 ### How do I update the firmware?
 
 After the initial flash, updates use a USB-UART adapter connected to
-PA9/PA10 (no ST-Link needed). See the update section in `10_self_install.md`.
+PA9/PA10 (no ST-Link needed). See the update section in the **Self-Install Guide**.
 
 ### What if my board dies?
 

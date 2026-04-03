@@ -4,33 +4,33 @@
 
 This document describes how the STM32 filter operates between the GNSS receiver and the flight controller (FC).
 
-## Terminology (quick glossary)
+## Key terms
 
-- **DR (dead-reckoning)**: estimating aircraft position from inertial data (IMU), heading, and speed when GNSS is not trusted. It keeps navigation continuity but accumulates drift over time.
-- **DR0**: normal mode. GNSS data is forwarded to the FC GPS UART.
-- **DR1**: protection mode. Live GNSS forwarding is blocked — the FC GPS UART receives silence so suspect GNSS data does not reach the FC.
-- **FC**: flight controller (ArduPilot).
-- **GNSS**: global navigation satellite receiver (for example u-blox M8/M9/M10/F9/F10-class receivers or UM980/UM981-class receivers).
-- **GPS**: in this documentation, the GNSS input path and FC GPS UART path.
-- **UART**: serial interface with TX/RX lines.
-- **MAVLink**: telemetry/control protocol between STM32 and FC.
+- **DR0** (normal mode): GPS data flows through to your flight controller — everything works normally.
+- **DR1** (protection mode): GPS data is blocked — the flight controller switches to dead-reckoning (navigating by compass, airspeed, and inertial sensors) until clean GPS returns.
+- **FC**: flight controller (the autopilot board in your drone, running ArduPilot).
+- **GNSS**: the GPS module/receiver connected to the filter (u-blox or UM980/UM981).
+
+<details>
+<summary><strong>Full glossary (advanced)</strong></summary>
+
+- **UART**: serial interface with TX/RX wires — how the filter talks to other devices.
+- **MAVLink**: telemetry protocol between the filter and flight controller.
 - **GCS**: ground control station (Mission Planner, QGroundControl).
-- **UBX**: u-blox binary GNSS protocol.
-- **NMEA**: text GNSS protocol used by many receivers.
-- **EKF**: Extended Kalman Filter inside the FC.
+- **UBX**: u-blox binary GPS protocol.
+- **NMEA**: text GPS protocol used by many receivers.
+- **EKF**: Extended Kalman Filter — the flight controller's internal navigation estimator.
+- **Dead-reckoning**: estimating position from IMU, heading, and speed when GPS is unavailable. Keeps navigation going but accumulates drift over time.
 
-## Compatibility and safety
+</details>
+
+## Compatibility
 
 - Requires **ArduPilot 4.6.1 or later**.
-- Receiver mode is selected by `GNSS_TYPE`:
-  - `GNSS_TYPE=0`: u-blox/UBX mode.
-  - `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
-- In `GNSS_TYPE=1`, the filter expects one physical UM980 receiver stream:
-  - `COM1` -> STM32 `A2/A3`
-  - the STM32 reads spoofing/SNR data from that stream
-  - the STM32 forwards that same stream to the FC GPS UART
-- `GNSS_TYPE` is saved immediately but applied only after STM32 reboot.
-- First flights should be on a low-cost, easy-to-recover airframe (for example, a 10-inch FPV quad with ArduPilot or a small fixed wing such as Reptile Dragon V2). Validate behavior before installing on an expensive UAV.
+- Supported GPS receivers:
+  - **u-blox** (M8, M9, M10, F9, F10) — set `GNSS_TYPE=0`
+  - **UM980 / UM981** — set `GNSS_TYPE=1`
+- **Important:** Test on a low-cost, easy-to-recover drone first (e.g., a small FPV quad or fixed wing). Validate behavior before installing on an expensive aircraft.
 
 ## 1) Purpose
 
@@ -59,20 +59,22 @@ The filter sits between GNSS and FC and performs three core tasks:
                                    (DR0→DR1 pulse)
 ```
 
-## 3) Data paths
+## 3) How data flows
 
-There are three UART links:
+In normal mode (DR0), GPS data passes through the filter to your flight controller. When spoofing is detected (DR1), the filter blocks GPS data — your flight controller sees no GPS and switches to dead-reckoning automatically.
+
+<details>
+<summary><strong>Technical: Pin assignments and baud rates</strong></summary>
 
 | Link | STM32 pins | Baud | Purpose |
 |------|-----------|------|---------|
 | GNSS ↔ STM32 | A2 (TX) / A3 (RX) | 460800 | Receiver input for quality checks |
 | FC MAVLink ↔ STM32 | A9 (TX) / A10 (RX) | 115200 | Status, commands, tuning |
-| FC GPS ← STM32 | A11 (TX) / A12 (RX) | 460800 | Raw GNSS forwarding to FC |
+| FC GPS ← STM32 | A11 (TX) / A12 (RX) | 460800 | GPS forwarding to FC |
 
-For UM980/UM981, one physical receiver UART is enough. The STM32 consumes that single GNSS stream and mirrors it to the FC GPS UART.
+For UM980/UM981, one physical receiver connection is enough — the filter reads the GPS stream and mirrors it to the flight controller.
 
-**DR0**: GNSS data forwarded to FC GPS UART.
-**DR1**: FC GPS UART receives silence — no GNSS data reaches the FC.
+</details>
 
 ## 4) DR0 and DR1
 
@@ -130,14 +132,10 @@ If conditions pass, optional blend (`BLEND_MS`) runs, then DR0 is restored.
 - GCS map can show GNSS jumps during spoofing; use DR state and filter logs as primary truth.
 - Save a baseline parameter profile before changing field settings.
 
-## 8) Receiver choice: UM980/UM981 vs u-blox (for this filter use case)
+## 8) Which GPS receiver to choose?
 
-UM980/UM981 can be a better fit than u-blox for long anti-spoof runs in this project, mainly because:
+Both u-blox and UM980/UM981 work well. For areas with heavy jamming or spoofing, **UM980/UM981 tends to perform better** — it has stronger satellite lock, faster recovery after interference, and simpler setup (no auto-configuration needed).
 
-- robust multi-band tracking and generally stronger satellite lock stability in difficult RF environments;
-- better behavior after long interference periods in many field setups (faster return to usable fix);
-- NMEA-mode operation (`GNSS_TYPE=1`) avoids UBX reconfiguration dependency;
-- high satellite availability in open sky improves guard/rejoin confidence.
+**u-blox** is still a great choice and is auto-configured by the filter at boot — just plug it in.
 
-u-blox is still supported and works well when configured correctly (`GNSS_TYPE=0`).  
-Use platform-specific flight testing to confirm which receiver is better for your region and interference profile.
+We recommend testing with your specific setup and region to see which works best for you.

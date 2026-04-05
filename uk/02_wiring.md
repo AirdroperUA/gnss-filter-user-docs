@@ -61,11 +61,9 @@ UART має бути перехресним:
 
 ## Фото плат (довідково)
 
-Нижче дві поширені версії BlackPill STM32F401. Підписи пінів і функції однакові.
+Рекомендована плата — WeAct Studio BlackPill STM32F401CC V2.0 (чорна PCB).
 
-![BlackPill варіант A](../diagrams/blackpill_variant_a.jpeg)
-
-![BlackPill варіант B](../diagrams/blackpill_variant_b.jpg)
+![BlackPill STM32F401CC](../diagrams/blackpill_variant_a.jpeg)
 
 Якщо після підключення не працює GNSS або MAVLink, дивіться `03_wiring_debug.md`.
 

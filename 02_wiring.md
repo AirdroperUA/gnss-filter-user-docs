@@ -61,11 +61,9 @@ Use this rule only:
 
 ## Board photos (reference)
 
-These are two common BlackPill STM32F401 variants. Pin labels and functions are the same.
+The recommended board is the WeAct Studio BlackPill STM32F401CC V2.0 (black PCB).
 
-![BlackPill variant A](diagrams/blackpill_variant_a.jpeg)
-
-![BlackPill variant B](diagrams/blackpill_variant_b.jpg)
+![BlackPill STM32F401CC](diagrams/blackpill_variant_a.jpeg)
 
 If GNSS or MAVLink does not work after wiring, see `03_wiring_debug.md`.
 

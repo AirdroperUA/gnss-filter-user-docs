@@ -184,8 +184,8 @@ work with both receivers.
   GPS hasn't recovered. Default `0` = disabled (infinite latch). Useful for
   long-range missions where indefinite GPS blocking is worse than uncertain GPS.
 - **FENCE_RAD**: Triggers DR1 if GPS reports a position more than this many
-  meters from the first fix (max 2,000,000 m = 2000 km). Default `0` = disabled.
-  Catches slow-drift spoofing attacks.
+  meters from the first fix (max 2,000,000 m = 2000 km). Default `600000` (600 km).
+  Set to `0` to disable. Catches slow-drift spoofing attacks.
 
 ### Can I export spoofing events to Google Earth?
 

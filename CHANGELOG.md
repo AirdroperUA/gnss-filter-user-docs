@@ -5,6 +5,33 @@ tooling are documented below.
 
 ---
 
+## v1.5.5 — USB-C & Bootloader Upgrade (2026-04-05)
+
+### Firmware
+- Bootloader expanded from 32 KiB to 48 KiB (sectors 0-2); app now starts
+  at 0x0800C000
+- USB CDC support in bootloader via TinyUSB — firmware updates and log
+  downloads over USB-C cable (no ST-Link or UART adapter needed)
+- Dual-transport bootloader: auto-detects UART or USB CDC, first HELLO wins
+- PLL clock init in bootloader (84 MHz system + 48 MHz USB)
+- Initial provisioning via USB DFU (STM32 ROM bootloader, BOOT0 button)
+
+### Provisioning tool (GUI)
+- Connection mode selector: Auto-detect / ST-Link (SWD) / USB (DFU)
+- Auto-detect new USB CDC COM port after board reset
+- DFU provisioning: hold BOOT0, press RESET, flash via USB
+
+### Documentation
+- Added UM982 as supported receiver alongside UM980/UM981
+- Removed green BlackPill board variant (known to differ from reference black PCB)
+- Updated all docs for v1.5.5: app address 0x0800C000, 48 KiB bootloader
+- Added day/night theme toggle to landing page and docs
+- Added docs version selector for switching between past versions
+- Interactive wiring checklist checkboxes
+- Light/dark theme with dark as default
+
+---
+
 ## v1.5.0 — SpoofAnalytics (2026-04-03)
 
 ### Firmware
@@ -39,7 +66,7 @@ tooling are documented below.
 
 ---
 
-## v1.4.3 — ParamSaveFix (2026-03-09)
+## v1.4.3 — ParamSaveFix (2026-03-24)
 
 ### Firmware
 - Fixed EEPROM parameter save/restore bug that could lose tuning values
@@ -69,7 +96,7 @@ tooling are documented below.
 
 ---
 
-## v1.4.2 — UM980Support (2026-03-24)
+## v1.4.2 — UM980Support (2026-03-09)
 
 ### Firmware
 - Added Unicorecomm UM980 receiver support alongside u-blox

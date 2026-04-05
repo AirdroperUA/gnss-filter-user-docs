@@ -194,6 +194,14 @@ Visit [gnss-filter.online/dashboard](https://gnss-filter.online/dashboard) and e
 - **Statistics** — total events, board count, reason breakdown
 - **Event list** — scrollable timeline with coordinates, altitude,
   satellite count, and signal data
+- **Confidence score** — each event shows a 0–100 spoofing confidence
+  from the filter's multi-signal analysis (v1.5.5+)
+- **KML/GPX export** — download spoofing events as KML (Google Earth) or
+  GPX files for offline analysis and flight path review (v1.5.5+)
+
+Starting with v1.5.5, each event also records UTC time (hour/minute from
+GPS) and the spoofing confidence score, providing richer data for
+post-flight analysis.
 
 The dashboard is accessible from any browser. Each license key can only see
 its own data.

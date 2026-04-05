@@ -98,6 +98,20 @@ MODE ROVER UAV HIGHDYN
   parse these sentences. The driver gets DOP from GGA and accuracy data from
   AGRICA. Omitting them saves serial bandwidth.
 
+### Detection feature coverage (UM980 vs u-blox)
+
+The UM980/NMEA path supports all core detection features (position jump,
+altitude, SNR, heading reversal, geo-fence, GPS time). However, three
+advanced signals are u-blox only because NMEA does not provide the
+underlying data:
+
+- **Pseudorange residual analysis** — requires UBX NAV-SAT `prRes` field
+- **GDOP sudden change** — requires UBX NAV-DOP `gDOP` field (NMEA GSA only has PDOP/HDOP/VDOP)
+- **Clock bias jump** — requires UBX NAV-CLOCK
+
+The spoofing confidence score (`DR_CONF`) adapts automatically — unavailable
+signals are excluded from the weighted average.
+
 ### Common mistakes
 
 - **Leaving `GPS_AUTO_CONFIG` at default (enabled)** — ArduPilot overwrites
@@ -178,6 +192,7 @@ UBX-CFG-MSG    NAV-STATUS  rate=2
 UBX-CFG-MSG    NAV-VELNED  rate=2
 UBX-CFG-MSG    NAV-DOP     rate=2
 UBX-CFG-MSG    NAV-SOL     rate=2
+UBX-CFG-MSG    NAV-CLOCK   rate=2
 UBX-CFG-MSG    NAV-SAT     rate=2
 
 UBX-CFG-TMODE3 mode=disabled
@@ -189,7 +204,8 @@ Nothing to do on the receiver side.
 ### Notes for default auto-config
 
 - `NAV-PVT` and `NAV-POSLLH` run at 10 Hz. `NAV-STATUS`, `NAV-VELNED`, `NAV-DOP`,
-  `NAV-SOL`, and `NAV-SAT` run at 5 Hz.
+  `NAV-SOL`, `NAV-CLOCK`, and `NAV-SAT` run at 5 Hz.
+- `NAV-CLOCK` provides receiver clock bias/drift data used for spoofing detection (v1.5.5+).
 - `UBX-CFG-PRT` is sent during the autobaud scan; the rest of the profile is
   ACK-verified after the link is already at `460800`.
 - This path makes the receiver UART UBX-only. Keep the FC GPS type in `AUTO` or
@@ -209,9 +225,10 @@ At boot the filter only makes a best-effort volatile request for:
 
 ```text
 UBX-CFG-RATE   measRate=100ms navRate=1 timeRef=GPS
-UBX-CFG-MSG    NAV-PVT  rate=1
-UBX-CFG-MSG    NAV-DOP  rate=2
-UBX-CFG-MSG    NAV-SAT  rate=2
+UBX-CFG-MSG    NAV-PVT    rate=1
+UBX-CFG-MSG    NAV-DOP    rate=2
+UBX-CFG-MSG    NAV-CLOCK  rate=2
+UBX-CFG-MSG    NAV-SAT    rate=2
 ```
 
 It does **not** change UART1 baud, does **not** disable NMEA, and does **not** save to

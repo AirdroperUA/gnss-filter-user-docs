@@ -155,6 +155,44 @@ It outputs a 3-second high pulse on each DR0→DR1 transition. You can
 connect it to an LED, buzzer, or external logger to get a physical
 indication when protection mode activates. See the [Wiring Guide](#wiring) for connection details.
 
+### What is the spoofing confidence score (DR_CONF)?
+
+Starting with v1.5.5, the filter computes a 0–100 confidence score from up to
+8 independent detection signals. Higher = more evidence of spoofing. The score
+is sent as `DR_CONF` in MAVLink telemetry and logged in each spoofing event.
+
+u-blox receivers use all 8 signals (SNR, pseudorange residual, SNR temporal
+correlation, heading, GDOP, time, velocity-position, clock bias). UM980
+receivers use the signals available via NMEA (~5 of 8). The score adapts
+automatically — unavailable signals are excluded from the weighted average.
+
+### Do all detection features work with UM980?
+
+Most features work with both u-blox and UM980. Three advanced signals are
+**u-blox only** because they require UBX binary protocol data:
+
+- **Pseudorange residual analysis** (from NAV-SAT)
+- **GDOP sudden change detection** (from NAV-DOP)
+- **Clock bias jump detection** (from NAV-CLOCK)
+
+The core protections (position jump, altitude, SNR, heading, time, geo-fence)
+work with both receivers.
+
+### What are the new DR1_MAX_MS and FENCE_RAD parameters?
+
+- **DR1_MAX_MS**: Forces exit from DR1 after this many milliseconds, even if
+  GPS hasn't recovered. Default `0` = disabled (infinite latch). Useful for
+  long-range missions where indefinite GPS blocking is worse than uncertain GPS.
+- **FENCE_RAD**: Triggers DR1 if GPS reports a position more than this many
+  meters from the first fix. Default `0` = disabled. Catches slow-drift
+  spoofing attacks.
+
+### Can I export spoofing events to Google Earth?
+
+Yes (v1.5.5+). The cloud dashboard provides KML and GPX export links. You can
+open the KML file in Google Earth to see all spoofing events plotted on a 3D
+map, or import the GPX file into any GPS analysis tool.
+
 ---
 
 ## UM980 Specific

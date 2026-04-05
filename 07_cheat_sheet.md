@@ -85,8 +85,17 @@ See the [Device Overview](#device-overview) for a full explanation.
 | SNR anomaly | `SNR_EN`, `SNR_HOLDMS` | Abnormal signal strength pattern |
 | Altitude anomaly | `ALT_*` | Large altitude jump or GPS/baro mismatch |
 | EKF unhealthy | `EKF_TRIPMS` | Flight controller reports nav problems |
+| Geo-fence | `FENCE_RAD` | Position outside radius from first fix (v1.5.5+) |
+| Heading reversal | — | 150°+ heading flip while moving >5 m/s (v1.5.5+) |
+| GPS time anomaly | — | >2 s drift between GPS and internal clock (v1.5.5+) |
+| Clock bias jump | — | Sudden receiver clock jump, u-blox only (v1.5.5+) |
+| Velocity-position mismatch | — | Velocity doesn't match position change (v1.5.5+) |
 
 See [Tuning](#tuning) to adjust these thresholds.
+
+## 7b) Spoofing Confidence Score (v1.5.5+)
+
+The filter computes `DR_CONF` (0–100) combining 8 detection signals. Visible in Mission Planner named-value telemetry and in event logs. Higher = more evidence of spoofing. u-blox receivers use all 8 signals; UM980 uses the subset available via NMEA.
 
 ## 8) Status Log Messages
 

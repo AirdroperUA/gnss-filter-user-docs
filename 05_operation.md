@@ -39,6 +39,26 @@ This prevents suspect live GNSS data from reaching FC navigation input while DR1
 - No-fix or low-satellite condition (`sats < 5`) triggers DR1 immediately (after startup guard window).
 - Position jump, altitude checks, SNR checks, and EKF checks can also trigger DR1 based on tuning.
 - `EKF_TRIPMS=0` means EKF-based DR1 trip is immediate when EKF is unhealthy.
+- Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius triggers DR1.
+- Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.
+- GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
+- DR1 max duration (`DR1_MAX_MS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered. Use for missions that cannot tolerate indefinite GPS blocking.
+
+### Spoofing confidence score
+
+The firmware computes a weighted confidence score (0–100) from up to 8 detection signals. The score is visible in Mission Planner as `DR_CONF` in the named-value telemetry and is recorded in each spoofing event log entry. Higher values indicate more evidence of spoofing. The score adapts to available data — signals that require UBX-specific messages (NAV-SAT, NAV-CLOCK, NAV-DOP) are skipped for UM980/NMEA receivers.
+
+### UBX-only vs universal detection
+
+Most detection signals work with both u-blox and UM980 receivers. The following advanced signals are **u-blox only** because they require UBX binary messages not available in NMEA:
+
+| Signal | Required UBX message |
+|--------|---------------------|
+| Pseudorange residual stddev | NAV-SAT (prRes field) |
+| GDOP sudden change | NAV-DOP (gDOP field) |
+| Clock bias jump | NAV-CLOCK (clkB field) |
+
+Velocity-position consistency works with both receivers but is more precise with u-blox (uses NED velocity from NAV-PVT) vs UM980 (derives from RMC speed/course).
 
 ## Startup guard
 

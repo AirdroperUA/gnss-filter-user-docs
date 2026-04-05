@@ -97,6 +97,19 @@ MODE ROVER UAV HIGHDYN
   Драйвер отримує DOP з GGA, а дані точності з AGRICA. Їх пропуск економить
   пропускну здатність послідовного порту.
 
+### Покриття функцій виявлення (UM980 vs u-blox)
+
+Шлях UM980/NMEA підтримує всі основні функції виявлення (стрибок позиції,
+висота, SNR, розворот курсу, гео-огорожа, час GPS). Однак три розширені
+сигнали доступні лише для u-blox, оскільки NMEA не надає відповідних даних:
+
+- **Аналіз pseudorange residual** — потрібне поле `prRes` з UBX NAV-SAT
+- **Різка зміна GDOP** — потрібне поле `gDOP` з UBX NAV-DOP (NMEA GSA має лише PDOP/HDOP/VDOP)
+- **Стрибок тактового зсуву** — потрібне повідомлення UBX NAV-CLOCK
+
+Оцінка достовірності спуфінгу (`DR_CONF`) адаптується автоматично — недоступні
+сигнали виключаються зі зваженого середнього.
+
 ### Поширені помилки
 
 - **Залишення `GPS_AUTO_CONFIG` за замовчуванням (увімкнено)** — ArduPilot перезаписує
@@ -178,6 +191,7 @@ UBX-CFG-MSG    NAV-STATUS  rate=2
 UBX-CFG-MSG    NAV-VELNED  rate=2
 UBX-CFG-MSG    NAV-DOP     rate=2
 UBX-CFG-MSG    NAV-SOL     rate=2
+UBX-CFG-MSG    NAV-CLOCK   rate=2
 UBX-CFG-MSG    NAV-SAT     rate=2
 
 UBX-CFG-TMODE3 mode=disabled
@@ -189,7 +203,8 @@ UBX-CFG-CFG    save current configuration to BBR/Flash
 ### Примітки до стандартного авто-конфігу
 
 - `NAV-PVT` і `NAV-POSLLH` працюють на 10 Гц. `NAV-STATUS`, `NAV-VELNED`, `NAV-DOP`,
-  `NAV-SOL` і `NAV-SAT` працюють на 5 Гц.
+  `NAV-SOL`, `NAV-CLOCK` і `NAV-SAT` працюють на 5 Гц.
+- `NAV-CLOCK` надає дані зсуву/дрейфу тактового генератора приймача для виявлення спуфінгу (v1.5.5+).
 - `UBX-CFG-PRT` надсилається під час autobaud-сканування; решта профілю проходить
   ACK-перевірку вже після переходу лінка на `460800`.
 - Цей шлях робить UART приймача UBX-only. На FC залишайте тип GPS `AUTO` або
@@ -210,9 +225,10 @@ UBX-CFG-CFG    save current configuration to BBR/Flash
 
 ```text
 UBX-CFG-RATE   measRate=100ms navRate=1 timeRef=GPS
-UBX-CFG-MSG    NAV-PVT  rate=1
-UBX-CFG-MSG    NAV-DOP  rate=2
-UBX-CFG-MSG    NAV-SAT  rate=2
+UBX-CFG-MSG    NAV-PVT    rate=1
+UBX-CFG-MSG    NAV-DOP    rate=2
+UBX-CFG-MSG    NAV-CLOCK  rate=2
+UBX-CFG-MSG    NAV-SAT    rate=2
 ```
 
 У ручному режимі він **не** змінює baud UART1, **не** вимикає NMEA і **не**

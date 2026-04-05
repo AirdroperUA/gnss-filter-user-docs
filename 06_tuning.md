@@ -66,6 +66,8 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `SNR_MMAX` | Minimum required strongest SNR (dB-Hz) | 35 | 10 | 60 |
 | `SNR_HOLDMS` | SNR guard hold time before DR1 (ms) | 1500 | 100 | 20000 |
 | `SNR_MAXAGE` | Max age of SNR sample (ms) | 2000 | 100 | 10000 |
+| `DR1_MAX_MS` | Max DR1 duration before forced exit (ms, 0=disabled) | 0 | 0 | 600000 |
+| `FENCE_RAD` | Geo-fence radius from first fix (m, 0=disabled) | 0 | 0 | 500000 |
 
 ## Parameter Reference (detailed)
 
@@ -146,6 +148,11 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)`. This means the receiver is not providing fresh SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`.
 - **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981/UM982 NMEA. Change is saved immediately but applied after STM32 reboot.
 - **UM980_HIGHDYN**: UM980/UM981/UM982 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Reserved for future use — currently has no runtime effect. The STM32 does **not** send any `MODE` command to the UM980.
+
+### DR1 max duration and geo-fence
+
+- **DR1_MAX_MS**: Maximum time (ms) the filter stays in DR1 before forcing an exit back to DR0. Set to `0` to disable (default — DR1 lasts until GPS quality recovers). Use for missions that cannot tolerate indefinite GPS blocking (e.g. long-range fixed-wing with good IMU). Typical values: `60000` (1 min), `120000` (2 min), `300000` (5 min).
+- **FENCE_RAD**: Geo-fence radius in meters from the first-fix position. If GPS reports a position outside this radius, DR1 triggers. Set to `0` to disable (default). Useful to catch spoofing attacks that slowly drift position over time. Note: the fence center is set at first fix after boot — not at an arming position.
 
 ### SNR guard (nearby jammer/spoofer)
 

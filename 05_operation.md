@@ -39,7 +39,8 @@ This prevents suspect live GNSS data from reaching FC navigation input while DR1
 - No-fix or low-satellite condition (`sats < 5`) triggers DR1 immediately (after startup guard window).
 - Position jump, altitude checks, SNR checks, and EKF checks can also trigger DR1 based on tuning.
 - `EKF_TRIPMS=0` means EKF-based DR1 trip is immediate when EKF is unhealthy.
-- Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius triggers DR1.
+- South-hemisphere jump: if GPS latitude goes below 0°, DR1 triggers immediately. The filter also hard-blocks any south-hemisphere position from reaching the FC (all drones operate in the northern hemisphere).
+- Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius (up to 2000 km) triggers DR1.
 - Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.
 - GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
 - DR1 max duration (`DR1_MAX_MS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered. Use for missions that cannot tolerate indefinite GPS blocking.

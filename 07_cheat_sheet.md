@@ -85,7 +85,8 @@ See the [Device Overview](#device-overview) for a full explanation.
 | SNR anomaly | `SNR_EN`, `SNR_HOLDMS` | Abnormal signal strength pattern |
 | Altitude anomaly | `ALT_*` | Large altitude jump or GPS/baro mismatch |
 | EKF unhealthy | `EKF_TRIPMS` | Flight controller reports nav problems |
-| Geo-fence | `FENCE_RAD` | Position outside radius from first fix (v1.5.5+) |
+| South-hemisphere jump | — | Latitude goes below 0° — instant DR1 + hard block |
+| Geo-fence | `FENCE_RAD` | Position outside radius (up to 2000 km) from first fix (v1.5.5+) |
 | Heading reversal | — | 150°+ heading flip while moving >5 m/s (v1.5.5+) |
 | GPS time anomaly | — | >2 s drift between GPS and internal clock (v1.5.5+) |
 | Clock bias jump | — | Sudden receiver clock jump, u-blox only (v1.5.5+) |

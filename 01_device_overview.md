@@ -121,19 +121,23 @@ See [Operation](#operation) for the full state machine and [Tuning](#tuning) to 
 
 - Impossible 180° heading change while moving fast — physically unrealistic, common in spoofing attacks.
 
-### Example G: geo-fence violation (v1.5.5+)
+### Example G: south-hemisphere jump
 
-- Position reported outside the configured radius from a home point. Requires `FENCE_RAD` > 0 and first-fix position.
+- GPS latitude drops below 0°. Since all operations are in the northern hemisphere, any southern position is guaranteed spoofing. DR1 triggers instantly and the position is hard-blocked from the FC.
 
-### Example H: GPS time anomaly (v1.5.5+)
+### Example H: geo-fence violation (v1.5.5+)
+
+- Position reported outside the configured radius (up to 2000 km) from a home point. Requires `FENCE_RAD` > 0 and first-fix position.
+
+### Example I: GPS time anomaly (v1.5.5+)
 
 - GPS time-of-day drifts more than 2 seconds from the filter's internal clock. Spoofers often use slightly wrong time bases.
 
-### Example I: clock bias jump (v1.5.5+, u-blox only)
+### Example J: clock bias jump (v1.5.5+, u-blox only)
 
 - Sudden jump in the receiver's internal clock bias (from UBX NAV-CLOCK). Indicates the receiver locked onto a spoofed signal with a different timing offset.
 
-### Example J: velocity-position mismatch (v1.5.5+, u-blox only)
+### Example K: velocity-position mismatch (v1.5.5+, u-blox only)
 
 - The reported velocity doesn't match the actual position change between epochs. Spoofers that shift position without matching velocity are caught.
 

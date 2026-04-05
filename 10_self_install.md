@@ -72,13 +72,13 @@ Connecting to target via ST-Link...
 Reading board UID...
 Board UID: aabbccddeeff1122334455 (short: 12345678)
 Contacting license server...
-Firmware version: 1.5.0
-  Bootloader: 32696 bytes
+Firmware version: 1.5.5
+  Bootloader: 47104 bytes
   Application: 73732 bytes
   Metadata: 148 bytes
 Erasing flash...
 Writing bootloader (0x08000000)...
-Writing application (0x08008000)...
+Writing application (0x0800C000)...
 Writing metadata (0x0801FC00)...
 Setting readout protection (RDP Level 1)...
 
@@ -93,7 +93,7 @@ Provisioning complete!
 1. Disconnect the ST-Link
 2. Power the board via USB or your aircraft power supply
 3. Connect to [Mission Planner](https://ardupilot.org/planner/) and check for the filter boot message in the
-   Messages tab (e.g. `GNSS filter v1.5.0 UID=12345678`)
+   Messages tab (e.g. `GNSS filter v1.5.5 UID=12345678`)
 
 **Next steps:** Wire the filter into your drone using the [Wiring Guide](#wiring), then configure your flight controller in [Setup & Flash](#setup-flash).
 
@@ -101,10 +101,23 @@ Provisioning complete!
 
 ## Firmware updates
 
-After the initial flash, firmware updates use a USB-UART adapter
-and do **not** require an ST-Link.
+After the initial flash, firmware updates do **not** require an ST-Link.
+The easiest option is **USB-C** (no extra hardware needed). You can also use a USB-UART adapter if you prefer.
 
-### What you need for updates
+### Option A — USB-C (easiest)
+
+1. Connect the BlackPill to your PC with a USB-C cable
+2. Open the **AirDroper GNSS Filter** app
+3. Select **Update** mode
+4. Set Port to **(USB-C auto-detect)**
+5. Enter your license key
+6. Click **Start**
+7. When prompted, **press the reset button** on the BlackPill
+8. The app detects the board automatically and flashes the new firmware (~30-60 seconds)
+
+### Option B — USB-UART adapter
+
+#### What you need
 
 | Item | Notes |
 |------|-------|
@@ -132,7 +145,7 @@ These are the same pins used for flight controller telemetry.
      (disconnect flight controller from PA9/PA10 first)
 ```
 
-### Update procedure
+#### Update procedure (UART)
 
 1. Wire the USB-UART adapter as shown above
 2. Open the **AirDroper GNSS Filter** app

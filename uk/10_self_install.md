@@ -72,13 +72,13 @@ Connecting to target via ST-Link...
 Reading board UID...
 Board UID: aabbccddeeff1122334455 (short: 12345678)
 Contacting license server...
-Firmware version: 1.5.0
-  Bootloader: 32696 bytes
+Firmware version: 1.5.5
+  Bootloader: 47104 bytes
   Application: 73732 bytes
   Metadata: 148 bytes
 Erasing flash...
 Writing bootloader (0x08000000)...
-Writing application (0x08008000)...
+Writing application (0x0800C000)...
 Writing metadata (0x0801FC00)...
 Setting readout protection (RDP Level 1)...
 
@@ -93,16 +93,29 @@ Provisioning complete!
 1. Від'єднайте ST-Link
 2. Подайте живлення на плату через USB або бортову систему живлення
 3. Підключіться до Mission Planner і перевірте повідомлення про старт фільтра
-   у вкладці Messages (напр. `GNSS filter v1.5.0 UID=12345678`)
+   у вкладці Messages (напр. `GNSS filter v1.5.5 UID=12345678`)
 
 ---
 
 ## Оновлення прошивки
 
-Після початкової прошивки оновлення виконуються через USB-UART адаптер
-і **не** потребують ST-Link.
+Після початкової прошивки оновлення **не** потребують ST-Link.
+Найпростіший варіант — **USB-C** (не потрібно додаткове обладнання). Також можна використати USB-UART адаптер.
 
-### Що потрібно для оновлення
+### Варіант А — USB-C (найпростіший)
+
+1. Підключіть BlackPill до ПК кабелем USB-C
+2. Відкрийте додаток **AirDroper GNSS Filter**
+3. Оберіть режим **Оновлення**
+4. Встановіть Порт на **(USB-C авто)**
+5. Введіть ліцензійний ключ
+6. Натисніть **Старт**
+7. Коли з'явиться запит, **натисніть кнопку reset** на BlackPill
+8. Додаток знайде плату автоматично і прошиє нову прошивку (~30-60 секунд)
+
+### Варіант Б — USB-UART адаптер
+
+#### Що потрібно
 
 | Елемент | Примітки |
 |---------|----------|
@@ -130,7 +143,7 @@ Provisioning complete!
      (від'єднайте контролер польоту від PA9/PA10)
 ```
 
-### Процедура оновлення
+#### Процедура оновлення (UART)
 
 1. Підключіть USB-UART адаптер як показано вище
 2. Відкрийте додаток **AirDroper GNSS Filter**

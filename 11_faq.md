@@ -184,10 +184,7 @@ everything to the UM980's non-volatile flash. Configure once, fly forever.
 
 ### Can I install the firmware myself?
 
-Yes. Purchase a license key from the [store](https://airdroper.org/product/gps-spoofing-filter/) and follow the [Self-Install Guide](#self-install). Two options for initial provisioning:
-
-- **USB-C (no extra hardware)**: Hold BOOT0, press RESET to enter DFU mode, then run the provisioning tool.
-- **ST-Link V2 (~$3)**: Connect via SWD pins. Required if the board already has RDP1 protection (see below).
+Yes. Purchase a license key from the [store](https://airdroper.org/product/gps-spoofing-filter/) and follow the [Self-Install Guide](#self-install). Initial provisioning requires an **ST-Link V2 adapter (~$3)** connected via SWD pins. After the first flash, all subsequent updates and log downloads can be done over USB-C with no extra hardware.
 
 ### Can I use my license on multiple boards?
 
@@ -200,10 +197,7 @@ Connect a USB-C cable, select "(USB-C auto-detect)" as the port, and press RESET
 
 ### Can I re-provision a board that already has firmware?
 
-If the board already has RDP1 (readout protection), you need to remove it first — this erases the flash. **USB DFU cannot remove RDP1** — this is a hardware limitation of the STM32 chip, not a bug. You need either:
-
-- **ST-Link adapter** ($3-5): connect via SWD, the provisioning tool handles RDP removal automatically.
-- **STM32CubeProgrammer GUI**: manually set Option Bytes > Read Out Protection = Level 0 (triggers mass erase), then re-provision via USB DFU.
+If the board already has RDP1 (readout protection), you need to remove it first — this erases the flash. Connect an **ST-Link adapter** ($3-5) via SWD — the provisioning tool handles RDP removal automatically.
 
 ### How do I download spoofing logs?
 

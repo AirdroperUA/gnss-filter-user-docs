@@ -9,7 +9,7 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 - **DR0** (normal mode): GPS data flows through to your flight controller — everything works normally.
 - **DR1** (protection mode): GPS data is blocked — the flight controller switches to dead-reckoning (navigating by compass, airspeed, and inertial sensors) until clean GPS returns.
 - **FC**: flight controller (the autopilot board in your drone, running ArduPilot).
-- **GNSS**: the GPS module/receiver connected to the filter (u-blox or UM980/UM981).
+- **GNSS**: the GPS module/receiver connected to the filter (u-blox or UM980/UM981/UM982).
 
 <details>
 <summary><strong>Full glossary (advanced)</strong></summary>
@@ -29,7 +29,7 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 - Requires **ArduPilot 4.6.1 or later**.
 - Supported GPS receivers:
   - **u-blox** (M8, M9, M10, F9, F10) — set `GNSS_TYPE=0`
-  - **UM980 / UM981** — set `GNSS_TYPE=1` (requires one-time setup, see [Receiver Config](#receiver-config))
+  - **UM980 / UM981 / UM982** — set `GNSS_TYPE=1` (requires one-time setup, see [Receiver Config](#receiver-config))
 - **Important:** Test on a low-cost, easy-to-recover drone first (e.g., a small FPV quad or fixed wing). Validate behavior before installing on an expensive aircraft.
 
 ## 1) Purpose
@@ -74,7 +74,7 @@ In normal mode (DR0), GPS data passes through the filter to your flight controll
 | FC MAVLink ↔ STM32 | A9 (TX) / A10 (RX) | 115200 | Status, commands, tuning |
 | FC GPS ← STM32 | A11 (TX) / A12 (RX) | 460800 | GPS forwarding to FC |
 
-For UM980/UM981, one physical receiver connection is enough — the filter reads the GPS stream and mirrors it to the flight controller.
+For UM980/UM981/UM982, one physical receiver connection is enough — the filter reads the GPS stream and mirrors it to the flight controller.
 
 </details>
 
@@ -181,7 +181,7 @@ The GPS Spoofing Filter is designed to protect against GPS spoofing and jamming 
 
 ## 9) Which GPS receiver to choose?
 
-Both u-blox and UM980/UM981 work well. For areas with heavy jamming or spoofing, **UM980/UM981 tends to perform better** — it has stronger satellite lock, faster recovery after interference, and simpler setup (no auto-configuration needed).
+Both u-blox and UM980/UM981/UM982 work well. For areas with heavy jamming or spoofing, **UM980/UM981/UM982 tends to perform better** — it has stronger satellite lock, faster recovery after interference, and simpler setup (no auto-configuration needed).
 
 **u-blox** is still a great choice and is auto-configured by the filter at boot — just plug it in.
 

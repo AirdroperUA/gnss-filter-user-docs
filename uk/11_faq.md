@@ -22,7 +22,7 @@ Rover). Фільтр комунікує через стандартну MAVLink2
 ### Які GNSS-приймачі працюють?
 
 - **u-blox**: сімейства M8, M9, M10, F9, F10 (`GNSS_TYPE=0`)
-- **Unicore**: UM980, UM981 (`GNSS_TYPE=1`)
+- **Unicore**: UM980, UM981, UM982 (`GNSS_TYPE=1`)
 
 ### Чи можна використовувати з PX4 або iNav?
 
@@ -85,7 +85,7 @@ STM32F401CC BlackPill.
 ### Як дізнатись, який GNSS_TYPE використовувати?
 
 - Якщо ваш приймач u-blox (NEO-M8, NEO-M9, ZED-F9P тощо): `GNSS_TYPE=0`
-- Якщо ваш приймач Unicore UM980 або UM981: `GNSS_TYPE=1`
+- Якщо ваш приймач Unicore UM980, UM981 або UM982: `GNSS_TYPE=1`
 
 ### Чи потрібно налаштовувати приймач UM980?
 

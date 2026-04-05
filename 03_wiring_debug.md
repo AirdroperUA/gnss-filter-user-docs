@@ -16,8 +16,8 @@ Checks:
 2. **UART pins**: GNSS TX -> STM32 `A3`; GNSS RX -> STM32 `A2`.
 3. **Receiver mode**:
    - u-blox receiver: set `GNSS_TYPE=0`.
-   - UM980/UM981 NMEA receiver: set `GNSS_TYPE=1`.
-   - In UM980/UM981 mode, use one physical receiver port only: `COM1` -> STM32 `A2/A3`.
+   - UM980/UM981/UM982 NMEA receiver: set `GNSS_TYPE=1`.
+   - In UM980/UM981/UM982 mode, use one physical receiver port only: `COM1` -> STM32 `A2/A3`.
      The filter reads spoofing/SNR data from that stream and forwards the same stream to the FC GPS UART.
 4. **u-blox custom firmware case**:
    - If your u-blox unit does not accept filter autoconfig, set `UBX_BAUD` to your receiver baud.
@@ -41,7 +41,7 @@ Checks:
 1. **UART pins**: STM32 `A11/A12` to FC GPS UART with TX/RX crossed.
 2. **FC serial protocol/baud**:
    - Typical u-blox setup: GPS protocol + 460800 baud.
-   - For UM980/UM981 workflows, FC GPS protocol must match your receiver output.
+   - For UM980/UM981/UM982 workflows, FC GPS protocol must match your receiver output.
    - If UM980 is configured as a single mixed `COM1` stream, the FC must match that same forwarded stream.
 3. **DR state**: in DR1, live forwarding is blocked by design. The FC GPS UART receives silence.
 4. **Diagnostic override**: set `FCGPS_FWD=1` temporarily to validate FC GPS path, then return to `0`.

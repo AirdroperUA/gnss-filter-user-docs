@@ -7,11 +7,11 @@ Set `GNSS_TYPE` in Mission Planner to match your receiver, then reboot the STM32
 | `GNSS_TYPE` | Receiver family | ArduPilot `GPS1_TYPE` |
 |---|---|---|
 | `0` | u-blox M8 / M9 / M10 / F9 / F10, plus u-blox-compatible gateway modules | `1` (AUTO) or `2` (u-blox) |
-| `1` | Unicore UM980 / UM981 | `24` (UnicoreNMEA) |
+| `1` | Unicore UM980 / UM981 / UM982 | `24` (UnicoreNMEA) |
 
 ---
 
-## UM980 / UM981
+## UM980 / UM981 / UM982
 
 **Manual pre-configuration required.** Use UPrecise to apply the command profile
 below before first flight. The STM32 performs passive autobaud detection at boot
@@ -59,7 +59,7 @@ MODE ROVER UAV HIGHDYN
 
 | Parameter | Value | Notes |
 |---|---|---|
-| `GNSS_TYPE` | `1` | Selects UM980/UM981 path, reboot to apply |
+| `GNSS_TYPE` | `1` | Selects UM980/UM981/UM982 path, reboot to apply |
 
 ### Step 3 — ArduPilot FC settings
 

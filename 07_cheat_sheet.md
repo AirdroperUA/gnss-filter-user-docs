@@ -15,7 +15,7 @@ See the [Wiring Guide](#wiring) for full diagrams.
 ## 2) Receiver Mode (`GNSS_TYPE`)
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
-- `GNSS_TYPE=1`: UM980/UM981 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
+- `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
 - `FCGPS_UART=1`: A11/A12 active as FC GPS UART (normal operation, default).
 - `FCGPS_UART=0`: A11/A12 released into input mode. Do not use during flight.
 - After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).

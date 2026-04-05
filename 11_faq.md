@@ -22,7 +22,7 @@ Rover). The filter communicates via standard MAVLink2 telemetry.
 ### Which GNSS receivers work?
 
 - **u-blox**: M8, M9, M10, F9, F10 families (`GNSS_TYPE=0`)
-- **Unicore**: UM980, UM981 (`GNSS_TYPE=1`) — requires one-time setup, see [Receiver Config](#receiver-config)
+- **Unicore**: UM980, UM981, UM982 (`GNSS_TYPE=1`) — requires one-time setup, see [Receiver Config](#receiver-config)
 
 ### Can I use it with PX4 or iNav?
 
@@ -87,7 +87,7 @@ If still stuck, see the [Wiring Debug](#wiring-debug) guide for step-by-step tro
 ### How do I know which GNSS_TYPE to use?
 
 - If your receiver is u-blox (NEO-M8, NEO-M9, ZED-F9P, etc.): `GNSS_TYPE=0`
-- If your receiver is Unicore UM980 or UM981: `GNSS_TYPE=1`
+- If your receiver is Unicore UM980, UM981, or UM982: `GNSS_TYPE=1`
 
 See [Setup & Flash](#setup-flash) for how to change this parameter.
 

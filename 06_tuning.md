@@ -58,8 +58,8 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `NAV_AGEMS` | Max NAV age for valid/present GPS (ms) | 5000 | 200 | 60000 |
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
 | `UBX_BAUD` | u-blox baud control: 0=autoconfig ON, >0=manual baud (reboot to apply) | 0 | 0 | 2000000 |
-| `GNSS_TYPE` | Receiver mode: 0=u-blox/UBX, 1=UM980/UM981 NMEA (reboot to apply) | 0 | 0 | 1 |
-| `UM980_HIGHDYN` | UM980/UM981 rover mode: 0=MODE ROVER UAV, 1=MODE ROVER UAV HIGHDYN (reboot to apply) | 0 | 0 | 1 |
+| `GNSS_TYPE` | Receiver mode: 0=u-blox/UBX, 1=UM980/UM981/UM982 NMEA (reboot to apply) | 0 | 0 | 1 |
+| `UM980_HIGHDYN` | UM980/UM981/UM982 rover mode: 0=MODE ROVER UAV, 1=MODE ROVER UAV HIGHDYN (reboot to apply) | 0 | 0 | 1 |
 | `SNR_EN` | Enable SNR-spread spoof guard (0/1) | 0 | 0 | 1 |
 | `SNR_MSATS` | SNR guard minimum satellites | 8 | 4 | 30 |
 | `SNR_DMAX` | Max allowed SNR spread (max-min, dB-Hz) to trigger | 6 | 1 | 40 |
@@ -144,8 +144,8 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
 - **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior) for direct single-receiver u-blox modules. Any value `>0` disables the full autoconfig path and uses this manual baud directly. Applied after reboot. In manual mode the filter still makes a best-effort request for `NAV-SAT` so SNR can work, but if the receiver ignores that request, `SNR=NA` is still expected. Gateway modules with an intermediary MCU - including dual-F9P products such as Quadro GPS and UNA3 / UNA4-SFE - must use manual baud (`UBX_BAUD` set explicitly); filter autobaud is not possible for that class of device.
 - **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)`. This means the receiver is not providing fresh SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`.
-- **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981 NMEA. Change is saved immediately but applied after STM32 reboot.
-- **UM980_HIGHDYN**: UM980/UM981 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Reserved for future use — currently has no runtime effect. The STM32 does **not** send any `MODE` command to the UM980.
+- **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981/UM982 NMEA. Change is saved immediately but applied after STM32 reboot.
+- **UM980_HIGHDYN**: UM980/UM981/UM982 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Reserved for future use — currently has no runtime effect. The STM32 does **not** send any `MODE` command to the UM980.
 
 ### SNR guard (nearby jammer/spoofer)
 

@@ -33,7 +33,7 @@ Set ArduPilot GPS parameters for u-blox workflows:
 - `GPS1_TYPE = 2` (u-blox)
 - `GPS_AUTO_CONFIG = 0`
 
-If you use a different receiver family (for example UM980/UM981), FC GPS protocol settings must match the receiver output used in your installation.
+If you use a different receiver family (for example UM980/UM981/UM982), FC GPS protocol settings must match the receiver output used in your installation.
 For `GNSS_TYPE=1`, the STM32 expects one physical UM980 stream only:
 
 - UM980 `COM1` -> STM32 `A2/A3`
@@ -73,14 +73,14 @@ Flight controller parameters:
 Receiver mode selection on STM32:
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
-- `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode.
 - `GNSS_TYPE` changes require reboot to apply.
 - For u-blox only, `UBX_BAUD` controls autoconfig/manual baud:
   - `UBX_BAUD=0`: autoconfig enabled (default).
   - `UBX_BAUD>0`: autoconfig disabled; filter uses this baud directly.
   - `UBX_BAUD` changes also require reboot to apply.
   - Gateway modules with their own MCU and dual/internal receivers (for example Quadro GPS, UNA3, UNA4-SFE, or similar dual-F9P products) must use `UBX_BAUD>0`; filter autobaud is not possible for that class of module.
-- For UM980/UM981 deployments, configure the receiver `COM1` stream to match the FC GPS protocol and baud you intend to forward through STM32.
+- For UM980/UM981/UM982 deployments, configure the receiver `COM1` stream to match the FC GPS protocol and baud you intend to forward through STM32.
 
 ## 5) First boot checks
 

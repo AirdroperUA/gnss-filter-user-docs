@@ -74,7 +74,7 @@ If GNSS or MAVLink does not work after wiring, see `03_wiring_debug.md`.
 - Runtime GNSS TX/RX swap is not supported on STM32F401 in this firmware; fix wiring physically if reversed.
 - Receiver protocol mode is selected by `GNSS_TYPE`:
   - `0`: u-blox/UBX
-  - `1`: UM980/UM981 NMEA
+  - `1`: UM980/UM981/UM982 NMEA
 - For `GNSS_TYPE=1`, the filter expects one physical UM980 link only:
   - UM980 `COM1` -> STM32 `A2/A3`
   - the STM32 reads spoofing/SNR data from that same stream

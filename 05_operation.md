@@ -53,7 +53,7 @@ This prevents suspect live GNSS data from reaching FC navigation input while DR1
 ## Receiver mode
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
-- `GNSS_TYPE=1`: UM980/UM981 NMEA mode.
+- `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode.
 - `GNSS_TYPE` changes require STM32 reboot.
 - In `GNSS_TYPE=1`, the STM32 expects one physical UM980 receiver stream on `A2/A3` and forwards that same stream to the FC GPS UART.
 

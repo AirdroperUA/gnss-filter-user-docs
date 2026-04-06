@@ -223,7 +223,7 @@ The GPS Spoofing Filter is designed to protect against GPS spoofing and jamming 
 
 ## 9) Which GPS receiver to choose?
 
-Both u-blox and UM980/UM981/UM982 work well. For areas with heavy jamming or spoofing, **UM980/UM981/UM982 tends to perform better** — it has stronger satellite lock, faster recovery after interference, and simpler setup (no auto-configuration needed).
+Both u-blox and UM980/UM981/UM982 work well. For areas with heavy jamming or spoofing, **UM980/UM981/UM982 tend to perform better** — it has stronger satellite lock, faster recovery after interference, and simpler setup (no auto-configuration needed).
 
 **u-blox** is still a great choice and is auto-configured by the filter at boot — just plug it in.
 

@@ -68,7 +68,7 @@ Flight controller parameters:
   - select STM32 (`SYSID=42`)
   - `Refresh Params` -> edit value -> `Write Params`
 - Reboot is not required after every parameter write.
-- On a busy MAVLink link, `Write Params` may need 1-2 attempts. More than 2 attempts indicates high telemetry load.
+- On a busy MAVLink link, `Write Params` may need 1-2 attempts. More than 2 attempts indicate high telemetry load.
 
 Receiver mode selection on STM32:
 

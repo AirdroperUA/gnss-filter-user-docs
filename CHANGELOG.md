@@ -14,7 +14,7 @@ All notable firmware and tool changes are documented here.
 - **Heading reversal detection**: triggers DR1 on sudden course flip inconsistent with IMU.
 - **GPS time anomaly detection**: triggers DR1 when GPS time jumps unexpectedly.
 - **Geo-fence** (`FENCE_RAD`): triggers DR1 if position drifts beyond a radius from the first fix (default 600 km, max 2000 km). Catches slow-drift spoofing.
-- **South-hemisphere hard block**: instant DR1 when latitude goes below 0. Now configurable via `HEMI_EN` parameter.
+- **South-hemisphere hard block**: instant DR1 when latitude goes below 0°. Now configurable via `HEMI_EN` parameter.
 - **Clock bias jump detection** (u-blox only): uses NAV-CLOCK to detect receiver clock manipulation.
 - **Velocity-position mismatch** (u-blox only): cross-checks reported velocity against position delta.
 - **DR1 max duration** (`DR1_MAX_MS`): forces exit from DR1 after a configurable timeout. Useful for long-range missions.

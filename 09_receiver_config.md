@@ -253,4 +253,4 @@ modules; set the exact output baud explicitly.
 | `SERIAL3_BAUD` (GPS1 serial) | `460` |
 
 The filter forwards the raw UBX binary stream to the FC GPS port,
-set the FC to u-blox or AUTO type, not NMEA.
+Set the FC to u-blox or AUTO type, not NMEA.

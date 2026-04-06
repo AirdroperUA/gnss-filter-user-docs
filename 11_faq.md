@@ -235,7 +235,7 @@ Connect a USB-C cable, select "(USB-C auto-detect)" as the port, and press RESET
 
 ### Can I re-provision a board that already has firmware?
 
-If the board already has RDP1 (readout protection), you need to remove it first — this erases the flash. Connect an **ST-Link adapter** ($3-5) via SWD — the provisioning tool handles RDP removal automatically.
+If the board already has RDP1 (readout protection), you need to remove it first — this erases the flash. Connect an **ST-Link adapter** ($3–5) via SWD — the provisioning tool handles RDP removal automatically.
 
 ### How do I download spoofing logs?
 

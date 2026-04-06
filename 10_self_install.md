@@ -189,7 +189,7 @@ aircraft, they cannot access the flight data without the key.
 
 Visit [gps.airdroper.org/dashboard](https://gps.airdroper.org/dashboard) and enter your license key to view:
 
-- **Event map** — all spoofing events plotted on a map with colour-coded
+- **Event map** — all spoofing events plotted on a map with color-coded
   markers by detection reason
 - **Statistics** — total events, board count, reason breakdown
 - **Event list** — scrollable timeline with coordinates, altitude,

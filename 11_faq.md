@@ -239,7 +239,7 @@ If the board already has RDP1 (readout protection), you need to remove it first 
 
 ### How do I download spoofing logs?
 
-The easiest way is **USB-C** — just plug in a USB-C cable, select "(USB-C auto-detect)" as the port in the [AirDroper GNSS Filter](https://gps.airdroper.org/download/app) app, and press reset on the board. You can also use a USB-UART adapter if you prefer. Logs are uploaded to the [Cloud Dashboard](https://gnss-filter.online/dashboard). See the logs section in the [Self-Install Guide](#self-install).
+The easiest way is **USB-C** — just plug in a USB-C cable, select "(USB-C auto-detect)" as the port in the [AirDroper GNSS Filter](https://gps.airdroper.org/download/app) app, and press reset on the board. You can also use a USB-UART adapter if you prefer. Logs are uploaded to the [Cloud Dashboard](https://gps.airdroper.org/dashboard). See the logs section in the [Self-Install Guide](#self-install).
 
 ### What if my board dies?
 
@@ -251,3 +251,47 @@ use the same license on a new board.
 The flash is protected by readout protection — reading it back via the debug port triggers
 a mass erase. The firmware is also encrypted with a per-board key, so even
 if extracted, it wouldn't work on a different board.
+
+---
+
+## EW Interference Map
+
+### What is the EW interference map?
+
+A live web map at [gps.airdroper.org/ew-map](https://gps.airdroper.org/ew-map) showing global GNSS interference in real time. It combines data from multiple sources:
+
+- **ADS-B aircraft data** (OpenSky) — detects interference by comparing barometric vs GPS altitude across 5 world regions
+- **Marine AIS vessel data** — detects ships reporting GPS failures in the Baltic and beyond
+- **Ukraine air raid alerts** — real-time per-oblast alert status
+- **61 known EW zones** — static military interference zones worldwide, cross-referenced with live data
+- **Board events** — spoofing events from deployed GNSS Filter boards
+- **Crowdsourced reports** — user-submitted interference sightings
+
+The map is free and requires no login. Data refreshes automatically.
+
+### Can I embed the EW map on my website?
+
+Yes. Use the embeddable widget at `gps.airdroper.org/ew-map/embed` in an iframe:
+```html
+<iframe src="https://gps.airdroper.org/ew-map/embed" width="100%" height="500"></iframe>
+```
+
+### Can I get alerts when interference is detected?
+
+Yes, three ways:
+1. **Email/webhook** — subscribe at the bottom of the EW map page or via `POST /api/v1/ew-map/subscribe`
+2. **Telegram** — message the bot (if configured) with `/subscribe`
+3. **Public API** — register a free API key at `POST /api/v1/ew-map/register-key` (100 requests/day)
+
+### Can I check interference risk for a flight route?
+
+Yes. Use the route risk assessment API:
+```
+POST https://gps.airdroper.org/api/v1/ew-map/route-check
+Body: {"waypoints": [[lat1, lon1], [lat2, lon2], ...]}
+```
+Returns per-segment risk scores (0–100) based on known zones, live ADS-B data, and air raid status.
+
+### Does the map predict future interference?
+
+Yes. The server builds time-of-day probability patterns from 7 days of historical data. Query predictions at `GET /api/v1/ew-map/predictions/now` for the current hour, or filter by zone/day/hour.

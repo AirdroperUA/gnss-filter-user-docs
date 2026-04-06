@@ -73,6 +73,7 @@ All notable firmware and tool changes are documented here.
 
 ### Server
 
-- **Cloud dashboard** (gnss-filter.online): web interface for viewing spoofing events, flight tracks, and board status.
+- **Cloud dashboard** (gps.airdroper.org/dashboard): web interface for viewing spoofing events, flight tracks, and board status.
+- **EW interference map** (gps.airdroper.org/ew-map): live global GNSS interference map with ADS-B, marine AIS, air raid alerts, 61 known EW zones, crowdsourced reports, route risk assessment, Telegram alerts, and predictive model.
 - **License server**: automated provisioning and firmware distribution.
 - **Server hardening**: rate limiting, input validation, HTTPS enforcement.

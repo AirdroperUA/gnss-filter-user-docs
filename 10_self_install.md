@@ -187,7 +187,7 @@ aircraft, they cannot access the flight data without the key.
 
 ### Cloud dashboard
 
-Visit [gnss-filter.online/dashboard](https://gnss-filter.online/dashboard) and enter your license key to view:
+Visit [gps.airdroper.org/dashboard](https://gps.airdroper.org/dashboard) and enter your license key to view:
 
 - **Event map** — all spoofing events plotted on a map with colour-coded
   markers by detection reason
@@ -205,6 +205,10 @@ post-flight analysis.
 
 The dashboard is accessible from any browser. Each license key can only see
 its own data.
+
+### EW interference map
+
+The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public live map showing global GNSS interference from multiple sources (aircraft ADS-B, marine AIS, Ukraine air raid alerts, 61 known EW zones, crowdsourced reports, and deployed board events). No login required. You can also embed it on your site via [gps.airdroper.org/ew-map/embed](https://gps.airdroper.org/ew-map/embed), subscribe to email/Telegram alerts, or use the public API for route risk assessment. See the [FAQ](#faq) for details.
 
 ---
 

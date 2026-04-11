@@ -86,6 +86,6 @@ If parameter write/read is unstable:
 2. In `Full Parameter List`, click `Refresh Params` before editing.
 3. Edit value, click `Write Params`, then `Refresh Params` again.
 4. If value did not persist, click `Write Params` again.
-5. On a busy telemetry link, 2-5 write attempts can be normal before the value sticks.
+5. On a busy telemetry link, 1-2 write attempts can be normal before the value sticks; more than 2 indicates a heavily loaded MAVLink link.
 6. If link drops temporarily, wait up to 30-45 seconds and refresh again.
 7. Reboot STM32 only when changing `GNSS_TYPE` or `UBX_BAUD`, or if value still does not apply.

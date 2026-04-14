@@ -187,27 +187,6 @@ There is no longer any "Download Logs" button in the AirDroper GNSS Filter
 app, and no on-board log to extract. All flight-evidence collection
 happens through the standard ArduPilot dataflash pipeline.
 
-### Cloud dashboard
-
-Visit [gps.airdroper.org/dashboard](https://gps.airdroper.org/dashboard) and enter your license key to view:
-
-- **Event map** — all spoofing events plotted on a map with color-coded
-  markers by detection reason
-- **Statistics** — total events, board count, reason breakdown
-- **Event list** — scrollable timeline with coordinates, altitude,
-  satellite count, and signal data
-- **Confidence score** — each event shows a 0–100 spoofing confidence
-  from the filter's multi-signal analysis (v1.5.5+)
-- **KML/GPX export** — download spoofing events as KML (Google Earth) or
-  GPX files for offline analysis and flight path review (v1.5.5+)
-
-Starting with v1.5.5, each event also records UTC time (hour/minute from
-GPS) and the spoofing confidence score, providing richer data for
-post-flight analysis.
-
-The dashboard is accessible from any browser. Each license key can only see
-its own data.
-
 ### EW interference map
 
 The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public live map showing global GNSS interference from multiple sources (aircraft ADS-B, marine AIS, Ukraine air raid alerts, 61 known EW zones, crowdsourced reports, and deployed board events). No login required. You can also embed it on your site via [gps.airdroper.org/ew-map/embed](https://gps.airdroper.org/ew-map/embed), subscribe to email/Telegram alerts, or use the public API for route risk assessment. See the [FAQ](#faq) for details.

@@ -184,14 +184,18 @@ work with both receivers.
   GPS hasn't recovered. Default `0` = disabled (infinite latch). Useful for
   long-range missions where indefinite GPS blocking is worse than uncertain GPS.
 - **FENCE_RAD**: Triggers DR1 if GPS reports a position more than this many
-  meters from the first fix (max 2,000,000 m = 2000 km). Default `600000` (600 km).
-  Set to `0` to disable. Catches slow-drift spoofing attacks.
+  meters from the first fix (max 2,000,000 m = 2000 km). Default `0` (disabled)
+  — opt in by setting a non-zero radius. Catches slow-drift spoofing attacks.
 
 ### Can I export spoofing events to Google Earth?
 
-Yes (v1.5.5+). The cloud dashboard provides KML and GPX export links. You can
-open the KML file in Google Earth to see all spoofing events plotted on a 3D
-map, or import the GPX file into any GPS analysis tool.
+Yes, via the flight controller's dataflash log. Pull the `.bin` log from the
+FC's SD card (or download it over MAVFTP), open it in **Mission Planner** →
+*DataFlash Logs* → *Review a Log*, then use *File* → *Create KML+GPX* to
+export the flight track. The `MSG` lines beginning with `GNSS:` or `DR1:`
+mark the spoofing events along that track, and the `NVLI` `DR_CONF` records
+carry the per-event confidence score. The on-board log and cloud-dashboard
+KML export present on v1.5.x have been removed in v1.6.0+.
 
 ---
 

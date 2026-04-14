@@ -222,7 +222,7 @@ everything to the UM980's non-volatile flash. Configure once, fly forever.
 
 ### Can I install the firmware myself?
 
-Yes. Purchase a license key from the [store](https://airdroper.org/product/gps-spoofing-filter/) and follow the [Self-Install Guide](#self-install). Initial provisioning requires an **ST-Link V2 adapter (~$3)** connected via SWD pins. After the first flash, all subsequent updates and log downloads can be done over USB-C with no extra hardware.
+Yes. Purchase a license key from the [store](https://airdroper.org/product/gps-spoofing-filter/) and follow the [Self-Install Guide](#self-install). All operations — initial activation, firmware updates, and recovery — use the **same ST-Link V2 adapter (~$3)** connected to the 4-pin SWD header (3V3, GND, A14/SWCLK, A13/SWDIO). The board no longer accepts firmware updates over USB-C.
 
 ### Can I use my license on multiple boards?
 
@@ -231,7 +231,7 @@ that board's unique hardware ID.
 
 ### How do I update the firmware?
 
-Connect a USB-C cable, select "(USB-C auto-detect)" as the port, and press RESET. The tool detects the board and installs the update automatically. You can also use a USB-UART adapter on PA9/PA10 if you prefer. See the update section in the [Self-Install Guide](#self-install).
+Wire an ST-Link V2 to the 4-pin SWD header (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), open the **AirDroper GNSS Filter** app, choose **Update (ST-Link)**, enter your license key, and click Start. The app handles RDP removal, flashing, and re-protection automatically. See the update section in the [Self-Install Guide](#self-install).
 
 ### Can I re-provision a board that already has firmware?
 
@@ -239,7 +239,7 @@ If the board already has RDP1 (readout protection), you need to remove it first 
 
 ### How do I download spoofing logs?
 
-The easiest way is **USB-C** — just plug in a USB-C cable, select "(USB-C auto-detect)" as the port in the [AirDroper GNSS Filter](https://gps.airdroper.org/download/app) app, and press reset on the board. You can also use a USB-UART adapter if you prefer. Logs are uploaded to the [Cloud Dashboard](https://gps.airdroper.org/dashboard). See the logs section in the [Self-Install Guide](#self-install).
+Spoofing logs are no longer extracted from the filter board. As of firmware v1.6.0, every detection event is emitted as MAVLink **STATUSTEXT** and **NAMED_VALUE_INT** messages, which ArduPilot writes to the flight controller's SD card as standard `MSG` and `NVLI` dataflash records. Pull the `.bin` log from the SD card (or download it via MAVFTP / Mission Planner) and review it in Mission Planner or [UAV Log Viewer](https://plot.ardupilot.org). See the logs section in the [Self-Install Guide](#self-install).
 
 ### What if my board dies?
 

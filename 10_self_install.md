@@ -101,89 +101,83 @@ Provisioning complete!
 
 ## Firmware updates
 
-After the initial flash, firmware updates do **not** require an ST-Link.
-The easiest option is **USB-C** (no extra hardware needed). You can also use a USB-UART adapter if you prefer.
+Firmware updates use the **same ST-Link V2 adapter** as initial activation.
+USB-C firmware updates have been removed — pins PA11/PA12 are now reserved
+for flight-controller GPS UART (USART6) and the bootloader no longer
+enumerates as a USB CDC device.
 
-### Option A — USB-C (easiest)
+### What you need
 
-1. Connect the BlackPill to your PC with a USB-C cable
-2. Open the **AirDroper GNSS Filter** app
-3. Select **Update** mode
-4. Set Port to **(USB-C auto-detect)**
-5. Enter your license key
-6. Click **Start**
-7. When prompted, **press the reset button** on the BlackPill
-8. The app detects the board automatically and flashes the new firmware (~30-60 seconds)
-
-### Option B — USB-UART adapter
-
-#### What you need
+The same hardware as the initial flash:
 
 | Item | Notes |
 |------|-------|
-| USB-UART adapter | CP2102, CH340, or FTDI, ~$2 |
-| 3 jumper wires | TX, RX, GND |
+| ST-Link V2 programmer | Genuine or clone, ~$3 |
+| 4 jumper wires | 3V3, GND, SWDIO, SWCLK |
 
-### Wiring
+### Wiring (4-pin SWD header on the ICWkey board)
 
-| USB-UART adapter | BlackPill pin |
-|------------------|---------------|
-| TX | PA10 (RX) |
-| RX | PA9 (TX) |
+| ST-Link pin | ICWkey SWD pin |
+|-------------|----------------|
+| 3V3 (VCC) | 3V3 |
 | GND | GND |
-
-**Important:** Disconnect the flight controller from PA9/PA10 during the update.
-These are the same pins used for flight controller telemetry.
+| SWCLK | A14 |
+| SWDIO | A13 |
 
 ```
-  USB-UART adapter             BlackPill
+  ST-Link V2                   ICWkey (SWD header)
   ┌──────────┐                ┌──────────────┐
-  │       TX ├────────────────┤ PA10 (RX)    │
-  │       RX ├────────────────┤ PA9  (TX)    │
+  │  3V3 VCC ├────────────────┤ 3V3          │
   │      GND ├────────────────┤ GND          │
+  │    SWCLK ├────────────────┤ A14          │
+  │    SWDIO ├────────────────┤ A13          │
   └──────────┘                └──────────────┘
-     (disconnect flight controller from PA9/PA10 first)
 ```
 
-#### Update procedure (UART)
+### Update procedure (ST-Link V2 SWD)
 
-1. Wire the USB-UART adapter as shown above
+1. Wire the ST-Link to the ICWkey SWD header as shown above
 2. Open the **AirDroper GNSS Filter** app
-3. Select **Update (UART)** mode
-4. Select the COM port of your USB-UART adapter (auto-detected)
-5. Enter your license key
-6. Click **Start**
-7. When prompted, **press the reset button** on the BlackPill
-8. The app will flash the new firmware (~30-60 seconds)
-9. The board resets automatically when done
+3. Select **Update (ST-Link)** mode
+4. Enter your license key
+5. Click **Start**
+6. The app connects via ST-Link, downloads the new firmware customised for
+   your board, and flashes it (~30–60 seconds)
+7. The board resets automatically when done
+
+> **Note:** RDP1 (readout protection) is removed and re-applied automatically
+> by the app — no manual steps required.
+
+### Recovery (ST-Link V2 SWD)
+
+If a board ever fails to boot — for example after a power loss mid-flash —
+use the same ST-Link V2 wiring above and select **Recover (ST-Link)** in
+the app. The recovery flow re-runs the full activation sequence using your
+existing license key.
 
 ---
 
-## Spoofing event logs and cloud dashboard
+## Spoofing event logs
 
-Starting with firmware v1.5.0, the filter records every spoofing event to
-on-board memory. Each event includes the timestamp, GPS coordinates,
-satellite count, signal strength, and the detection reason.
+Starting with firmware v1.6.0, the filter no longer stores spoofing events
+in on-board flash. Instead, every detection event and confidence-score
+update is emitted in real time as MAVLink **STATUSTEXT** and
+**NAMED_VALUE_INT** messages, which ArduPilot writes to the flight
+controller's SD card as standard dataflash records (`MSG` and `NVLI`).
 
-### Downloading logs
+### Where to find the logs
 
-**Option A — USB-C (easiest, no extra hardware):**
+1. Pull the SD card from your flight controller (or download the `.bin` log
+   over MAVFTP / Mission Planner)
+2. Open the `.bin` log in **Mission Planner** → *DataFlash Logs* → *Review a Log*
+3. Spoofing events appear as `MSG` lines beginning with `GNSS:` or `DR1:`,
+   plus `NVLI` records carrying the live `DR_CONF` confidence score
+4. Optional: drag the same `.bin` into [UAV Log Viewer](https://plot.ardupilot.org)
+   for a graphical timeline
 
-1. Connect the BlackPill to your PC with a USB-C cable
-2. In the app, set Port to **(USB-C auto-detect)**
-3. Enter your license key and UID
-4. Click **Download Logs** and press the **reset button** on the BlackPill when prompted
-5. The app finds the board automatically, downloads events, uploads to your cloud dashboard, and clears the on-board log
-
-**Option B — USB-UART adapter:**
-
-1. Connect a USB-UART adapter (same wiring as firmware updates)
-2. In the app, select the COM port of your adapter
-3. Enter your license key and UID
-4. Click **Download Logs** and press **reset** when prompted
-
-The license key is required to download logs — if someone finds a crashed
-aircraft, they cannot access the flight data without the key.
+There is no longer any "Download Logs" button in the AirDroper GNSS Filter
+app, and no on-board log to extract. All flight-evidence collection
+happens through the standard ArduPilot dataflash pipeline.
 
 ### Cloud dashboard
 
@@ -220,7 +214,7 @@ The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public li
 | "Failed to connect" | Check ST-Link wiring (3V3, GND, SWDIO, SWCLK). Try a different USB port. |
 | "Invalid license key" | Double-check the key from your purchase email |
 | "License already activated on a different board" | Each key works on one board only. Contact support for replacement. |
-| "Timeout: no response from bootloader" (update) | Press the reset button on the BlackPill while the app is waiting |
+| "ST-Link not found" (update) | Plug the ST-Link into a different USB port and re-check the 4-pin SWD wiring (3V3, GND, A14/SWCLK, A13/SWDIO). |
 | RDP Level 1 warning on re-flash | Board is already protected. The app handles this automatically. |
 
 ---
@@ -243,13 +237,14 @@ pip install requests pyserial
 gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdroper.org
 ```
 
-### Firmware update (UART)
+### Firmware update (ST-Link)
 
 ```
-gnss-provision update --license GF-XXXX-XXXX-XXXX --uid <your-24-char-uid> --uart COM5 --server https://gps.airdroper.org
+gnss-provision update --license GF-XXXX-XXXX-XXXX --uid <your-24-char-uid> --stlink --server https://gps.airdroper.org
 ```
 
-Replace `COM5` with your adapter's port. The UID is the full 24-character
-hex string shown during initial activation.
+The UID is the full 24-character hex string shown during initial
+activation. Wire the ST-Link to the SWD header (3V3, GND, A14/SWCLK,
+A13/SWDIO) before running the command.
 
 </details>

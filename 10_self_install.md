@@ -59,12 +59,20 @@ Power the BlackPill from the ST-Link 3V3 (or USB, either works).
 1. Open the **AirDroper GNSS Filter** app
 2. Select **Activate (ST-Link)** mode
 3. Enter your license key (e.g. `GF-XXXX-XXXX-XXXX`)
-4. Click **Start** — the app will automatically:
+4. Plug in exactly **one** ST-Link V2. If you have more than one
+   connected (lab bench with several adapters), the app will stop and
+   ask you to unplug the others — this prevents flashing the wrong
+   board.
+5. Click **Start** — the app will automatically:
    - Connect to the board via ST-Link
    - Read your board's unique hardware ID
    - Download firmware customized for your board
    - Flash the bootloader, application, and settings
    - Enable readout protection to prevent cloning
+
+If you close the app window while a flash is in progress, the in-flight
+`STM32_Programmer_CLI` process is killed cleanly — the ST-Link adapter
+will not be left locked.
 
 You should see output like:
 ```

@@ -201,6 +201,14 @@ UBX-CFG-CFG    save current configuration to BBR/Flash
 
 Nothing to do on the receiver side.
 
+**F10 / M10 note (firmware 1.6.2+):** newer u-blox generations use the
+`CFG-VALSET` configuration interface and do not reliably respond to the
+legacy `CFG-MSG` enable above for `NAV-SAT`. On top of the profile shown,
+the filter sends a `CFG-VALSET` block that re-enables `NAV-SAT` at 5 Hz
+on the active UART using `CFG-MSGOUT-UBX_NAV_SAT_UART1/2`. If you were
+previously running an F10 or M10 without NAV-SAT coming through, upgrade
+to 1.6.2+ and no u-center pre-config step is needed.
+
 ### Notes for default auto-config
 
 - `NAV-PVT` and `NAV-POSLLH` run at 10 Hz. `NAV-STATUS`, `NAV-VELNED`, `NAV-DOP`,

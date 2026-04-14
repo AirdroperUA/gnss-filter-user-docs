@@ -6,6 +6,75 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.3 — 2026-04-14
+
+Stability and privacy release on top of v1.6.2. No new tuning parameters, no wiring changes, no in-field action required beyond running the provisioning tool.
+
+### Firmware
+
+- **NMEA satellite-count safety clamp**: the NMEA GGA parser now caps the satellites-in-view field at 255 before passing it on. Guards against corrupt or spec-violating sentences from multi-constellation receivers with unusually high sat counts.
+- **Watchdog margin during receiver config**: every u-blox `CFG-*` write-and-wait-for-ACK step now pats the independent watchdog on entry. The 20-step boot-time configuration burst no longer nibbles away at the watchdog budget on slow-responding receivers.
+- **Spoofing-event logger robustness**: the on-board event writer now reports which slot it used (or explicitly signals "skipped"), so a debounced duplicate-write cannot corrupt unrelated events when the board exits dead-reckoning and backfills the trigger duration.
+
+### Bootloader
+
+- **Build-time anti-rollback safety net**: the bootloader now fails the build outright if the anti-rollback floor is missing from the build configuration, instead of silently defaulting to zero (which would have accepted any firmware version). Bit-field overflow in version encoding is likewise caught at build time.
+- **Staged-update resumability policy documented**: bounded power-fail retry behaviour is now an explicit invariant (documented, not changed). No functional change for operators; matters only to developers pulling the source.
+
+### Server
+
+- **License key no longer in URL**: the licence-status lookup has a new `POST /api/v1/license-status` variant that takes the key in the request body. The landing-page self-service form uses the new path so keys stop appearing in nginx access logs. The legacy `GET ?key=…` form still works for older clients.
+- **Audit IPs are XFF-aware**: the retention-sweep and PII-erase admin actions now record the real client IP via `X-Forwarded-For`, not the nginx reverse-proxy loopback address. Audit rows written before this release remain as-is.
+- **Pin an older firmware version on activation**: `/api/v1/activate` now accepts an optional `version` field. The provisioning tool uses this when you've selected something other than "(latest)" in the version dropdown.
+
+### Tools — AirDroper GNSS Filter app
+
+- **Clean shutdown during provisioning**: closing the app window while an ST-Link write is in progress now kills the child `STM32_Programmer_CLI` cleanly, instead of leaving orphaned processes holding the SWD port.
+- **Multi-adapter pre-check on Activate**: the Activate button now refuses to start if more than one ST-Link V2 is plugged in, with the same "unplug the others" dialog that Recovery has used since v1.6.0. Prevents the wrong board being re-provisioned when a lab bench has several adapters attached.
+- **Version-pinned activations**: when you pick a non-latest version in the firmware dropdown, Activate now sends that choice to the server (matches what Update already did).
+
+### Docs
+
+- **Recovery guide** ([04_recovery.md](https://github.com/AirdroperUA/gnss-filter-user-docs/blob/main/04_recovery.md)): added gate-failure diagnostics and recovery recipes for anti-rollback reject, UID-binding reject, RDP-write-failure mid-provision, and hard-brick escalation. Developer-only reference; normal field use is unchanged.
+
+---
+
+## v1.6.2 — 2026-04-14
+
+Receiver-compatibility and provisioning-resilience release. Completes the USB-C → ST-Link transition from v1.6.0.
+
+### Firmware
+
+- **u-blox F10 / M10 NAV-SAT auto-config**: newer u-blox generations (F10 series, M10 series) use the `CFG-VALSET` configuration interface and do not always respond to the legacy per-message enable. The filter now sends a `CFG-VALSET` profile at boot that enables `NAV-SAT` on the correct port at the correct rate. Spoofing detection signals that rely on per-satellite SNR and carrier-to-noise analysis now work out-of-the-box on F10/M10 receivers without a u-center pre-config step. No effect on M8/M9 or UM980.
+
+### Tools / Provisioning
+
+- **Provisioning recovers from write-protected sectors**: if flash erase fails because option-byte write-protection (`nWRP`) is active on the previous image, the provisioning tool now clears the protection and retries automatically. Previously these boards required a manual trip through STM32CubeProgrammer.
+- **Power-cycle prompt is now blocking**: when the board needs a hard power-cycle mid-provision (e.g. after an option-byte change), the dialog now blocks the flow until you confirm the cycle completed. Prevents the race where the next write started against a half-re-enumerated target.
+- **Bootloader USB-C CDC fully disabled**: `BOOTLOADER_PHASEC_ENABLE=0` is now permanent. Pins `PA11/PA12` are unconditionally available to the flight-controller GPS UART (USART6). This change was announced in v1.6.0; v1.6.2 removes the last code paths.
+- **USB-C row removed from the app**: the old "(USB-C auto-detect)" port selector is gone. Activate, Update, and Recover all use the ST-Link V2 SWD path.
+
+### Docs
+
+- User-facing guides re-read and trimmed for the ST-Link-only flow. The [Self-Install Guide](10_self_install.md) and the firmware-update FAQ no longer mention the USB-C path.
+
+---
+
+## v1.6.1 — 2026-04-13
+
+Reliability release. Patches three independent issues that surfaced in the field after v1.6.0. No configuration changes.
+
+### Firmware
+
+- **Bootloader → application handoff hardened**: on some boards, a firmware-validation failure followed by a retry could leave the application starting with stale NVIC interrupt state, with interrupts masked (`PRIMASK=1`), or with the `AHB2ENR` clock-enable register still configured for the bootloader's USB peripheral — symptoms were an instantly-frozen board with the status LED stuck off after the bootloader finished. The handoff now explicitly clears NVIC pending/enable bits, resets `AHB2ENR`, clears `PRIMASK` so interrupts are enabled when the app starts, and clears any latched fault flags.
+- **Diagnostic GPS forwarding restored** (`FCGPS_FWD=1`): when the parameter `FCGPS_FWD` is set to `1`, the filter now bypasses the spoof guard in DR1 (dead-reckoning) and forwards the raw GPS stream to the flight controller. Intended for **diagnostic bench use only** — it defeats the whole point of the filter in flight. Default stays at `0`.
+
+### Tools — AirDroper GNSS Filter app
+
+- **Ctrl+V paste works under Cyrillic keyboard layouts**: the license-key field used to ignore Ctrl+V when the active keyboard layout was Ukrainian or Russian (the "V" keysym under those layouts is not `v`). The binding now triggers on the physical keycode, so paste works regardless of the currently-selected layout.
+
+---
+
 ## v1.6.0 — 2026-04-11
 
 Security and reliability hardening release. Four parallel deep-review waves (R19–R22) across firmware, server, and bootloader. **No configuration changes — existing boards upgrade in place and keep working. No new tuning parameters, no wiring changes.**

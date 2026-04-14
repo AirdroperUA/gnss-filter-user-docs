@@ -1,6 +1,6 @@
 # Лабораторна валідація антиспуф-захисту (тільки оборонний підхід)
 
-> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Цей документ присвячений лише оборонній перевірці стійкості до GNSS-спуфінгу.
 

@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 ---
 
@@ -51,7 +51,7 @@ a full table with frequencies and capabilities.
 ### What board do I need?
 
 STM32F401CC BlackPill V2.0 (WeAct Studio). Available from AliExpress,
-Amazon, or electronics stores for ~$5. You can [buy a pre-flashed board](https://airdroper.org/product/gps-spoofing-filter/) or flash it yourself — see the [Self-Install Guide](#self-install).
+Amazon, or electronics stores for ~$5. You can [buy a pre-flashed board](https://airdroper.org/products/gps-spoofing-filter) or flash it yourself — see the [Self-Install Guide](#self-install).
 
 ### Can I use a different STM32 board?
 
@@ -222,7 +222,7 @@ everything to the UM980's non-volatile flash. Configure once, fly forever.
 
 ### Can I install the firmware myself?
 
-Yes. Purchase a license key from the [store](https://airdroper.org/product/gps-spoofing-filter/) and follow the [Self-Install Guide](#self-install). All operations — initial activation, firmware updates, and recovery — use the **same ST-Link V2 adapter (~$3)** connected to the 4-pin SWD header (3V3, GND, A14/SWCLK, A13/SWDIO). The board no longer accepts firmware updates over USB-C.
+Yes. Purchase a license key from the [store](https://airdroper.org/products/gps-spoofing-filter) and follow the [Self-Install Guide](#self-install). All operations — initial activation, firmware updates, and recovery — use the **same ST-Link V2 adapter (~$3)** connected to the 4-pin SWD header (3V3, GND, A14/SWCLK, A13/SWDIO). The board no longer accepts firmware updates over USB-C.
 
 ### Can I use my license on multiple boards?
 

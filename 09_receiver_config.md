@@ -1,6 +1,6 @@
 # GNSS Receiver Configuration
 
-> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Set `GNSS_TYPE` in Mission Planner to match your receiver, then reboot the STM32.
 

@@ -1,6 +1,6 @@
 ﻿# Діагностика підключення
 
-> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Використовуйте цей документ, якщо GNSS не визначається, DR1 постійно активний, або не працює MAVLink-тюнінг.
 

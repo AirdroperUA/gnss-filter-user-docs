@@ -1,6 +1,6 @@
 # Changelog
 
-> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 All notable firmware and tool changes are documented here.
 

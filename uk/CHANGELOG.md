@@ -1,6 +1,6 @@
 # Журнал змін
 
-> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Усі значні зміни прошивки та інструментів задокументовані тут.
 

@@ -1,6 +1,6 @@
 # Самостійна установка
 
-> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Цей посібник описує прошивку GNSS-фільтра на чисту плату
 STM32F401CC BlackPill за допомогою ліцензійного ключа, придбаного в магазині.

@@ -1,6 +1,6 @@
 ﻿# Користувацька документація
 
-> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Англійська версія: `docs/user/README.md`.
 

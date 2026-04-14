@@ -1,6 +1,6 @@
 # Self-Install Guide
 
-> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 This guide covers flashing the GNSS filter firmware onto a blank
 STM32F401CC BlackPill board using a license key purchased from the store.

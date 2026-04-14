@@ -1,6 +1,6 @@
 ﻿# Огляд пристрою
 
-> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Цей документ описує, як STM32-фільтр працює між GNSS-приймачем і польотним контролером (FC).
 

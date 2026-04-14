@@ -1,6 +1,6 @@
 # Device Overview
 
-> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 This document describes how the STM32 filter operates between the GNSS receiver and the flight controller (FC). For wiring instructions, see the [Wiring Guide](#wiring). For first-time setup, see [Setup & Flash](#setup-flash).
 

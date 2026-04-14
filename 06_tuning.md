@@ -1,6 +1,6 @@
 # Runtime Tuning Manual
 
-> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tune behavior without updating firmware.
 

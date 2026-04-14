@@ -1,6 +1,6 @@
 # Cheat Sheet (Field Quick Reference)
 
-> Board store: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 This is a one-page quick reference for setup checks, DR meaning, and common actions. For detailed explanations, see the [Device Overview](#device-overview).
 

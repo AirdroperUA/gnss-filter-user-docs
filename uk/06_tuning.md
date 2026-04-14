@@ -1,6 +1,6 @@
 ﻿# Інструкція з тюнінгу під час роботи
 
-> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/product/gps-spoofing-filter/)
+> Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Фільтр публікує вибрані константи як MAVLink `PARAM_*`, тому поведінку можна змінювати без оновлення прошивки.
 

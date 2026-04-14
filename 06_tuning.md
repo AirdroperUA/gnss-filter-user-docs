@@ -66,7 +66,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `SNR_MMAX` | Minimum required strongest SNR (dB-Hz) | 35 | 10 | 60 |
 | `SNR_HOLDMS` | SNR guard hold time before DR1 (ms) | 1500 | 100 | 20000 |
 | `SNR_MAXAGE` | Max age of SNR sample (ms) | 2000 | 100 | 10000 |
-| `DR1_MAX_MS` | Max DR1 duration before forced exit (ms, 0=disabled) | 0 | 0 | 600000 |
+| `DR1_MAXMS` | Max DR1 duration before forced exit (ms, 0=disabled) | 0 | 0 | 3600000 |
 | `FENCE_RAD` | Geo-fence radius from first fix (m, 0=disabled) | 600000 | 0 | 2000000 |
 | `HEMI_EN` | Northern hemisphere hard fence (0=off, 1=on) | 1 | 0 | 1 |
 
@@ -152,7 +152,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 ### DR1 max duration and geo-fence
 
-- **DR1_MAX_MS**: Maximum time (ms) the filter stays in DR1 before forcing an exit back to DR0. Set to `0` to disable (default — DR1 lasts until GPS quality recovers). Use for missions that cannot tolerate indefinite GPS blocking (e.g. long-range fixed-wing with good IMU). Typical values: `60000` (1 min), `120000` (2 min), `300000` (5 min).
+- **DR1_MAXMS**: Maximum time (ms) the filter stays in DR1 before forcing an exit back to DR0. Set to `0` to disable (default — DR1 lasts until GPS quality recovers). Use for missions that cannot tolerate indefinite GPS blocking (e.g. long-range fixed-wing with good IMU). Typical values: `60000` (1 min), `120000` (2 min), `300000` (5 min).
 - **FENCE_RAD**: Geo-fence radius in meters from the first-fix position (max 2,000,000 m = 2000 km). Default `600000` (600 km). If GPS reports a position outside this radius, DR1 triggers. Set to `0` to disable. Catches spoofing attacks that slowly drift position over time. Note: the fence center is set at first fix after boot — not at an arming position.
 
 ### Hemisphere fence

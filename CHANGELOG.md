@@ -129,7 +129,7 @@ Security and reliability hardening release. Four parallel deep-review waves (R19
 - **South-hemisphere hard block**: instant DR1 when latitude goes below 0°. Now configurable via `HEMI_EN` parameter.
 - **Clock bias jump detection** (u-blox only): uses NAV-CLOCK to detect receiver clock manipulation.
 - **Velocity-position mismatch** (u-blox only): cross-checks reported velocity against position delta.
-- **DR1 max duration** (`DR1_MAX_MS`): forces exit from DR1 after a configurable timeout. Useful for long-range missions.
+- **DR1 max duration** (`DR1_MAXMS`): forces exit from DR1 after a configurable timeout. Useful for long-range missions.
 - **USB-C firmware updates**: connect USB-C cable, press RESET — no extra hardware needed after initial flash.
 - **USB-C log download**: spoofing logs can be downloaded over USB-C directly.
 - **App boot fix**: corrected application vector table at 0x0800C000.
@@ -147,7 +147,7 @@ Security and reliability hardening release. Four parallel deep-review waves (R19
 - Added confidence score documentation with signal weight table.
 - Added u-blox vs UM980 feature coverage table.
 - Documented new DR1 triggers (heading, time, geo-fence, clock bias, velocity-position).
-- Added `DR1_MAX_MS`, `FENCE_RAD`, `HEMI_EN` to tuning manual.
+- Added `DR1_MAXMS`, `FENCE_RAD`, `HEMI_EN` to tuning manual.
 
 ---
 

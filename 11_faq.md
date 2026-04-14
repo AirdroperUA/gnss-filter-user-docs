@@ -178,9 +178,9 @@ Most features work with both u-blox and UM980. Three advanced signals are
 The core protections (position jump, altitude, SNR, heading, time, geo-fence)
 work with both receivers.
 
-### What are the new DR1_MAX_MS and FENCE_RAD parameters?
+### What are the new DR1_MAXMS and FENCE_RAD parameters?
 
-- **DR1_MAX_MS**: Forces exit from DR1 after this many milliseconds, even if
+- **DR1_MAXMS**: Forces exit from DR1 after this many milliseconds, even if
   GPS hasn't recovered. Default `0` = disabled (infinite latch). Useful for
   long-range missions where indefinite GPS blocking is worse than uncertain GPS.
 - **FENCE_RAD**: Triggers DR1 if GPS reports a position more than this many

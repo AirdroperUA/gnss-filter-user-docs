@@ -43,7 +43,7 @@ This prevents suspect live GNSS data from reaching FC navigation input while DR1
 - Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius (up to 2000 km) triggers DR1.
 - Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.
 - GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
-- DR1 max duration (`DR1_MAX_MS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered. Use for missions that cannot tolerate indefinite GPS blocking.
+- DR1 max duration (`DR1_MAXMS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered. Use for missions that cannot tolerate indefinite GPS blocking.
 
 ### Spoofing confidence score
 

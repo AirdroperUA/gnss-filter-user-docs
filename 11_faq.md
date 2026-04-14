@@ -89,7 +89,7 @@ If still stuck, see the [Wiring Debug](#wiring-debug) guide for step-by-step tro
 - If your receiver is u-blox (NEO-M8, NEO-M9, ZED-F9P, etc.): `GNSS_TYPE=0`
 - If your receiver is Unicore UM980, UM981, or UM982: `GNSS_TYPE=1`
 
-See [Setup & Flash](#setup-flash) for how to change this parameter.
+See [Setup & Flash](#setup-and-flash) for how to change this parameter.
 
 ### Do I need to configure my UM980 receiver?
 

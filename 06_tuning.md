@@ -21,7 +21,8 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `RJ_LOIT_GM` | Loiter gate override (m) | 2500 | 10 | 1000000 |
 | `RJ_STAB_MS` | Stable window before rejoin/blend (ms) | 5000 | 500 | 120000 |
 | `BLEND_MS` | Blend duration DR1 to DR0 (ms) | 10000 | 1000 | 120000 |
-| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 15000 | 0 | 600000 |
+| `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 15000 | 1000 | 600000 |
+| `DR1_MAXMS` | Maximum DR1 latch duration before forced exit (ms, 0=disabled) | 0 | 0 | 3600000 |
 | `SP_JMP_MPS` | Spoof guard speed jump limit (m/s) | 5000 | 50 | 20000 |
 | `SP_ABS_M` | Spoof guard absolute step limit (m) | 5000 | 100 | 50000 |
 | `ARM_MIN_S` | Guard arming minimum satellites | 6 | 4 | 30 |
@@ -48,7 +49,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `BOOT_NSATS` | Boot north gate minimum satellites | 6 | 4 | 30 |
 | `BOOT_NHDOP` | Boot north gate max HDOP | 4 | 0.5 | 10 |
 | `BOOT_NSTAB` | Boot north gate stable window (ms) | 1000 | 200 | 20000 |
-| `BOOT_DLYMS` | Startup DR trigger guard delay (ms) | 20000 | 0 | 120000 |
+| `BOOT_DLYMS` | Startup DR trigger guard delay (ms) | 20000 | 2000 | 120000 |
 | `GN_HOTMS` | GNSS hotstart watchdog trigger (ms) | 15000 | 1000 | 120000 |
 | `GN_COLDMS` | GNSS coldstart watchdog trigger (ms) | 45000 | 2000 | 300000 |
 | `PT_ONLY` | Pass-through-only mode (0/1) | 1 | 0 | 1 |
@@ -66,8 +67,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `SNR_MMAX` | Minimum required strongest SNR (dB-Hz) | 35 | 10 | 60 |
 | `SNR_HOLDMS` | SNR guard hold time before DR1 (ms) | 1500 | 100 | 20000 |
 | `SNR_MAXAGE` | Max age of SNR sample (ms) | 2000 | 100 | 10000 |
-| `DR1_MAXMS` | Max DR1 duration before forced exit (ms, 0=disabled) | 0 | 0 | 3600000 |
-| `FENCE_RAD` | Geo-fence radius from first fix (m, 0=disabled) | 600000 | 0 | 2000000 |
+| `FENCE_RAD` | Geo-fence radius from first fix (m, 0=disabled) | 0 | 0 | 2000000 |
 | `HEMI_EN` | Northern hemisphere hard fence (0=off, 1=on) | 1 | 0 | 1 |
 
 ## Parameter Reference (detailed)
@@ -88,6 +88,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **RJ_STAB_MS**: Required stability window before rejoin/blend starts. Longer values improve safety but delay rejoin.
 - **BLEND_MS**: Duration of the DR1 to DR0 blend. Longer blends smooth transitions; shorter blends rejoin faster.
 - **DR_LOCK_MS**: Minimum lockout time after entering DR1. During this time rejoin is blocked even if GNSS looks good. Increase to avoid rapid flip-flopping; decrease for faster recovery.
+- **DR1_MAXMS**: Hard upper bound on how long the filter is allowed to stay latched in DR1. When non-zero, DR1 is forcibly exited after this many milliseconds regardless of spoof confidence. Default `0` = disabled (infinite latch — the filter stays in DR1 until rejoin gates clear normally). Use a non-zero value only if your mission profile prefers "possibly-wrong GPS" over "inertial-only forever" — e.g. a long-range flight where losing GPS for the entire remaining leg is worse than accepting a partially-recovered spoofed signal. Most users should leave this at `0`.
 
 ### Spoof guard (position jump)
 
@@ -122,7 +123,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 ### EKF gates
 
-- **RJ_REQEKF**: If enabled, rejoin requires an EKF OK window in addition to GNSS quality. Safer, but slower to rejoin.
+- **RJ_REQEKF**: If enabled, rejoin requires a **fresh** EKF-OK window in addition to GNSS quality. The filter demands a recent `EKF_STATUS_REPORT` message (refreshed within the last 2 s) so that a stale OK-flag held across a MAVLink link drop cannot silently pass the gate on link return. Safer, but slower to rejoin.
 - **EKF_TRIPMS**: Time EKF must be bad before DR1 triggers. `0` means immediate trip with no delay.
 - **EKF_OKRJMS**: Minimum time EKF must be good before rejoin when `RJ_REQEKF` is enabled.
 - **EKF_GRCMS**: Grace period after exiting DR1 during which EKF issues are ignored. Helps avoid immediate re-trips.
@@ -132,7 +133,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **BOOT_NSATS**: Minimum satellites required before publishing GNSS on boot (if north gate is active).
 - **BOOT_NHDOP**: Maximum HDOP allowed for boot publishing.
 - **BOOT_NSTAB**: Stability window before the initial north gate unlocks.
-- **BOOT_DLYMS**: Additional startup guard delay before spoof and EKF trip logic can enter DR1. Increase this if the FC and GNSS need extra time to stabilize after power-on and you see false DR1 right after boot.
+- **BOOT_DLYMS**: Additional startup guard delay before spoof and EKF trip logic can enter DR1. Increase this if the FC and GNSS need extra time to stabilize after power-on and you see false DR1 right after boot. Minimum is clamped to **2000 ms** — any smaller value stored in EEPROM is corrected on load, because zero would collapse the boot-stabilization window entirely.
 
 ### GNSS recovery watchdog
 
@@ -150,10 +151,10 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981/UM982 NMEA. Change is saved immediately but applied after STM32 reboot.
 - **UM980_HIGHDYN**: UM980/UM981/UM982 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Reserved for future use — currently has no runtime effect. The STM32 does **not** send any `MODE` command to the UM980.
 
-### DR1 max duration and geo-fence
+### Geo-fence
 
-- **DR1_MAXMS**: Maximum time (ms) the filter stays in DR1 before forcing an exit back to DR0. Set to `0` to disable (default — DR1 lasts until GPS quality recovers). Use for missions that cannot tolerate indefinite GPS blocking (e.g. long-range fixed-wing with good IMU). Typical values: `60000` (1 min), `120000` (2 min), `300000` (5 min).
-- **FENCE_RAD**: Geo-fence radius in meters from the first-fix position (max 2,000,000 m = 2000 km). Default `600000` (600 km). If GPS reports a position outside this radius, DR1 triggers. Set to `0` to disable. Catches spoofing attacks that slowly drift position over time. Note: the fence center is set at first fix after boot — not at an arming position.
+- **DR1_MAXMS**: See the full description above under *Rejoin gate and timing* — this is the hard upper bound on time spent in DR1 before a forced exit.
+- **FENCE_RAD**: Geo-fence radius in meters from the first-fix position (max 2,000,000 m = 2000 km). **Default `0` (disabled)** — the fence is opt-in. If GPS reports a position outside this radius, DR1 triggers. Catches spoofing attacks that slowly drift position over time. Note: the fence center is set at first fix after boot — not at an arming position, so enable it only for missions where the first fix is close to the mission area. Typical values once enabled: `50000` (50 km) for local flights, `600000` (600 km) for long-range.
 
 ### Hemisphere fence
 

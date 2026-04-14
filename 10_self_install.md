@@ -103,7 +103,7 @@ Provisioning complete!
 3. Connect to [Mission Planner](https://ardupilot.org/planner/) and check for the filter boot message in the
    Messages tab (e.g. `GNSS filter v1.5.5 UID=12345678`)
 
-**Next steps:** Wire the filter into your drone using the [Wiring Guide](#wiring), then configure your flight controller in [Setup & Flash](#setup-flash).
+**Next steps:** Wire the filter into your drone using the [Wiring Guide](#wiring), then configure your flight controller in [Setup & Flash](#setup-and-flash).
 
 ---
 

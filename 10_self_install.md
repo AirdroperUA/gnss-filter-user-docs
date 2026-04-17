@@ -163,6 +163,22 @@ use the same ST-Link V2 wiring above and select **Recover (ST-Link)** in
 the app. The recovery flow re-runs the full activation sequence using your
 existing license key.
 
+The recovery may walk you through up to **four** physical power cycles
+(unplug/replug USB at each prompt). This is mandatory: STM32F4 option
+bytes only latch on a real VDD drop, and a `Reset` button press does
+**not** count.
+
+> **WARNING — do NOT use STM32CubeProgrammer GUI to clear RDP, nWRP,
+> or SPRMOD manually on the BlackPill.** Its option-byte write
+> sequence on F4 silicon can put the chip into a permanently-bricked
+> state where the SPRMOD bit latches and refuses to clear, and no
+> software (ours or ST's) can recover it. **Always use this app's
+> "Recover Board" button** — it runs the only reliable sequence we
+> have verified for these boards. If "Recover Board" reports the chip
+> is hardware-stuck after the full power-cycle sequence, replace the
+> BlackPill (~$5) — your license is bound to chip UID and a fresh
+> board will provision cleanly with the same license key.
+
 ---
 
 ## Spoofing event logs

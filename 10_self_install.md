@@ -114,6 +114,16 @@ USB-C firmware updates have been removed — pins PA11/PA12 are now reserved
 for flight-controller GPS UART (USART6) and the bootloader no longer
 enumerates as a USB CDC device.
 
+> **DO NOT plug anything into the BlackPill's USB-C connector at any time.**
+> PA11/PA12 are the same physical lines as USB D-/D+, and the moment a USB
+> cable applies host signaling to those wires it will fight USART6's line
+> driver — the FC will see "GPS: No GPS" and EKF3 will refuse to align even
+> though the filter says it has a fix. The board has no functional USB
+> path: power must come from the FC's GPS-port +5V/+3V3 pin (or the SWD
+> header during initial flashing), never from a USB-C cable. If you need
+> to update firmware, use the ST-Link V2 on the SWD header — that's the
+> only supported path.
+
 ### What you need
 
 The same hardware as the initial flash:

@@ -194,8 +194,9 @@ FC's SD card (or download it over MAVFTP), open it in **Mission Planner** →
 *DataFlash Logs* → *Review a Log*, then use *File* → *Create KML+GPX* to
 export the flight track. The `MSG` lines beginning with `GNSS:` or `DR1:`
 mark the spoofing events along that track, and the `NVLI` `DR_CONF` records
-carry the per-event confidence score. The on-board log and cloud-dashboard
-KML export present on v1.5.x have been removed in v1.6.0+.
+carry the per-event confidence score. The filter board itself stores
+**no spoofing event logs** — the FC's SD-card dataflash is the single
+source of truth (the on-board EEPROM ring buffer was removed in v1.6.8).
 
 ---
 

@@ -193,11 +193,15 @@ bytes only latch on a real VDD drop, and a `Reset` button press does
 
 ## Spoofing event logs
 
-Starting with firmware v1.6.0, the filter no longer stores spoofing events
-in on-board flash. Instead, every detection event and confidence-score
+**The filter board stores no spoofing logs.** Every DR1 trip and confidence
 update is emitted in real time as MAVLink **STATUSTEXT** and
 **NAMED_VALUE_INT** messages, which ArduPilot writes to the flight
-controller's SD card as standard dataflash records (`MSG` and `NVLI`).
+controller's SD card as standard dataflash records (`MSG` and `NVLI`). The
+SD card is the single source of truth for forensic review.
+
+The on-board EEPROM ring buffer was first deprecated in v1.6.0 (the
+"Download Logs" button was removed from the app at that time) and
+permanently removed from the firmware in v1.6.8.
 
 ### Where to find the logs
 
@@ -209,9 +213,11 @@ controller's SD card as standard dataflash records (`MSG` and `NVLI`).
 4. Optional: drag the same `.bin` into [UAV Log Viewer](https://plot.ardupilot.org)
    for a graphical timeline
 
-There is no longer any "Download Logs" button in the AirDroper GNSS Filter
-app, and no on-board log to extract. All flight-evidence collection
-happens through the standard ArduPilot dataflash pipeline.
+> **Privacy note:** if you share the FC dataflash log publicly (e.g. for
+> support), the GPS positions are baked into ArduPilot's own `GPS` and
+> `POS` records — those are not affected by the filter's `LOG_LOC=0`
+> tunable, which only redacts our `STATUSTEXT` lines. Crop or sanitise
+> the `.bin` before sharing if location is sensitive.
 
 ### EW interference map
 

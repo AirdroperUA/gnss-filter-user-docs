@@ -69,7 +69,8 @@ If GNSS or MAVLink does not work after wiring, see `03_wiring_debug.md`.
 
 ## Important notes
 
-- `A11/A12` are USB D-/D+ pins on BlackPill; in this project they are repurposed as UART.
+- `A11/A12` are USB D-/D+ pins on BlackPill; in this project they are **permanently repurposed as USART6** for the flight-controller GPS UART. The board has **no functional USB path** — the bootloader does not enumerate as a USB device and the application disables USB OTG_FS at every boot.
+- **DO NOT plug any cable into the BlackPill's USB-C connector at any time.** Even just connecting a USB power cable applies host signaling to D-/D+ — the same physical wires as `A11/A12` — and that fights the USART6 line driver. The flight controller will report "GPS: No GPS" and EKF3 will refuse to align even though the filter logs show a healthy fix being forwarded. Power must come from the FC GPS-port +5V/+3V3 pin, or from the SWD header during initial flashing — never from a USB cable.
 - To release `A11/A12` (e.g. for diagnostics), set `FCGPS_UART=0` in Mission Planner. That disables the FC GPS UART and puts `A11/A12` into input mode. Set `FCGPS_UART=1` to restore normal FC GPS UART operation.
 - Runtime GNSS TX/RX swap is not supported on STM32F401 in this firmware; fix wiring physically if reversed.
 - Receiver protocol mode is selected by `GNSS_TYPE`:

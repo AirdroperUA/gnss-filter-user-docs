@@ -32,6 +32,22 @@ This document describes how the STM32 filter operates between the GNSS receiver 
   - **UM980 / UM981 / UM982** — set `GNSS_TYPE=1` (requires one-time setup, see [Receiver Config](#receiver-config))
 - **Important:** Test on a low-cost, easy-to-recover drone first (e.g., a small FPV quad or fixed wing). Validate behavior before installing on an expensive aircraft.
 
+> ## ⚠️ The USB-C connector is not used
+>
+> The board has **no functional USB path**. Pins PA11/PA12 are physically the
+> same lines as USB D-/D+, but they are repurposed as USART6 — the FC GPS
+> UART. The bootloader does not enumerate as a USB device, and the
+> application disables USB OTG_FS at every boot.
+>
+> **Never plug any cable into the BlackPill's USB-C connector.** Even just
+> using it for power applies host signaling to D-/D+ and breaks the FC GPS
+> link — the flight controller will report "GPS: No GPS" and EKF3 will
+> refuse to align even though the filter logs show a healthy fix.
+>
+> Power comes from the FC's GPS-port +5V/+3V3 pin in normal operation, or
+> from the SWD header during initial flashing. Firmware updates use the
+> ST-Link V2 on the SWD header — see the [Self-Install Guide](#self-install).
+
 ## 1) Purpose
 
 The filter sits between your GPS module and flight controller and performs three core tasks:

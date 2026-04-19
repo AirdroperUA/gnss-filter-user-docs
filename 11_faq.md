@@ -226,7 +226,7 @@ everything to the UM980's non-volatile flash. Configure once, fly forever.
 
 ### Can I install the firmware myself?
 
-Yes. Purchase a license key from the [store](https://airdroper.org/products/gps-spoofing-filter) and follow the [Self-Install Guide](#self-install). All operations — initial activation, firmware updates, and recovery — use the **same ST-Link V2 adapter (~$3)** connected to the 4-pin SWD header (3V3, GND, A14/SWCLK, A13/SWDIO). The board no longer accepts firmware updates over USB-C.
+Yes. Purchase a license key from the [store](https://airdroper.org/products/gps-spoofing-filter) and follow the [Self-Install Guide](#self-install). All operations — initial activation, firmware updates, and recovery — use the **same ST-Link V2 adapter (~$3)** connected to the 4-pin SWD header (3V3, GND, A14/SWCLK, A13/SWDIO). **The board has no functional USB path** — never plug any cable into the BlackPill's USB-C connector, including for power. PA11/PA12 (which carry the FC GPS UART) are physically the same lines as USB D-/D+, and any USB host signaling will block GPS forwarding to the flight controller.
 
 ### Can I use my license on multiple boards?
 

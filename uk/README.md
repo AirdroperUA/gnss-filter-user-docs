@@ -16,6 +16,19 @@
 - Для `GNSS_TYPE` та `UBX_BAUD` потрібен reboot STM32 (`NRST` або повне вимкнення/увімкнення).
 - Більшість інших параметрів застосовуються одразу.
 
+## Відеоуроки
+
+<div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
+  <a href="12_video_tutorials.md#wiring" aria-label="Відкрити відеоурок про загальне підключення">
+    <img src="https://i.ytimg.com/vi/ARGg_KQceoU/hqdefault.jpg" alt="Прев'ю відео: загальний огляд підключення" width="300" loading="lazy">
+  </a>
+  <div>
+    <strong>Загальний огляд підключення</strong>
+    <p>Почніть звідси для короткого візуального огляду підключення STM32, GNSS-приймача та польотного контролера.</p>
+    <p><a href="12_video_tutorials.md#wiring">Відкрити сторінку уроку</a> або <a href="https://youtube.com/shorts/ARGg_KQceoU">дивитися на YouTube</a>.</p>
+  </div>
+</div>
+
 1. `01_device_overview.md` - загальний опис роботи пристрою та приклади тригерів.
 2. `02_wiring.md` - фізичне підключення STM32, GNSS-приймача та FC.
 3. `03_wiring_debug.md` - діагностика проблем підключення GNSS/GPS/MAVLink.
@@ -27,4 +40,5 @@
 9. `09_receiver_config.md` - конфігурація GNSS-приймача для UM980 та u-blox (профілі команд, налаштування GPS-типу ArduPilot).
 10. `10_self_install.md` - самостійна установка прошивки на чисту плату BlackPill за допомогою ліцензійного ключа.
 11. `11_faq.md` - часті запитання щодо роботи фільтра, апаратного забезпечення, налаштування та ліцензування.
-12. `CHANGELOG.md` - повна історія версій прошивки та примітки до релізів.
+12. `12_video_tutorials.md` - бібліотека YouTube-уроків з прев'ю, вбудованими плеєрами та пов'язаними інструкціями.
+13. `CHANGELOG.md` - повна історія версій прошивки та примітки до релізів.

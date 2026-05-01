@@ -8,6 +8,8 @@ This firmware uses three UART links on STM32F401:
 2. FC MAVLink <-> STM32 (control/status/tuning)
 3. FC GPS <-> STM32 (raw GNSS forwarding to FC GPS UART)
 
+Video tutorial: [General Wiring Overview](12_video_tutorials.md#wiring).
+
 Board silk labels are `A2`, `A3`, `A9`, `A10`, `A11`, `A12`, `B5`.
 
 ## RX/TX rule (read first)

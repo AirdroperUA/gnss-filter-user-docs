@@ -16,6 +16,19 @@ Reboot is not required after every parameter write.
 - `GNSS_TYPE` and `UBX_BAUD` require STM32 reboot (`NRST` or power cycle) to apply.
 - Most other parameters apply immediately.
 
+## Video Tutorials
+
+<div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
+  <a href="12_video_tutorials.md#wiring" aria-label="Open General Wiring Overview tutorial">
+    <img src="https://i.ytimg.com/vi/ARGg_KQceoU/hqdefault.jpg" alt="Preview thumbnail for General Wiring Overview" width="300" loading="lazy">
+  </a>
+  <div>
+    <strong>General Wiring Overview</strong>
+    <p>Start here for a quick visual walkthrough of the STM32, GNSS receiver, and flight-controller wiring layout.</p>
+    <p><a href="12_video_tutorials.md#wiring">Open the tutorial page</a> or <a href="https://youtube.com/shorts/ARGg_KQceoU">watch on YouTube</a>.</p>
+  </div>
+</div>
+
 1. `01_device_overview.md` - high-level device operation and trigger examples.
 2. `02_wiring.md` - physical wiring for STM32, GNSS receiver, and FC.
 3. `03_wiring_debug.md` - diagnose GNSS/GPS/MAVLink wiring issues.
@@ -27,4 +40,5 @@ Reboot is not required after every parameter write.
 9. `09_receiver_config.md` - GNSS receiver configuration for UM980 and u-blox (command profiles, ArduPilot GPS type settings).
 10. `10_self_install.md` - self-install guide for flashing firmware onto a blank board using a license key.
 11. `11_faq.md` - frequently asked questions (hardware, setup, operation, UM980, licensing).
-12. `../../CHANGELOG.md` - full firmware version history and release notes.
+12. `12_video_tutorials.md` - YouTube tutorial library with previews, embedded players, and related written guides.
+13. `../../CHANGELOG.md` - full firmware version history and release notes.

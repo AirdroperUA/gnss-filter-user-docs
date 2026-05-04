@@ -19,6 +19,28 @@ Reboot is not required after every parameter write.
 ## Video Tutorials
 
 <div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
+  <a href="12_video_tutorials.md#flash-new-board" aria-label="Open Flash a New Board with the Windows App tutorial">
+    <img src="https://i.ytimg.com/vi/vXlP-tu7s1k/hqdefault.jpg" alt="Preview thumbnail for Flash a New Board with the Windows App" width="300" loading="lazy">
+  </a>
+  <div>
+    <strong>Flash a New Board with the Windows App</strong>
+    <p>Watch the full activation and flashing flow for a blank STM32 board using the AirDroper GNSS Filter Windows <code>.exe</code> app.</p>
+    <p><a href="12_video_tutorials.md#flash-new-board">Open the tutorial page</a> or <a href="https://youtu.be/vXlP-tu7s1k">watch on YouTube</a>.</p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
+  <a href="12_video_tutorials.md#stlink-pinout" aria-label="Open ST-Link Wiring and Board Pinout tutorial">
+    <img src="https://i.ytimg.com/vi/bOzFh70B66g/hqdefault.jpg" alt="Preview thumbnail for ST-Link Wiring and Board Pinout" width="300" loading="lazy">
+  </a>
+  <div>
+    <strong>ST-Link Wiring and Board Pinout</strong>
+    <p>Hardware-focused flashing walkthrough for the ST-Link connection, board pinout, and physical setup before using the Windows app.</p>
+    <p><a href="12_video_tutorials.md#stlink-pinout">Open the tutorial page</a> or <a href="https://youtube.com/shorts/bOzFh70B66g">watch on YouTube</a>.</p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
   <a href="12_video_tutorials.md#wiring" aria-label="Open General Wiring Overview tutorial">
     <img src="https://i.ytimg.com/vi/ARGg_KQceoU/hqdefault.jpg" alt="Preview thumbnail for General Wiring Overview" width="300" loading="lazy">
   </a>

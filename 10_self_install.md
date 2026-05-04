@@ -8,6 +8,10 @@ STM32F401CC BlackPill board using a license key purchased from the store.
 Each license key activates **one board**. The firmware is uniquely
 locked to your specific board and cannot be copied to another.
 
+Video tutorials:
+- [Flash a New Board with the Windows App](12_video_tutorials.md#flash-new-board), or [watch on YouTube](https://youtu.be/vXlP-tu7s1k)
+- [ST-Link Wiring and Board Pinout](12_video_tutorials.md#stlink-pinout), or [watch on YouTube](https://youtube.com/shorts/bOzFh70B66g)
+
 ---
 
 ## What you need
@@ -34,6 +38,8 @@ locked to your specific board and cannot be copied to another.
 ## Step 1 — Wire the ST-Link
 
 Connect the ST-Link to the BlackPill SWD header using 4 jumper wires:
+
+Hardware video: [ST-Link Wiring and Board Pinout](12_video_tutorials.md#stlink-pinout).
 
 | ST-Link pin | BlackPill pin |
 |-------------|---------------|

@@ -19,6 +19,28 @@
 ## Відеоуроки
 
 <div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
+  <a href="12_video_tutorials.md#flash-new-board" aria-label="Відкрити відеоурок про прошивку нової плати через Windows-додаток">
+    <img src="https://i.ytimg.com/vi/vXlP-tu7s1k/hqdefault.jpg" alt="Прев'ю відео: прошивка нової плати через Windows-додаток" width="300" loading="lazy">
+  </a>
+  <div>
+    <strong>Прошивка нової плати через Windows-додаток</strong>
+    <p>Подивіться повний процес активації та прошивки чистої STM32-плати через Windows <code>.exe</code>-додаток AirDroper GNSS Filter.</p>
+    <p><a href="12_video_tutorials.md#flash-new-board">Відкрити сторінку уроку</a> або <a href="https://youtu.be/vXlP-tu7s1k">дивитися на YouTube</a>.</p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
+  <a href="12_video_tutorials.md#stlink-pinout" aria-label="Відкрити відеоурок про підключення ST-Link і пін-аут плати">
+    <img src="https://i.ytimg.com/vi/bOzFh70B66g/hqdefault.jpg" alt="Прев'ю відео: підключення ST-Link і пін-аут плати" width="300" loading="lazy">
+  </a>
+  <div>
+    <strong>Підключення ST-Link і пін-аут плати</strong>
+    <p>Апаратний огляд прошивки: підключення ST-Link, пін-аут плати та фізична підготовка перед роботою у Windows-додатку.</p>
+    <p><a href="12_video_tutorials.md#stlink-pinout">Відкрити сторінку уроку</a> або <a href="https://youtube.com/shorts/bOzFh70B66g">дивитися на YouTube</a>.</p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(180px, 300px) minmax(240px, 1fr); gap: 16px; align-items: center; margin: 16px 0 24px;">
   <a href="12_video_tutorials.md#wiring" aria-label="Відкрити відеоурок про загальне підключення">
     <img src="https://i.ytimg.com/vi/ARGg_KQceoU/hqdefault.jpg" alt="Прев'ю відео: загальний огляд підключення" width="300" loading="lazy">
   </a>

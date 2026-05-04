@@ -265,11 +265,13 @@ gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdrop
 ### Firmware update (ST-Link)
 
 ```
-gnss-provision update --license GF-XXXX-XXXX-XXXX --uid <your-24-char-uid> --stlink --server https://gps.airdroper.org
+gnss-provision update --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
 ```
 
-The UID is the full 24-character hex string shown during initial
-activation. Wire the ST-Link to the SWD header (3V3, GND, A14/SWCLK,
-A13/SWDIO) before running the command.
+The CLI reads the board UID directly over ST-Link. The `--uid` option is only
+for legacy UART update builds and is not needed for the supported ST-Link path.
+
+Wire the ST-Link to the SWD header (3V3, GND, A14/SWCLK, A13/SWDIO)
+before running the command.
 
 </details>

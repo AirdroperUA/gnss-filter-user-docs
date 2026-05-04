@@ -261,11 +261,12 @@ gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdrop
 ### Оновлення прошивки (ST-Link)
 
 ```
-gnss-provision update --license GF-XXXX-XXXX-XXXX --uid <ваш-24-символьний-uid> --stlink --server https://gps.airdroper.org
+gnss-provision update --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
 ```
 
-UID — це повний 24-символьний hex-рядок, показаний під час початкової
-активації. Перед запуском команди підключіть ST-Link до SWD-роз'єму
+CLI зчитує UID плати напряму через ST-Link. Параметр `--uid` потрібен лише
+для застарілих UART-збірок оновлення і не потрібен для підтримуваного
+ST-Link-шляху. Перед запуском команди підключіть ST-Link до SWD-роз'єму
 (3V3, GND, A14/SWCLK, A13/SWDIO).
 
 </details>

@@ -6,6 +6,23 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.11 — 2026-05-15
+
+Firmware-only diagnostic release. Existing boards update in place through the
+standard ST-Link provisioning flow; no wiring, tuning, or provisioning-app
+change is required.
+
+### Firmware
+
+- **Raw FC GPS forwarding bypass** (`FCGPS_FWD=1`): when enabled, the filter
+  forces the FC GPS UART on and forwards receiver traffic to the flight
+  controller before DR1 spoofing protection, boot north gate, hemisphere fence,
+  UM980 config holdoff, or no-fix recovery reset logic can block it. Use this
+  only for bench and wiring diagnostics; keep `FCGPS_FWD=0` for protected
+  flight.
+
+---
+
 ## v1.6.3 — 2026-04-14
 
 Stability and privacy release on top of v1.6.2. No new tuning parameters, no wiring changes, no in-field action required beyond running the provisioning tool.

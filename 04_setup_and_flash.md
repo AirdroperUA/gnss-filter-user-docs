@@ -62,13 +62,13 @@ Flight controller parameters:
 ## 4) Filter control expectations
 
 - Filter IDs: `SYSID=42`, `COMPID=191`.
-- DR1 protection blocks live forwarding from GNSS input to FC GPS UART. The FC receives silence during DR1.
+- DR1 protection normally blocks live forwarding from GNSS input to FC GPS UART. The FC receives silence during DR1 unless the diagnostic raw-forward override is enabled.
 - Filter params are changed in Mission Planner:
   - `Config/Tuning` -> `Full Parameter List`
   - select STM32 (`SYSID=42`)
   - `Refresh Params` -> edit value -> `Write Params`
 - Reboot is not required after every parameter write.
-- On a busy MAVLink link, `Write Params` may need 1-2 attempts. More than 2 attempts indicate high telemetry load.
+- On a busy MAVLink link, `Write Params` may need 1-2 attempts. More than 2 attempts indicates high telemetry load.
 
 Receiver mode selection on STM32:
 
@@ -102,10 +102,10 @@ Before normal operation, validate FC GPS path end-to-end once:
 
 1. Connect to filter (`SYSID=42`) and set `FCGPS_FWD=1`.
 2. Wait for healthy GNSS in logs (`fix` and `nav` stay low, satellites are present, no repeated no-fix condition).
-3. Confirm FC receives GNSS data.
+3. Confirm FC receives GNSS data. This raw-forward mode forces the FC GPS UART on and bypasses DR1, the boot north gate, and the hemisphere fence, so it can validate the UART path even under spoofed/south bench conditions.
 4. Set `FCGPS_FWD=0` for operational anti-spoof mode.
 
-`FCGPS_FWD=1` is diagnostic only.
+`FCGPS_FWD=1` is diagnostic only. Do not fly with it enabled.
 
 ## 7) Build-state note
 

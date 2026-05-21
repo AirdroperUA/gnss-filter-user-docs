@@ -39,7 +39,7 @@ This prevents suspect live GNSS data from reaching FC navigation input while DR1
 - No-fix or low-satellite condition (`sats < 5`) triggers DR1 immediately (after startup guard window).
 - Position jump, altitude checks, SNR checks, and EKF checks can also trigger DR1 based on tuning.
 - `EKF_TRIPMS=0` means EKF-based DR1 trip is immediate when EKF is unhealthy.
-- South-hemisphere jump: if GPS latitude goes below 0°, DR1 triggers immediately. The filter also hard-blocks any south-hemisphere position from reaching the FC (all drones operate in the northern hemisphere).
+- South-hemisphere jump: if GPS latitude goes below 0°, DR1 triggers immediately. The filter hard-blocks any south-hemisphere position from reaching the FC in normal operation (all drones operate in the northern hemisphere).
 - Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius (up to 2000 km) triggers DR1.
 - Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.
 - GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
@@ -113,7 +113,7 @@ Default `DR1_MAXMS=0` leaves this disabled. **Use with caution** — the default
 
 ## GNSS forwarding diagnostics
 
-- `FCGPS_FWD=1` forces live GNSS forwarding even in DR1 (diagnostic only).
+- `FCGPS_FWD=1` forces the FC GPS UART on and raw-forwards GNSS even in DR1, before the boot north gate, and during hemisphere-fence trips. Diagnostic bench use only.
 - `FCGPS_FWD=0` is the normal anti-spoof setting.
 
 ## Receiver mode
@@ -133,7 +133,11 @@ The following screenshot shows expected status-text format in GCS messages.
   - GNSS summary line: `data=... fix=... nav=... SATS=... SNR=...`
 - `fix` is the age of the last valid position/altitude fix; `nav` is the age of the last valid GNSS nav-data frame seen by the filter.
 - `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With UM980/981, it means no `GSV` sentences are arriving.
+- On u-blox firmware v1.6.12+, persistent `SNR=NA` also emits `snrdbg n... a... l... s... g... o... b...`: NAV-SAT frames seen, frame age, last length, reported satellites, usable C/N0 satellites, oversize drops, malformed/checksum drops.
+- On u-blox firmware v1.6.15+, the stale-SNR recovery command re-enables NAV-SAT through legacy `CFG-MSG` and `CFG-VALSET` on UART1/UART2 only when NAV-SAT frames are missing or stale. A recovery line such as `NAV-SAT cfg ack legacy=1 u1=1 u2=1` shows which paths the receiver ACKed.
 - If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds, a `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)` message is logged. The SNR guard cannot trip while SNR data is absent.
+- If `SATS=0`, `fix=9999ms`, and `nav` is fresh, the receiver is communicating but has no valid position fix. On u-blox firmware v1.6.15+, field recovery parameter `UBX_RESET=1` hot-starts, `UBX_RESET=2` cold-starts, and `UBX_RESET=3` clears saved receiver config and reloads defaults.
+- On u-blox firmware v1.6.15+, no-fix or zero-satellite states also emit `ubxpvt ...`, `ubxrf ...`, `ubxsig ...`, and `ubxgnss ...` lines. `ubxpvt` shows the receiver's NAV-PVT fix flags; `ubxrf` shows antenna power/status, RF noise, AGC, jamming state, and CW interference suppression; `ubxsig` shows explicit jamming/spoofing state when supported; `ubxgnss` shows which GNSS constellation blocks are enabled.
 
 ![Example log output](diagrams/log_example.jpg)
 

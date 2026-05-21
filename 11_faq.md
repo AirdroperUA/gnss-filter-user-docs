@@ -79,7 +79,7 @@ all devices share a common ground. See the [Wiring Guide](#wiring) for details.
 
 1. Check wiring — TX and RX must be crossed (see the [Wiring Guide](#wiring))
 2. Check that `SERIAL_BAUD` matches (460800 for GPS UART, 115200 for MAVLink)
-3. Set `FCGPS_FWD=1` temporarily to bypass DR1 and verify data reaches the FC
+3. Set `FCGPS_FWD=1` temporarily to force the FC GPS UART on, raw-forward GPS, and verify data reaches the FC, even before the filter accepts the fix. Return it to `0` before flight.
 4. For UM980: make sure `GPS_AUTO_CONFIG=0` in ArduPilot (see [Receiver Config](#receiver-config))
 
 If still stuck, see the [Wiring Debug](#wiring-debug) guide for step-by-step troubleshooting.

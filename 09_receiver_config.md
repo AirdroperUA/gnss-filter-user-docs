@@ -149,6 +149,12 @@ Typical examples include:
 Older u-blox generations before M8 are not documented here because this project's default
 profile relies on newer UBX navigation messages.
 
+During a no-fix or zero-satellite state, firmware v1.6.15+ polls read-only
+u-blox diagnostics and logs `ubxpvt ...`, `ubxrf ...`, `ubxsig ...`, and `ubxgnss ...` in
+Mission Planner. Use these lines to separate a receiver that is communicating
+but still acquiring from an antenna/RF/jamming fault or disabled constellation
+configuration.
+
 ### Gateway / dual-receiver modules
 
 Some GPS products put one or more internal u-blox receivers behind their own MCU and export
@@ -201,13 +207,13 @@ UBX-CFG-CFG    save current configuration to BBR/Flash
 
 Nothing to do on the receiver side.
 
-**F10 / M10 note (firmware 1.6.2+):** newer u-blox generations use the
+**F10 / M10 note (firmware 1.6.15+):** newer u-blox generations use the
 `CFG-VALSET` configuration interface and do not reliably respond to the
 legacy `CFG-MSG` enable above for `NAV-SAT`. On top of the profile shown,
-the filter sends a `CFG-VALSET` block that re-enables `NAV-SAT` at 5 Hz
-on the active UART using `CFG-MSGOUT-UBX_NAV_SAT_UART1/2`. If you were
-previously running an F10 or M10 without NAV-SAT coming through, upgrade
-to 1.6.2+ and no u-center pre-config step is needed.
+the filter sends a `CFG-VALSET` block that re-enables `NAV-SAT` at 5 Hz on
+the primary receiver link using `CFG-MSGOUT-UBX_NAV_SAT_UART1` rate `2`.
+UART2 is only touched by the RAM-only stale-SNR recovery path if `NAV-SAT`
+is missing or stale.
 
 ### Notes for default auto-config
 

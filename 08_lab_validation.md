@@ -41,7 +41,7 @@ Note: this document does not include setup or operation steps for HackRF/PortaPa
 Use controlled, authorized anomaly sources and verify expected filter behavior:
 
 1. **Large position discontinuity**
-   - Expected: DR1 entry, GNSS forwarding blocked.
+   - Expected with `FCGPS_FWD=0`: DR1 entry, GNSS forwarding blocked.
 2. **Unrealistic implied speed**
    - Expected: DR1 entry and sustained protection state.
 3. **Altitude anomaly pattern**
@@ -75,7 +75,7 @@ Use controlled, authorized anomaly sources and verify expected filter behavior:
 All must be true:
 
 1. DR1 triggers on spoof-like anomalies in repeated runs.
-2. GNSS forwarding remains blocked during DR1.
+2. GNSS forwarding remains blocked during DR1 with `FCGPS_FWD=0`.
 3. DR0 recovery is stable and repeatable.
 4. FC behavior stays controlled (no unsafe navigation jumps).
 5. Logs and test records are complete for review.

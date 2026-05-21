@@ -6,6 +6,63 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.15 — 2026-05-21
+
+Firmware-only u-blox compatibility and recovery release. This is the public
+follow-up to v1.6.12; intermediate 1.6.13/1.6.14 test builds were folded into
+this release and are not listed as selectable server firmware versions.
+
+### Firmware
+
+- **u-blox no-fix diagnostics**: while `SATS=0` or no position fix is valid,
+  the firmware polls `UBX-MON-RF`, `UBX-SEC-SIG`, and `UBX-CFG-GNSS` and logs
+  `ubxpvt ...`, `ubxrf ...`, `ubxsig ...`, and `ubxgnss ...` lines in Mission
+  Planner. These show PVT fix flags, antenna/RF state, explicit
+  jamming/spoofing state when supported, and enabled GNSS constellation
+  configuration.
+- **Manual u-blox reset command**: new virtual parameter `UBX_RESET` appears in
+  Mission Planner but is not saved to flash. Set `1` for hot start, `2` for
+  cold start, or `3` to clear saved u-blox BBR/Flash configuration, reload
+  defaults, reset the receiver, and let the STM32 reinitialize GNSS.
+- **No automatic factory reset**: destructive receiver config clearing only
+  happens from a directed `PARAM_SET` command to the STM32 filter.
+- **Clearer no-fix logs**: the periodic `fix=...` field now reports only the
+  age of a valid position fix. A receiver that is alive but has no fix will show
+  stale `fix=...` and fresh `nav=...`.
+- **u-blox SNR recovery is now stream-aware**: the firmware reissues NAV-SAT
+  configuration only when NAV-SAT frames are missing or stale. If NAV-SAT is
+  arriving with zero usable C/N0, the receiver is acquiring or has no usable RF,
+  so the firmware logs diagnostics but does not keep rewriting configuration.
+- **Boot-time VALSET profile narrowed**: UART2 NAV-SAT is no longer persisted at
+  boot. UART2 remains part of the RAM-only recovery path for boards where
+  NAV-SAT is genuinely absent from the monitored link.
+
+---
+
+## v1.6.12 — 2026-05-21
+
+Firmware-only receiver compatibility release. Existing boards update in place
+through the standard ST-Link provisioning flow.
+
+### Firmware
+
+- **F9P NAV-SAT / SNR fix**: the UBX parser now accepts larger `NAV-SAT`
+  payloads from F9P-class receivers with many satellites in view. This fixes
+  Mission Planner logs where `SATS` and fix age were healthy but `SNR=NA`
+  persisted.
+- **Stale-SNR diagnostics**: if u-blox SNR goes stale, the periodic messages add
+  a compact `snrdbg` line so support can see whether `NAV-SAT` is absent,
+  malformed/checksum-failing, too large, or present with zero usable C/N0
+  values.
+- **Stale-SNR recovery**: the recovery command now re-enables `NAV-SAT` through
+  both legacy `CFG-MSG` and `CFG-VALSET` on UART1/UART2, covering F9/F10 carrier
+  boards where the active receiver port is not UART1.
+- **Stale SNR skipped in confidence scoring**: SNR, pseudorange residual, and
+  SNR-correlation confidence inputs now use the same freshness window as the
+  Mission Planner `SNR=...` status line.
+
+---
+
 ## v1.6.11 — 2026-05-15
 
 Firmware-only diagnostic release. Existing boards update in place through the
@@ -84,7 +141,7 @@ Reliability release. Patches three independent issues that surfaced in the field
 ### Firmware
 
 - **Bootloader → application handoff hardened**: on some boards, a firmware-validation failure followed by a retry could leave the application starting with stale NVIC interrupt state, with interrupts masked (`PRIMASK=1`), or with the `AHB2ENR` clock-enable register still configured for the bootloader's USB peripheral — symptoms were an instantly-frozen board with the status LED stuck off after the bootloader finished. The handoff now explicitly clears NVIC pending/enable bits, resets `AHB2ENR`, clears `PRIMASK` so interrupts are enabled when the app starts, and clears any latched fault flags.
-- **Diagnostic GPS forwarding restored** (`FCGPS_FWD=1`): when the parameter `FCGPS_FWD` is set to `1`, the filter now bypasses the spoof guard in DR1 (dead-reckoning) and forwards the raw GPS stream to the flight controller. Intended for **diagnostic bench use only** — it defeats the whole point of the filter in flight. Default stays at `0`.
+- **Diagnostic GPS forwarding restored** (`FCGPS_FWD=1`): when the parameter `FCGPS_FWD` is set to `1`, the filter now forces the FC GPS UART on, raw-forwards the GPS stream to the flight controller, and bypasses DR1, the boot north gate, and the hemisphere fence. Intended for **diagnostic bench use only**; it defeats the whole point of the filter in flight. Default stays at `0`.
 
 ### Tools — AirDroper GNSS Filter app
 

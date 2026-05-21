@@ -139,7 +139,7 @@ See [Operation](#operation) for the full state machine and [Tuning](#tuning) to 
 
 ### Example G: south-hemisphere jump
 
-- GPS latitude drops below 0°. Since all operations are in the northern hemisphere, any southern position is guaranteed spoofing. DR1 triggers instantly and the position is hard-blocked from the FC.
+- GPS latitude drops below 0°. Since all operations are in the northern hemisphere, any southern position is guaranteed spoofing. DR1 triggers instantly and the position is hard-blocked from the FC in normal operation.
 
 ### Example H: geo-fence violation (v1.5.5+)
 
@@ -180,7 +180,7 @@ The filter returns to DR0 (normal GPS) only after all quality checks pass for a 
 
 ## 7) Key operational notes
 
-- `FCGPS_FWD=1` is for diagnostics only — it bypasses DR1 blocking (see [Cheat Sheet](#cheat-sheet)).
+- `FCGPS_FWD=1` is for diagnostics only — it forces the FC GPS UART on, raw-forwards GPS to the FC, and bypasses DR1, the boot north gate, and the hemisphere fence (see [Cheat Sheet](#cheat-sheet)). Return it to `0` before flight.
 - `BOOT_DLYMS` delays DR triggers right after power-up to reduce startup false trips.
 - The GCS map can show GPS jumps during spoofing; use DR state and the [Cloud Dashboard](https://gps.airdroper.org/dashboard) as primary truth.
 - The [EW Interference Map](https://gps.airdroper.org/ew-map) shows live global GNSS interference from multiple sources (ADS-B, AIS, air raid alerts, board events) — check it before flying in unfamiliar areas.

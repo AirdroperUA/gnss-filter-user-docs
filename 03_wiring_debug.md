@@ -44,11 +44,11 @@ Checks:
    - For UM980/UM981/UM982 workflows, FC GPS protocol must match your receiver output.
    - If UM980 is configured as a single mixed `COM1` stream, the FC must match that same forwarded stream.
 3. **DR state**: in DR1, live forwarding is blocked by design. The FC GPS UART receives silence.
-4. **Diagnostic override**: set `FCGPS_FWD=1` temporarily to validate FC GPS path, then return to `0`.
+4. **Diagnostic override**: set `FCGPS_FWD=1` temporarily to validate FC GPS path, then return to `0`. This raw-forwarding override forces the FC GPS UART on and bypasses DR1, the boot north gate, and the hemisphere fence for bench validation only.
 5. **RC AUX GPS disable**: if FC/RC uses GPS-disable AUX logic, make sure that switch is not active.
 
 Quick verification:
-- With healthy GNSS and `FCGPS_FWD=1`, FC should show satellites/fix.
+- With `FCGPS_FWD=1` and a live GNSS stream, FC should show incoming GPS data even if the filter has not accepted the fix yet.
 - Return `FCGPS_FWD=0` for normal anti-spoof operation.
 
 ## 3) MAVLink path (STM32 <-> FC telemetry)
@@ -86,6 +86,6 @@ If parameter write/read is unstable:
 2. In `Full Parameter List`, click `Refresh Params` before editing.
 3. Edit value, click `Write Params`, then `Refresh Params` again.
 4. If value did not persist, click `Write Params` again.
-5. On a busy telemetry link, 1-2 write attempts can be normal before the value sticks; more than 2 indicates a heavily loaded MAVLink link.
+5. On a busy telemetry link, 2-5 write attempts can be normal before the value sticks.
 6. If link drops temporarily, wait up to 30-45 seconds and refresh again.
 7. Reboot STM32 only when changing `GNSS_TYPE` or `UBX_BAUD`, or if value still does not apply.

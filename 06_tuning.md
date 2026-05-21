@@ -54,11 +54,12 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `GN_COLDMS` | GNSS coldstart watchdog trigger (ms) | 45000 | 2000 | 300000 |
 | `PT_ONLY` | Pass-through-only mode (0/1) | 1 | 0 | 1 |
 | `FCGPS_UART` | FC GPS UART on A11/A12: 1=enabled (normal), 0=released (A11/A12 in input mode) | 1 | 0 | 1 |
-| `FCGPS_FWD` | Force FC GPS forwarding even in DR1 (0/1) | 0 | 0 | 1 |
+| `FCGPS_FWD` | Force FC GPS UART on and raw-forward GPS, bypassing DR1, boot north gate, and hemisphere fence (bench only, 0/1) | 0 | 0 | 1 |
 | `LOG_MS` | Filter status log period (ms) | 10000 | 1000 | 120000 |
 | `NAV_AGEMS` | Max NAV age for valid/present GPS (ms) | 5000 | 200 | 60000 |
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
 | `UBX_BAUD` | u-blox baud control: 0=autoconfig ON, >0=manual baud (reboot to apply) | 0 | 0 | 2000000 |
+| `UBX_RESET` | One-shot u-blox recovery command: 0=idle, 1=hot, 2=cold, 3=clear saved config | 0 | 0 | 3 |
 | `GNSS_TYPE` | Receiver mode: 0=u-blox/UBX, 1=UM980/UM981/UM982 NMEA (reboot to apply) | 0 | 0 | 1 |
 | `UM980_HIGHDYN` | UM980/UM981/UM982 rover mode: 0=MODE ROVER UAV, 1=MODE ROVER UAV HIGHDYN (reboot to apply) | 0 | 0 | 1 |
 | `SNR_EN` | Enable SNR-spread spoof guard (0/1) | 0 | 0 | 1 |
@@ -68,7 +69,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `SNR_HOLDMS` | SNR guard hold time before DR1 (ms) | 1500 | 100 | 20000 |
 | `SNR_MAXAGE` | Max age of SNR sample (ms) | 2000 | 100 | 10000 |
 | `FENCE_RAD` | Geo-fence radius from first fix (m, 0=disabled) | 0 | 0 | 2000000 |
-| `HEMI_EN` | Northern hemisphere hard fence (0=off, 1=on) | 1 | 0 | 1 |
+| `HEMI_EN` | Northern hemisphere hard fence (locked on) | 1 | 1 | 1 |
 
 ## Parameter Reference (detailed)
 
@@ -119,7 +120,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - **PT_ONLY**: Pass-through-only mode. The filter acts as a clean DR0/DR1 switch — raw GNSS bytes or silence. No synthetic position or blending is used.
 - **FCGPS_UART**: Controls the FC GPS UART on `A11/A12`. `1` = normal operation (GPS forwarding active). `0` = releases `A11/A12` into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.
-- **FCGPS_FWD**: Forces GNSS forwarding even in DR1. Use only for diagnostics; it defeats protection.
+- **FCGPS_FWD**: Forces the FC GPS UART on and raw-forwards GNSS to it. Use only for diagnostics; it bypasses the DR1 latch, boot north gate, and `HEMI_EN` hard north fence so the raw GPS path can be verified on a bench.
 
 ### EKF gates
 
@@ -147,7 +148,10 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **NAV_AGEMS**: Maximum age to consider GNSS position/altitude data valid. If updates get older than this, the filter treats the fix as stale for rejoin, forwarding, and receiver recovery logic.
 - **NAV_STALLMS**: NAV stall warning threshold. If exceeded, a warning is logged.
 - **UBX_BAUD**: u-blox baud/autoconfig control. `0` keeps autoconfig enabled (default behavior) for direct single-receiver u-blox modules. Any value `>0` disables the full autoconfig path and uses this manual baud directly. Applied after reboot. In manual mode the filter still makes a best-effort request for `NAV-SAT` so SNR can work, but if the receiver ignores that request, `SNR=NA` is still expected. Gateway modules with an intermediary MCU - including dual-F9P products such as Quadro GPS and UNA3 / UNA4-SFE - must use manual baud (`UBX_BAUD` set explicitly); filter autobaud is not possible for that class of device.
-- **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)`. This means the receiver is not providing fresh SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`.
+- **UBX_RESET**: One-shot u-blox recovery command available in firmware v1.6.15+. It is a virtual parameter: the value always reports back as `0` and is not stored in the tuning blob. Set `1` for hot start, `2` for cold start, or `3` to clear saved receiver BBR/Flash configuration, reload defaults, reset the receiver, and let the STM32 reinitialize GNSS. Use `3` only on the bench or during recovery, because it deletes the receiver's saved u-blox configuration.
+- **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)`. This means the receiver is not providing fresh SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`. On u-blox firmware v1.6.12+, a `snrdbg` line decodes the NAV-SAT stream: `n` frames seen, `a` frame age, `l` last length, `s` reported satellites, `g` usable C/N0 satellites, `o` oversize drops, `b` malformed/checksum drops.
+- **u-blox NAV-SAT recovery**: v1.6.15+ re-enables NAV-SAT using legacy `CFG-MSG` plus `CFG-VALSET` on UART1/UART2 only when NAV-SAT frames are missing or stale. If `snrdbg` shows fresh NAV-SAT with `g0`, the receiver is alive but currently has no usable C/N0, so the firmware does not keep rewriting configuration.
+- **u-blox no-fix diagnostics**: v1.6.15+ polls `UBX-MON-RF`, `UBX-SEC-SIG`, and `UBX-CFG-GNSS` while a u-blox receiver has no valid position fix or `SATS=0`. Mission Planner then shows `ubxpvt ...` for NAV-PVT fix flags, `ubxrf ...` for antenna/RF state, `ubxsig ...` for explicit jamming/spoofing state when supported, and `ubxgnss ...` for enabled GNSS constellation blocks. `ubxgnss en00` points to disabled constellations; high `ubxrf c` or `n`, abnormal antenna status, or `ubxsig j2`/`j3` point to RF/antenna/interference problems.
 - **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981/UM982 NMEA. Change is saved immediately but applied after STM32 reboot.
 - **UM980_HIGHDYN**: UM980/UM981/UM982 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Reserved for future use — currently has no runtime effect. The STM32 does **not** send any `MODE` command to the UM980.
 
@@ -158,7 +162,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 ### Hemisphere fence
 
-- **HEMI_EN**: Enables the northern hemisphere hard fence. When `1` (default), any GPS latitude below ~0° instantly triggers DR1 and blocks the position. This catches spoofing attacks that teleport the vehicle to the southern hemisphere. Set to `0` if operating in the southern hemisphere.
+- **HEMI_EN**: Compatibility parameter for the northern hemisphere hard fence. It is locked to `1`: the normal forwarding path waits for a stable northern fix before publishing FC GPS and rejects south/equator fixes in the parser. Runtime or stored attempts to set `0` are clamped back to `1`. `FCGPS_FWD=1` is the only diagnostic raw-forwarding bypass and must not be used in flight.
 
 ### SNR guard (nearby jammer/spoofer)
 
@@ -173,6 +177,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 - Changes are applied immediately.
 - Filter auto-saves to non-volatile storage about 1.5s after the last change.
+- `UBX_RESET` is a command, not a stored setting; it returns to `0` after every write.
 - `GNSS_TYPE` and `UBX_BAUD` require reboot to apply.
 - After a parameter write, wait about **2-3 seconds** to allow the save cycle to complete.
 - Reboot after every parameter change is **not** required.

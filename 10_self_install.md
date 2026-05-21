@@ -169,6 +169,11 @@ The same hardware as the initial flash:
    your board, and flashes it (~30–60 seconds)
 7. The board resets automatically when done
 
+Leave **Firmware version** on the default latest entry for normal updates.
+If support asks you to test a development build, it may appear as a separate
+`vX.Y.Z (dev)` entry at the bottom of the firmware list. Select that entry
+only for the requested test; the stable latest firmware remains the default.
+
 > **Note:** RDP1 (readout protection) is removed and re-applied automatically
 > by the app — no manual steps required.
 

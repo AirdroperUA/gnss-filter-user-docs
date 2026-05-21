@@ -6,6 +6,37 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.16 — 2026-05-21
+
+Dev/test u-blox SNR recovery timing update. v1.6.15 remains the stable
+server default; v1.6.16 is selectable only when you explicitly choose the
+`v1.6.16 (dev)` firmware entry in the provisioning app. No wiring or tuning
+change is required.
+
+### Provisioning app / server
+
+- **Dev firmware is clearly separated from stable**: the firmware dropdown
+  keeps `v1.6.15 (latest)` as the normal default and shows `v1.6.16 (dev)` at
+  the bottom of the list.
+- **Selecting the dev build flashes the right image**: the server and updated
+  app carry separate display and raw-version metadata, so `v1.6.16 (dev)` is
+  shown to the operator but the board receives raw firmware version `1.6.16`.
+
+### Firmware
+
+- **Faster recovery when NAV-SAT is disabled after boot**: field logs showed
+  healthy `NAV-PVT`/fix data and `SATS=29`, but `NAV-SAT` stopped after a small
+  FC GPS back-channel write and `SNR=NA` persisted until the recovery path
+  re-enabled NAV-SAT. The stale-SNR timer now starts as soon as SNR goes stale,
+  while still waiting for NAV-SAT itself to be stale before rewriting receiver
+  config. This keeps the v1.6.15 stream-aware behavior but reduces the typical
+  recovery delay from about two stale windows to one.
+- **SNR guard remains false-trip safe**: `SNR_EN=1` still cannot trigger DR1
+  from `SNR=NA` or stale SNR data. Stale SNR is ignored by the direct SNR guard
+  and by spoof-confidence scoring.
+
+---
+
 ## v1.6.15 — 2026-05-21
 
 Firmware-only u-blox compatibility and recovery release. This is the public

@@ -22,7 +22,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 | `RJ_STAB_MS` | Stable window before rejoin/blend (ms) | 5000 | 500 | 120000 |
 | `BLEND_MS` | Blend duration DR1 to DR0 (ms) | 10000 | 1000 | 120000 |
 | `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 15000 | 1000 | 600000 |
-| `DR1_MAXMS` | Maximum DR1 latch duration before forced exit (ms, 0=disabled) | 0 | 0 | 3600000 |
+| `DR1_MAXMS` | Maximum DR1 latch duration before forced exit after `DR_LOCK_MS` (ms, 0=disabled) | 0 | 0 | 3600000 |
 | `SP_JMP_MPS` | Spoof guard speed jump limit (m/s) | 5000 | 50 | 20000 |
 | `SP_ABS_M` | Spoof guard absolute step limit (m) | 5000 | 100 | 50000 |
 | `ARM_MIN_S` | Guard arming minimum satellites | 6 | 4 | 30 |
@@ -88,8 +88,8 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **RJ_LOIT_GM**: Loiter gate override distance. It replaces the dynamic gate after the loiter hold time. Increase for very slow loitering; decrease for tighter protection.
 - **RJ_STAB_MS**: Required stability window before rejoin/blend starts. Longer values improve safety but delay rejoin.
 - **BLEND_MS**: Duration of the DR1 to DR0 blend. Longer blends smooth transitions; shorter blends rejoin faster.
-- **DR_LOCK_MS**: Minimum lockout time after entering DR1. During this time rejoin is blocked even if GNSS looks good. Increase to avoid rapid flip-flopping; decrease for faster recovery.
-- **DR1_MAXMS**: Hard upper bound on how long the filter is allowed to stay latched in DR1. When non-zero, DR1 is forcibly exited after this many milliseconds regardless of spoof confidence. Default `0` = disabled (infinite latch — the filter stays in DR1 until rejoin gates clear normally). Use a non-zero value only if your mission profile prefers "possibly-wrong GPS" over "inertial-only forever" — e.g. a long-range flight where losing GPS for the entire remaining leg is worse than accepting a partially-recovered spoofed signal. Most users should leave this at `0`.
+- **DR_LOCK_MS**: Minimum lockout time after entering DR1. During this time the rejoin stability timer, GNSS blend, and DR0 exit are blocked even if GNSS looks good. It also takes precedence over `DR1_MAXMS`, so DR1 cannot be force-exited before this lock window expires. Increase to avoid rapid flip-flopping; decrease for faster recovery.
+- **DR1_MAXMS**: Hard upper bound on how long the filter is allowed to stay latched in DR1 after the `DR_LOCK_MS` minimum has elapsed. When non-zero, DR1 is forcibly exited after this many milliseconds regardless of spoof confidence, but not before the lock window. Default `0` = disabled (infinite latch — the filter stays in DR1 until rejoin gates clear normally). Use a non-zero value only if your mission profile prefers "possibly-wrong GPS" over "inertial-only forever" — e.g. a long-range flight where losing GPS for the entire remaining leg is worse than accepting a partially-recovered spoofed signal. Most users should leave this at `0`.
 
 ### Spoof guard (position jump)
 
@@ -157,7 +157,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 
 ### Geo-fence
 
-- **DR1_MAXMS**: See the full description above under *Rejoin gate and timing* — this is the hard upper bound on time spent in DR1 before a forced exit.
+- **DR1_MAXMS**: See the full description above under *Rejoin gate and timing* — this is the hard upper bound on time spent in DR1 before a forced exit, after the `DR_LOCK_MS` minimum has elapsed.
 - **FENCE_RAD**: Geo-fence radius in meters from the first-fix position (max 2,000,000 m = 2000 km). **Default `0` (disabled)** — the fence is opt-in. If GPS reports a position outside this radius, DR1 triggers. Catches spoofing attacks that slowly drift position over time. Note: the fence center is set at first fix after boot — not at an arming position, so enable it only for missions where the first fix is close to the mission area. Typical values once enabled: `50000` (50 km) for local flights, `600000` (600 km) for long-range.
 
 ### Hemisphere fence

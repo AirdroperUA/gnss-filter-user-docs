@@ -6,6 +6,24 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.17 — 2026-05-26
+
+Firmware-only DR lock enforcement update. This build keeps the v1.6.16 u-blox
+SNR recovery behavior and tightens DR1 timing semantics.
+
+### Firmware
+
+- **`DR_LOCK_MS` is now a true minimum DR1 time**: if `DR1_MAXMS` is also set
+  and expires before the DR lock window, the firmware stays in DR1 until
+  `DR_LOCK_MS` has elapsed.
+- **Rejoin timing waits for the lock to expire**: the rejoin stability timer and
+  GNSS blend do not start while `DR_LOCK_MS` is active.
+- **Status LED blink timing is more stable**: Mission Planner parameter-list
+  downloads no longer stall the main loop, and the DR1 LED pattern now follows
+  the same `DR=` state shown in logs.
+
+---
+
 ## v1.6.16 — 2026-05-21
 
 Dev/test u-blox SNR recovery timing update. v1.6.15 remains the stable

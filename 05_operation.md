@@ -9,6 +9,11 @@
 
 This prevents suspect live GNSS data from reaching FC navigation input while DR1 is active.
 
+The onboard status LED follows the same state shown in logs:
+
+- **DR0**: one short blink about every 6 seconds.
+- **DR1**: fast blink, about four blinks per second.
+
 ### State machine
 
 ```

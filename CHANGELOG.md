@@ -21,6 +21,10 @@ This is a tool-side reliability change, not a firmware behavior change.
   allows SPRMOD to clear during the RDP1->RDP0 transition, so the app no longer
   tries to clear SPRMOD afterward and no longer falsely labels normal boards as
   hardware-stuck.
+- **Retry works for boards already left at RDP0/SPRMOD1**: if a previous failed
+  update left the board readable but PCROP-blocked, the app now runs the legal
+  RDP recycle first, then clears `nWRP`, power-cycles, and retries the firmware
+  write.
 - **CLI brick window reduced**: `gnss_provision.py` no longer performs a
   separate mass erase before the combined firmware write. It writes the full
   combined image in one CubeProgrammer operation, after the same RDP1

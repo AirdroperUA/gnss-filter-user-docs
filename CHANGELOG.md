@@ -56,6 +56,11 @@ This is a tool-side reliability change, not a firmware behavior change.
   modes fail, the app and CLI now suggest wiring NRST/RST to the ST-Link reset
   pin or holding RESET during the start of Update/Recover. The CLI uses the
   same reset/hotplug attach fallbacks as the app.
+- **Visible desktop app version**: the app shows its own version in the window
+  and startup log, separate from the firmware version list.
+- **Connection progress is no longer silent**: the app logs each SWD attach
+  mode while it is trying to connect, and each attach probe is limited to 10
+  seconds.
 
 ---
 

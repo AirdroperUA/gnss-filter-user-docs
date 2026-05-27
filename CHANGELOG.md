@@ -43,6 +43,10 @@ This is a tool-side reliability change, not a firmware behavior change.
 - **Legacy UART update blocked**: `gnss-provision update --uart` is hidden from
   help and now exits before opening the port or flashing. Updates are supported
   only through ST-Link/SWD or the desktop app Update button.
+- **ST-Link USB communication reset handled during RDP removal**: if
+  CubeProgrammer reports `DEV_USB_COMM_ERR` while dropping `RDP=0xAA`, the app
+  now continues to the mandatory unplug/replug and verifies whether RDP really
+  cleared. This avoids a false failure before firmware writing starts.
 
 ---
 

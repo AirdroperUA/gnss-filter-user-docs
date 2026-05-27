@@ -29,6 +29,10 @@ This is a tool-side reliability change, not a firmware behavior change.
   separate mass erase before the combined firmware write. It writes the full
   combined image in one CubeProgrammer operation, after the same RDP1
   power-cycle preparation.
+- **CLI retry parity added**: if the command-line updater finds a board already
+  readable but blocked by old `RDP0/SPRMOD1` option bytes, it now runs the same
+  legal RDP recycle as the desktop app, clears `nWRP`, power-cycles, and retries
+  the combined firmware write once.
 - **Recovery wording corrected**: Recover Board unlocks, erases, and verifies
   a blank chip. It does not reinstall firmware; after recovery, run
   **Activate** or **Update** with the license key.

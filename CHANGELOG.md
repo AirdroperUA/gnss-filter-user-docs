@@ -6,6 +6,26 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## Tooling update — 2026-05-27
+
+Provisioning app / CLI update for boards that already have RDP1 protection.
+This is a tool-side reliability change, not a firmware behavior change.
+
+- **Safer re-flash of protected boards**: Activate/Update now blocks for a
+  physical unplug/replug power-cycle immediately after dropping RDP1, before
+  any firmware write. This matches the recovery flow and avoids writing while
+  the STM32F4 flash controller is still half-latched after the RDP1->RDP0
+  transition.
+- **CLI brick window reduced**: `gnss_provision.py` no longer performs a
+  separate mass erase before the combined firmware write. It writes the full
+  combined image in one CubeProgrammer operation, after the same RDP1
+  power-cycle preparation.
+- **Recovery wording corrected**: Recover Board unlocks, erases, and verifies
+  a blank chip. It does not reinstall firmware; after recovery, run
+  **Activate** or **Update** with the license key.
+
+---
+
 ## v1.6.17 — 2026-05-26
 
 Firmware-only DR lock enforcement update. This build keeps the v1.6.16 u-blox

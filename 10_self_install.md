@@ -175,14 +175,19 @@ If support asks you to test a development build, it may appear as a separate
 only for the requested test; the stable latest firmware remains the default.
 
 > **Note:** RDP1 (readout protection) is removed and re-applied automatically
-> by the app — no manual steps required.
+> by the app. On an already-protected board, the app may pause after removing
+> RDP1 and ask you to physically power-cycle the board. Unplug USB, wait at
+> least 10 seconds, plug it back in, then click **OK**. Pressing `Reset` is
+> not enough for this step.
 
 ### Recovery (ST-Link V2 SWD)
 
 If a board ever fails to boot — for example after a power loss mid-flash —
-use the same ST-Link V2 wiring above and select **Recover (ST-Link)** in
-the app. The recovery flow re-runs the full activation sequence using your
-existing license key.
+use the same ST-Link V2 wiring above and click **Recover Board** in the app.
+Recovery unlocks the STM32, clears stuck option-byte protection, mass-erases
+flash, and verifies that the chip is blank. It does **not** reinstall firmware
+or contact the license server. When recovery finishes, click **Activate** (or
+**Update**) with your license key to provision the board again.
 
 The recovery may walk you through up to **four** physical power cycles
 (unplug/replug USB at each prompt). This is mandatory: STM32F4 option
@@ -245,7 +250,7 @@ The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public li
 | "Invalid license key" | Double-check the key from your purchase email |
 | "License already activated on a different board" | Each key works on one board only. Contact support for replacement. |
 | "ST-Link not found" (update) | Plug the ST-Link into a different USB port and re-check the 4-pin SWD wiring (3V3, GND, A14/SWCLK, A13/SWDIO). |
-| RDP Level 1 warning on re-flash | Board is already protected. The app handles this automatically. |
+| RDP Level 1 warning on re-flash | Board is already protected. The app handles this automatically. If it asks for a power-cycle, physically unplug/replug USB; do not just press `Reset`. |
 
 ---
 

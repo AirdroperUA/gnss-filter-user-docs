@@ -278,8 +278,9 @@ gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdrop
 gnss-provision update --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
 ```
 
-The CLI reads the board UID directly over ST-Link. The `--uid` option is only
-for legacy UART update builds and is not needed for the supported ST-Link path.
+The CLI reads the board UID directly over ST-Link. The old `--uid` / `--uart`
+update flags are accepted only to print a disabled-transport error; they are
+not used by the supported ST-Link path.
 
 Wire the ST-Link to the SWD header (3V3, GND, A14/SWCLK, A13/SWDIO)
 before running the command.

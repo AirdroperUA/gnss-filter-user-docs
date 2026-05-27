@@ -276,9 +276,9 @@ gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdrop
 gnss-provision update --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
 ```
 
-CLI зчитує UID плати напряму через ST-Link. Параметр `--uid` потрібен лише
-для застарілих UART-збірок оновлення і не потрібен для підтримуваного
-ST-Link-шляху. Перед запуском команди підключіть ST-Link до SWD-роз'єму
-(3V3, GND, A14/SWCLK, A13/SWDIO).
+CLI зчитує UID плати напряму через ST-Link. Старі прапорці `--uid` / `--uart`
+для оновлення приймаються лише для виведення помилки про вимкнений транспорт;
+вони не використовуються у підтримуваному ST-Link-шляху. Перед запуском
+команди підключіть ST-Link до SWD-роз'єму (3V3, GND, A14/SWCLK, A13/SWDIO).
 
 </details>

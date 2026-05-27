@@ -40,6 +40,9 @@ This is a tool-side reliability change, not a firmware behavior change.
   reads back sentinel words from the bootloader, application, and metadata
   regions. If any check fails, it stops before re-locking RDP1 so the board
   stays readable for another attempt.
+- **Legacy UART update blocked**: `gnss-provision update --uart` is hidden from
+  help and now exits before opening the port or flashing. Updates are supported
+  only through ST-Link/SWD or the desktop app Update button.
 
 ---
 

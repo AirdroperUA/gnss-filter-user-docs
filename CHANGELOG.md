@@ -52,6 +52,9 @@ This is a tool-side reliability change, not a firmware behavior change.
   including a lower SWD speed, and prints the useful CubeProgrammer diagnostics.
   If all modes still fail, the board is not reachable over SWD and the remaining
   checks are wiring, power, reset, probe, or MCU hardware.
+- **Clearer reset guidance on connection failure**: when all ST-Link attach
+  modes fail, the app now suggests wiring NRST/RST to the ST-Link reset pin or
+  holding RESET during the start of Update/Recover.
 
 ---
 

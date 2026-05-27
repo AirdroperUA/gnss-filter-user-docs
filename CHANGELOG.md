@@ -16,6 +16,11 @@ This is a tool-side reliability change, not a firmware behavior change.
   any firmware write. This matches the recovery flow and avoids writing while
   the STM32F4 flash controller is still half-latched after the RDP1->RDP0
   transition.
+- **PCROP/SPRMOD clear fixed for protected-board updates**: the RDP removal
+  write now sends `RDP=0xAA` + `SPRMOD=0` + `BOR_LEV=3` together. STM32F4 only
+  allows SPRMOD to clear during the RDP1->RDP0 transition, so the app no longer
+  tries to clear SPRMOD afterward and no longer falsely labels normal boards as
+  hardware-stuck.
 - **CLI brick window reduced**: `gnss_provision.py` no longer performs a
   separate mass erase before the combined firmware write. It writes the full
   combined image in one CubeProgrammer operation, after the same RDP1

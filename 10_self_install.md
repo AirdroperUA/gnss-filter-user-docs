@@ -189,21 +189,19 @@ flash, and verifies that the chip is blank. It does **not** reinstall firmware
 or contact the license server. When recovery finishes, click **Activate** (or
 **Update**) with your license key to provision the board again.
 
-The recovery may walk you through up to **four** physical power cycles
+The recovery may walk you through up to **three** physical power cycles
 (unplug/replug USB at each prompt). This is mandatory: STM32F4 option
 bytes only latch on a real VDD drop, and a `Reset` button press does
 **not** count.
 
 > **WARNING — do NOT use STM32CubeProgrammer GUI to clear RDP, nWRP,
-> or SPRMOD manually on the BlackPill.** Its option-byte write
-> sequence on F4 silicon can put the chip into a permanently-bricked
-> state where the SPRMOD bit latches and refuses to clear, and no
-> software (ours or ST's) can recover it. **Always use this app's
-> "Recover Board" button** — it runs the only reliable sequence we
-> have verified for these boards. If "Recover Board" reports the chip
-> is hardware-stuck after the full power-cycle sequence, replace the
-> BlackPill (~$5) — your license is bound to chip UID and a fresh
-> board will provision cleanly with the same license key.
+> or SPRMOD manually on the BlackPill.** STM32F4 only allows SPRMOD/PCROP
+> to clear during the same RDP1->RDP0 option-byte transition. **Always use
+> this app's "Recover Board" button** — it runs the verified sequence and
+> handles the required physical power cycles. If "Recover Board" still reports
+> the chip is hardware-stuck after that legal RDP recycle, replace the
+> BlackPill (~$5) — your license is bound to chip UID and a fresh board will
+> provision cleanly with the same license key.
 
 ---
 

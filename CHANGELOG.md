@@ -29,6 +29,13 @@ This is a tool-side reliability change, not a firmware behavior change.
 - **Fewer false update failures**: if CubeProgrammer reports option-byte
   programming success but exits non-zero during the final lock, the app now
   treats the lock as committed instead of showing a failed flash.
+- **Safer app close behavior**: the desktop app no longer kills an active
+  Activate, Update, or Recover operation when the window is closed. It shows a
+  warning and keeps the operation active until flash/erase, option-byte writes,
+  erase settling, and power-cycle prompts are finished.
+- **Longer CubeProgrammer timeouts**: flash write and mass-erase operations now
+  allow up to 300 seconds, and option-byte writes allow up to 180 seconds, so
+  slower PCs or marginal USB hubs are less likely to interrupt a valid update.
 
 ---
 

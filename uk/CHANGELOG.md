@@ -22,6 +22,9 @@
 - **Уточнено опис Recovery**: Recover Board розблоковує, стирає і перевіряє
   порожній чип. Він не встановлює прошивку; після recovery потрібно виконати
   **Activate** або **Update** з ліцензійним ключем.
+- **Виправлено BOR recovery handling**: recovery використовує `BOR_LEV=3`
+  (BOR off на STM32F4) під час erase, а фінальне блокування відновлює
+  production `RDP=0xBB` + `BOR_LEV=0` тим самим записом option bytes.
 
 ---
 

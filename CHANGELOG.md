@@ -23,6 +23,9 @@ This is a tool-side reliability change, not a firmware behavior change.
 - **Recovery wording corrected**: Recover Board unlocks, erases, and verifies
   a blank chip. It does not reinstall firmware; after recovery, run
   **Activate** or **Update** with the license key.
+- **BOR recovery handling corrected**: recovery uses `BOR_LEV=3` (BOR off on
+  STM32F4) during erase, then the final lock restores production
+  `RDP=0xBB` + `BOR_LEV=0` in the same option-byte write.
 
 ---
 

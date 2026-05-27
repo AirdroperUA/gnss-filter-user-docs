@@ -47,6 +47,11 @@ This is a tool-side reliability change, not a firmware behavior change.
   CubeProgrammer reports `DEV_USB_COMM_ERR` while dropping `RDP=0xAA`, the app
   now continues to the mandatory unplug/replug and verifies whether RDP really
   cleared. This avoids a false failure before firmware writing starts.
+- **More robust first ST-Link connection**: if the normal SWD connection fails,
+  the desktop app retries with hardware-reset and hotplug attach modes,
+  including a lower SWD speed, and prints the useful CubeProgrammer diagnostics.
+  If all modes still fail, the board is not reachable over SWD and the remaining
+  checks are wiring, power, reset, probe, or MCU hardware.
 
 ---
 

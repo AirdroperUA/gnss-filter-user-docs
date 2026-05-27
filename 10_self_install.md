@@ -246,7 +246,7 @@ The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public li
 | Problem | Solution |
 |---------|----------|
 | "STM32_Programmer_CLI not found" | Install STM32CubeProgrammer and restart the app. If it still does not work, add the CubeProgrammer `bin` folder to your system PATH. |
-| "Failed to connect" | Check ST-Link wiring (3V3, GND, SWDIO, SWCLK). Try a different USB port. |
+| "Failed to connect" | Check ST-Link wiring (3V3, GND, SWDIO/A13, SWCLK/A14). Try a different USB port. The current app also tries reset/hotplug attach modes; if it still fails, connect NRST/RST to the ST-Link reset pin if available and power-cycle the board. |
 | "Invalid license key" | Double-check the key from your purchase email |
 | "License already activated on a different board" | Each key works on one board only. Contact support for replacement. |
 | "ST-Link not found" (update) | Plug the ST-Link into a different USB port and re-check the 4-pin SWD wiring (3V3, GND, A14/SWCLK, A13/SWDIO). |

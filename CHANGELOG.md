@@ -33,6 +33,10 @@ This is a tool-side reliability change, not a firmware behavior change.
   readable but blocked by old `RDP0/SPRMOD1` option bytes, it now runs the same
   legal RDP recycle as the desktop app, clears `nWRP`, power-cycles, and retries
   the combined firmware write once.
+- **RDP re-arm verification added**: during the forced PCROP/SPRMOD recovery
+  cycle, the app now confirms the temporary `RDP=0xBB` re-arm latched before
+  issuing the `RDP=0xAA` + `SPRMOD=0` drop. If not, it stops before an invalid
+  SPRMOD clear.
 - **Recovery wording corrected**: Recover Board unlocks, erases, and verifies
   a blank chip. It does not reinstall firmware; after recovery, run
   **Activate** or **Update** with the license key.

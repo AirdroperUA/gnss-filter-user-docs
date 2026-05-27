@@ -61,6 +61,9 @@ This is a tool-side reliability change, not a firmware behavior change.
 - **Connection progress is no longer silent**: the app logs each SWD attach
   mode while it is trying to connect, and each attach probe is limited to 10
   seconds.
+- **Faster ST-Link adapter check**: the app now lists ST-Link adapters without
+  trying to connect to the target first, so a bad board cannot stall before the
+  visible attach-mode logs start.
 
 ---
 

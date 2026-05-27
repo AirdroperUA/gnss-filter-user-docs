@@ -36,6 +36,10 @@ This is a tool-side reliability change, not a firmware behavior change.
 - **Longer CubeProgrammer timeouts**: flash write and mass-erase operations now
   allow up to 300 seconds, and option-byte writes allow up to 180 seconds, so
   slower PCs or marginal USB hubs are less likely to interrupt a valid update.
+- **Flash readback before RDP1**: after the combined firmware write, the app
+  reads back sentinel words from the bootloader, application, and metadata
+  regions. If any check fails, it stops before re-locking RDP1 so the board
+  stays readable for another attempt.
 
 ---
 

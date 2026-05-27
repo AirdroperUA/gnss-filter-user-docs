@@ -25,6 +25,9 @@
 - **Виправлено BOR recovery handling**: recovery використовує `BOR_LEV=3`
   (BOR off на STM32F4) під час erase, а фінальне блокування відновлює
   production `RDP=0xBB` + `BOR_LEV=0` тим самим записом option bytes.
+- **Менше false update failures**: якщо CubeProgrammer повідомив про успішний
+  запис option bytes, але повернув non-zero exit code під час фінального lock,
+  додаток тепер вважає lock committed і не показує failed flash.
 
 ---
 

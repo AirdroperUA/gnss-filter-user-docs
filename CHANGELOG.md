@@ -26,6 +26,9 @@ This is a tool-side reliability change, not a firmware behavior change.
 - **BOR recovery handling corrected**: recovery uses `BOR_LEV=3` (BOR off on
   STM32F4) during erase, then the final lock restores production
   `RDP=0xBB` + `BOR_LEV=0` in the same option-byte write.
+- **Fewer false update failures**: if CubeProgrammer reports option-byte
+  programming success but exits non-zero during the final lock, the app now
+  treats the lock as committed instead of showing a failed flash.
 
 ---
 

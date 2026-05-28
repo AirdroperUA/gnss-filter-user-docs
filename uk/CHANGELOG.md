@@ -11,6 +11,11 @@
 Додаткове виправлення recovery для STM32F401 плат, які вже читаються як
 `RDP0`, але все ще залишаються у `SPRMOD=1` / PCROP mode.
 
+- **Recovery write-protect для STM32F401xD/E тепер використовує per-sector WRP біти**:
+  деякі плати показують `WRP0..WRP7` як окремі option bytes і відхиляють
+  packed значення `WRP0=0x3F`. Recover/Update тепер переходить на
+  `WRP0=0x1 ... WRP7=0x1` і більше не вважає попередження CubeProgrammer
+  "invalid value / unchanged" успіхом.
 - **Forced PCROP re-arm тепер пише лише RDP1**: Recover Board тимчасово
   повертає RDP1 тільки записом `RDP=0xBB`. Він більше не намагається очищати
   `WRP0` під час кроку RDP0->RDP1, бо STM32F4 дозволяє очищати PCROP/WRP0

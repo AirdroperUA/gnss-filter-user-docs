@@ -63,6 +63,10 @@ mode after failed updates.
   detection, RDP flash probes, UID reads, UID-stub reads, and single-word flash
   readback now use the short CubeProgrammer timeout. This keeps unstable
   ST-Link sessions from looking like the app is stuck.
+- **SPRMOD verification now fails closed**: the desktop app and CLI no longer
+  continue to `WRP0=0x3F` or flash writes unless option bytes prove
+  `SPRMOD=0`. This avoids making a still-latched PCROP state worse when
+  ST-Link reads are unstable.
 
 ---
 

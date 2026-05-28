@@ -67,6 +67,10 @@
   сімейства чипа, RDP flash probes, читання UID, читання UID-stub і single-word
   flash readback тепер використовують короткий CubeProgrammer timeout. Це не
   дає нестабільним ST-Link сесіям виглядати як зависання додатка.
+- **Перевірка SPRMOD тепер зупиняється без припущень**: desktop app і CLI
+  більше не переходять до `WRP0=0x3F` або запису flash, якщо option bytes не
+  підтверджують `SPRMOD=0`. Це не дає погіршити стан, якщо PCROP все ще
+  зафіксований, а ST-Link reads нестабільні.
 
 ---
 

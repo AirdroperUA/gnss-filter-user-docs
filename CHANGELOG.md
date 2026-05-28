@@ -86,6 +86,11 @@ mode after failed updates.
 - **Command-line flashing refuses multiple ST-Link probes**: the CLI now
   aborts before flashing if more than one ST-Link adapter is attached, matching
   the desktop app guard against writing the wrong board.
+- **Update preflights license activation before touching RDP**: the desktop app
+  and CLI now call `POST /api/v1/lookup-uid` before ST-Link Update. If the
+  license is invalid, has no activated board, or has multiple activated boards
+  without a UID hint, the tool stops before CubeProgrammer connects or an RDP1
+  erase can start.
 
 ---
 

@@ -174,6 +174,11 @@ If support asks you to test a development build, it may appear as a separate
 `vX.Y.Z (dev)` entry at the bottom of the firmware list. Select that entry
 only for the requested test; the stable latest firmware remains the default.
 
+Before any RDP1 erase, Update verifies that the license already has an
+activated board on the server. If the license is invalid, not activated yet, or
+ambiguous across multiple boards, the app stops before touching the protected
+board.
+
 > **Note:** RDP1 (readout protection) is removed and re-applied automatically
 > by the app. On an already-protected board, the app may pause after removing
 > RDP1 and ask you to physically power-cycle the board. Unplug USB, wait at

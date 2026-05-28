@@ -34,6 +34,11 @@
   стандартний SWD under-reset attach повертає неоднозначне `target not found`
   або lost-connection повідомлення, інструмент продовжує пробувати
   hardware-reset і hotplug режими перед power-cycle та перевіркою.
+- **Діагностика option bytes тепер використовує ті самі fallback attach
+  режими**: `-ob displ` повторюється з hardware-reset і hotplug режимами перед
+  остаточною помилкою, тому recovery не падає лише через нестабільний
+  стандартний SWD attach. CLI recovery також проводить option-byte записи через
+  спільний timeout wrapper.
 
 ---
 

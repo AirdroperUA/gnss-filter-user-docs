@@ -32,6 +32,11 @@ mode after failed updates.
   under-reset attach reports an ambiguous `target not found` / lost-connection
   message, the tool keeps trying hardware-reset and hotplug modes before
   deciding whether to power-cycle and verify.
+- **Option-byte diagnostics now use the same attach fallbacks**: `-ob displ`
+  retries with hardware-reset and hotplug modes before giving up, so recovery
+  does not falsely fail just because the normal SWD attach is unstable. The CLI
+  recovery path also routes its option-byte writes through the shared timeout
+  wrapper.
 
 ---
 

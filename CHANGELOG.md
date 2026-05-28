@@ -42,6 +42,10 @@ mode after failed updates.
   `RDP` from `-ob displ` before using any flash-read fallback. This prevents
   PCROP-blocked flash reads at RDP0 from being mistaken for still-active RDP1
   and lets the SPRMOD/WRP repair path run.
+- **Initial update RDP detection now also prefers option bytes**: before
+  writing firmware, Activate/Update checks `RDP` from option bytes first. A
+  board already left readable at `RDP0/SPRMOD1` now goes directly into the
+  PCROP repair path instead of being treated as a fresh RDP1-removal case.
 
 ---
 

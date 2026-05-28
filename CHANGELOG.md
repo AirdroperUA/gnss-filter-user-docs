@@ -83,6 +83,9 @@ mode after failed updates.
 - **Bootloader option-byte writes fail closed when SPRMOD is active**: if a
   board somehow boots with `SPRMOD=1` still latched, the bootloader no longer
   attempts BOR or RDP option-byte writes. Recover Board must repair that state.
+- **Command-line flashing refuses multiple ST-Link probes**: the CLI now
+  aborts before flashing if more than one ST-Link adapter is attached, matching
+  the desktop app guard against writing the wrong board.
 
 ---
 

@@ -16,6 +16,11 @@
   packed значення `WRP0=0x3F`. Recover/Update тепер переходить на
   `WRP0=0x1 ... WRP7=0x1` і більше не вважає попередження CubeProgrammer
   "invalid value / unchanged" успіхом.
+- **RDP-drop recovery для STM32F401xD/E тепер очищає всі per-sector PCROP біти**:
+  коли option bytes показують `WRP0..WRP7`, repair-запис RDP1->RDP0 тепер
+  використовує `WRP0=0x0 ... WRP7=0x0` замість packed форми `WRP0=0x00`.
+  Це не дає Activate/Recover повторно заблокувати плату з `SPRMOD=1` і
+  активним PCROP.
 - **Forced PCROP re-arm тепер пише лише RDP1**: Recover Board тимчасово
   повертає RDP1 тільки записом `RDP=0xBB`. Він більше не намагається очищати
   `WRP0` під час кроку RDP0->RDP1, бо STM32F4 дозволяє очищати PCROP/WRP0

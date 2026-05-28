@@ -16,6 +16,10 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
   `WRP0=0x3F` value. Recover/Update now falls back to
   `WRP0=0x1 ... WRP7=0x1` and no longer treats CubeProgrammer's
   "invalid value / unchanged" warning as success.
+- **STM32F401xD/E RDP-drop recovery now clears all per-sector PCROP bits**:
+  when option bytes expose `WRP0..WRP7`, the RDP1->RDP0 repair write now uses
+  `WRP0=0x0 ... WRP7=0x0` instead of the packed `WRP0=0x00` form. This prevents
+  Activate/Recover from relocking boards with `SPRMOD=1` and PCROP still active.
 - **Forced PCROP re-arm now writes only RDP1**: Recover Board now re-arms the
   temporary RDP1 state with `RDP=0xBB` only. It no longer tries to clear
   `WRP0` during the RDP0->RDP1 step, because STM32F4 only allows PCROP/WRP0

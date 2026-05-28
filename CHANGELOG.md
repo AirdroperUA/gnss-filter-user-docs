@@ -55,6 +55,10 @@ mode after failed updates.
   mass erase, recovery reads `RDP` from option bytes before using a flash-read
   fallback. This avoids a misleading "RDP is still active" result when the
   target is actually RDP0 but the flash read is transiently blocked or busy.
+- **Malformed option-byte dumps now fall back safely**: if recovery can read
+  option bytes but the `RDP` line is missing or unparseable, it no longer
+  treats that as a clear board. It falls back to the flash-read RDP probe and
+  stops if protection still appears active.
 
 ---
 

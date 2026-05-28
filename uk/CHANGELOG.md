@@ -79,6 +79,9 @@
   назву option byte `WRP0`, desktop app і CLI повторюють ту саму операцію з
   `nWRP0`. Це допомагає з різними базами CubeProgrammer і не повторює RDP
   transition після reset цілі.
+- **CLI timeout для option bytes тепер збігається з desktop app**: записи
+  option bytes у command-line tool використовують задокументований timeout
+  180 с, як і GUI.
 
 ---
 

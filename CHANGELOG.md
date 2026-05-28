@@ -74,6 +74,8 @@ mode after failed updates.
   `WRP0` option-byte name, the desktop app and CLI retry with `nWRP0`. This
   helps across CubeProgrammer database variants while avoiding repeated RDP
   transitions after a reset.
+- **CLI option-byte timeout now matches the desktop app**: command-line
+  option-byte writes now use the documented 180 s timeout, matching the GUI.
 
 ---
 

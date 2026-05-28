@@ -91,10 +91,12 @@ mode after failed updates.
   license is invalid, has no activated board, or has multiple activated boards
   without a UID hint, the tool stops before CubeProgrammer connects or an RDP1
   erase can start.
-- **Activate refuses protected already-activated boards**: Activate now checks
-  the license before hardware access. If UID reading is blocked by RDP1 and
-  the license already has activated board(s), Activate stops before removing
-  RDP and tells the operator to use Update instead.
+- **Activate refuses all RDP1-protected boards**: Activate now checks the
+  license before hardware access, but still refuses to remove RDP1 even if the
+  entered license has no activations. RDP1 hides the UID, so Activate cannot
+  prove the connected board is blank or belongs to that license before erase.
+  Use Update for an already activated board, or Recover Board for an
+  intentional erase/re-provision.
 
 ---
 

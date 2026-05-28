@@ -179,15 +179,18 @@ activated board on the server. If the license is invalid, not activated yet, or
 ambiguous across multiple boards, the app stops before touching the protected
 board.
 
-If the board is already protected and already activated, use **Update** rather
-than **Activate**. Activate now refuses that case before removing RDP, which
-prevents an accidental erase from the wrong button.
+If the board is already protected, use **Update** rather than **Activate**.
+Activate now refuses any RDP1-protected board before removing RDP, even when
+the entered license has no activations. RDP1 hides the UID, so Activate cannot
+prove the connected board is blank or belongs to that license before erase. If
+you intentionally need to erase a locked board, use **Recover Board** first,
+then Activate after recovery finishes.
 
-> **Note:** RDP1 (readout protection) is removed and re-applied automatically
-> by the app. On an already-protected board, the app may pause after removing
-> RDP1 and ask you to physically power-cycle the board. Unplug USB, wait at
-> least 10 seconds, plug it back in, then click **OK**. Pressing `Reset` is
-> not enough for this step.
+> **Note:** during Update of an already-protected board, RDP1 (readout
+> protection) is removed and re-applied automatically by the app. The app may
+> pause after removing RDP1 and ask you to physically power-cycle the board.
+> Unplug USB, wait at least 10 seconds, plug it back in, then click **OK**.
+> Pressing `Reset` is not enough for this step.
 
 ### Recovery (ST-Link V2 SWD)
 

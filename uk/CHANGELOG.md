@@ -75,6 +75,10 @@
   option bytes відсутній або не читається, але flash-read probe виглядає як
   RDP0, інструмент усе одно перевіряє SPRMOD перед очищенням WRP0 або записом
   firmware.
+- **Додано fallback сумісності WRP0/nWRP0**: якщо CubeProgrammer відхиляє
+  назву option byte `WRP0`, desktop app і CLI повторюють ту саму операцію з
+  `nWRP0`. Це допомагає з різними базами CubeProgrammer і не повторює RDP
+  transition після reset цілі.
 
 ---
 

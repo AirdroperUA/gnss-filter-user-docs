@@ -70,6 +70,10 @@ mode after failed updates.
 - **Activate/Update now applies the same SPRMOD gate**: if option-byte RDP is
   missing or unreadable but a flash-read probe suggests RDP0, the tool still
   verifies SPRMOD before clearing WRP0 or writing firmware.
+- **WRP0/nWRP0 compatibility fallback added**: if CubeProgrammer rejects the
+  `WRP0` option-byte name, the desktop app and CLI retry with `nWRP0`. This
+  helps across CubeProgrammer database variants while avoiding repeated RDP
+  transitions after a reset.
 
 ---
 

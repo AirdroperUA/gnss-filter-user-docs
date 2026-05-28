@@ -76,6 +76,10 @@ mode after failed updates.
   transitions after a reset.
 - **CLI option-byte timeout now matches the desktop app**: command-line
   option-byte writes now use the documented 180 s timeout, matching the GUI.
+- **PCROP repair re-arm now clears the sector mask**: forced recovery writes
+  `WRP0=0x00`/`nWRP0=0x00` during temporary RDP1 re-arm before the final
+  RDP1->RDP0 clear, so boards left with an old all-sectors PCROP mask get a
+  cleaner recovery transition.
 
 ---
 

@@ -82,6 +82,10 @@
 - **CLI timeout для option bytes тепер збігається з desktop app**: записи
   option bytes у command-line tool використовують задокументований timeout
   180 с, як і GUI.
+- **PCROP repair re-arm тепер очищає mask секторів**: forced recovery записує
+  `WRP0=0x00`/`nWRP0=0x00` під час тимчасового повернення RDP1 перед фінальним
+  RDP1->RDP0 clear, щоб плати зі старим all-sectors PCROP mask проходили
+  чистіший recovery transition.
 
 ---
 

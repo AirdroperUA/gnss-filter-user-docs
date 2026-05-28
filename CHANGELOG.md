@@ -6,6 +6,26 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## Tooling update — 2026-05-28
+
+Emergency recovery update for STM32F401 boards left in `SPRMOD=1` / PCROP
+mode after failed updates.
+
+- **PCROP salvage sequence changed to F401 WRP0 semantics**: Recover Board now
+  drops RDP with `RDP=0xAA` + `SPRMOD=0` + `WRP0=0x00` + `BOR_LEV=3`, then
+  after the power cycle clears normal sector write protection with `WRP0=0x3F`.
+  CubeProgrammer's own STM32F401 database defines WRP0 as six bits; while
+  `SPRMOD=1`, `WRP0=1` means PCROP is active, so the old all-ones value could
+  keep PCROP selected while trying to clear SPRMOD.
+- **Option-byte writes are now truly atomic**: critical RDP/SPRMOD/WRP/BOR
+  changes are sent as one CubeProgrammer `-ob` operation. Repeating `-ob`
+  flags can execute separate option-byte launches, which lets `RDP=0xAA`
+  reset the chip before SPRMOD/WRP are applied.
+- **Bootloader option-byte mask corrected**: the bootloader sanitizer now uses
+  the STM32F401 six-bit WRP0 field instead of a generic eight-bit nWRP mask.
+
+---
+
 ## Tooling update — 2026-05-27
 
 Provisioning app / CLI update for boards that already have RDP1 protection.
@@ -17,30 +37,29 @@ This is a tool-side reliability change, not a firmware behavior change.
   the STM32F4 flash controller is still half-latched after the RDP1->RDP0
   transition.
 - **PCROP/SPRMOD clear fixed for protected-board updates**: the RDP removal
-  write now sends `RDP=0xAA` + `SPRMOD=0` + `nWRP=0xFF` + `BOR_LEV=3`
-  together. STM32F4 only allows SPRMOD to clear during the RDP1->RDP0
-  transition, so the app no longer tries to clear SPRMOD afterward and no
-  longer falsely labels normal boards as hardware-stuck.
+  write now sends `RDP=0xAA` + `SPRMOD=0` + WRP bits together. STM32F4 only
+  allows SPRMOD to clear during the RDP1->RDP0 transition, so the app no
+  longer tries to clear SPRMOD afterward and no longer falsely labels normal
+  boards as hardware-stuck.
 - **Retry works for boards already left at RDP0/SPRMOD1**: if a previous failed
   update left the board readable but PCROP-blocked, the app now runs the legal
-  RDP recycle with `SPRMOD=0` + `nWRP=0xFF` bundled into the RDP drop,
-  power-cycles, and retries the firmware write.
+  RDP recycle with SPRMOD and WRP bits bundled into the RDP drop, power-cycles,
+  and retries the firmware write.
 - **CLI brick window reduced**: `gnss_provision.py` no longer performs a
   separate mass erase before the combined firmware write. It writes the full
   combined image in one CubeProgrammer operation, after the same RDP1
   power-cycle preparation.
 - **CLI retry parity added**: if the command-line updater finds a board already
   readable but blocked by old `RDP0/SPRMOD1` option bytes, it now runs the same
-  legal RDP recycle as the desktop app with `nWRP=0xFF` bundled into the
-  PCROP-clear write, power-cycles, and retries the combined firmware write once.
+  legal RDP recycle as the desktop app, power-cycles, and retries the combined
+  firmware write once.
 - **RDP re-arm verification added**: during the forced PCROP/SPRMOD recovery
   cycle, the app now confirms the temporary `RDP=0xBB` re-arm latched before
-  issuing the `RDP=0xAA` + `SPRMOD=0` + `nWRP=0xFF` drop. If not, it stops
-  before an invalid SPRMOD clear.
+  issuing the `RDP=0xAA` + `SPRMOD=0` drop. If not, it stops before an invalid
+  SPRMOD clear.
 - **PCROP recovery hardened**: the app now verifies RDP by parsing the option
   bytes, not by reading flash, because PCROP can make flash reads look blocked
-  even at RDP0. The PCROP-clear write also includes `nWRP=0xFF` so SPRMOD is
-  cleared together with valid sector-protection bits.
+  even at RDP0.
 - **Recovery wording corrected**: Recover Board unlocks, erases, and verifies
   a blank chip. It does not reinstall firmware; after recovery, run
   **Activate** or **Update** with the license key.

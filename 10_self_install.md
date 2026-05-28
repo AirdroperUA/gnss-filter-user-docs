@@ -194,7 +194,7 @@ The recovery may walk you through up to **three** physical power cycles
 bytes only latch on a real VDD drop, and a `Reset` button press does
 **not** count.
 
-> **WARNING — do NOT use STM32CubeProgrammer GUI to clear RDP, nWRP,
+> **WARNING — do NOT use STM32CubeProgrammer GUI to clear RDP, WRP0,
 > or SPRMOD manually on the BlackPill.** STM32F4 only allows SPRMOD/PCROP
 > to clear during the same RDP1->RDP0 option-byte transition. **Always use
 > this app's "Recover Board" button** — it runs the verified sequence and

@@ -80,6 +80,9 @@ mode after failed updates.
   `WRP0=0x00`/`nWRP0=0x00` during temporary RDP1 re-arm before the final
   RDP1->RDP0 clear, so boards left with an old all-sectors PCROP mask get a
   cleaner recovery transition.
+- **Bootloader option-byte writes fail closed when SPRMOD is active**: if a
+  board somehow boots with `SPRMOD=1` still latched, the bootloader no longer
+  attempts BOR or RDP option-byte writes. Recover Board must repair that state.
 
 ---
 

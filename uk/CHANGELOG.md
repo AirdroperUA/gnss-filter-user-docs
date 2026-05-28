@@ -86,6 +86,10 @@
   `WRP0=0x00`/`nWRP0=0x00` під час тимчасового повернення RDP1 перед фінальним
   RDP1->RDP0 clear, щоб плати зі старим all-sectors PCROP mask проходили
   чистіший recovery transition.
+- **Bootloader option-byte writes зупиняються без припущень, якщо SPRMOD
+  активний**: якщо плата якимось чином завантажиться з уже зафіксованим
+  `SPRMOD=1`, bootloader більше не намагається писати BOR або RDP option
+  bytes. Такий стан має ремонтувати Recover Board.
 
 ---
 

@@ -67,6 +67,9 @@ mode after failed updates.
   continue to `WRP0=0x3F` or flash writes unless option bytes prove
   `SPRMOD=0`. This avoids making a still-latched PCROP state worse when
   ST-Link reads are unstable.
+- **Activate/Update now applies the same SPRMOD gate**: if option-byte RDP is
+  missing or unreadable but a flash-read probe suggests RDP0, the tool still
+  verifies SPRMOD before clearing WRP0 or writing firmware.
 
 ---
 

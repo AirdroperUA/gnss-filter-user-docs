@@ -106,10 +106,12 @@ mode after failed updates.
 - **Recover Board now requires typed confirmation**: the desktop app no longer
   starts recovery from a simple OK/Cancel dialog. The operator must type
   `RECOVER` before the app begins the destructive local erase sequence.
-- **Retired Phase-C callbacks now fail closed**: the visible Update button has
+- **Retired Phase-C paths now fail closed**: the visible Update button has
   used ST-Link/SWD since v1.6.0, but the old USB-C/Phase-C update and log
   worker methods still existed in the desktop app file. They now return a
-  disabled-transport error immediately if an old callback ever reaches them.
+  disabled-transport error immediately if an old callback ever reaches them,
+  and the underlying Phase-C protocol mutators refuse BEGIN/DATA/END/log
+  commands before writing any serial bytes.
 
 ---
 

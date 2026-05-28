@@ -113,11 +113,12 @@
 - **Recover Board тепер вимагає typed confirmation**: desktop app більше не
   запускає recovery з простого OK/Cancel діалогу. Оператор має ввести
   `RECOVER` перед початком destructive local erase sequence.
-- **Retired Phase-C callbacks тепер fail-closed**: видима кнопка Update
+- **Retired Phase-C paths тепер fail-closed**: видима кнопка Update
   використовує ST-Link/SWD з v1.6.0, але старі USB-C/Phase-C worker-и для
   update і log download ще залишались у файлі desktop app. Тепер вони одразу
   повертають помилку disabled transport, якщо старий callback колись до них
-  дійде.
+  дійде, а нижчі Phase-C protocol mutator-и відмовляються від BEGIN/DATA/END
+  і log команд до запису будь-яких serial bytes.
 
 ---
 

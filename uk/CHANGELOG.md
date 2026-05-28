@@ -53,6 +53,11 @@
   і запис flash через той самий timeout wrapper, що й безпечні option-byte
   шляхи. Flash/erase мають довгий таймаут 300 с; probe/read використовують
   короткий connect timeout.
+- **Фінальна перевірка RDP у Recover Board тепер спочатку читає option bytes**:
+  після фінального mass erase recovery читає `RDP` з option bytes перед
+  fallback-перевіркою через flash-read. Це прибирає хибне повідомлення "RDP
+  все ще активний", коли ціль уже в RDP0, але flash-read тимчасово
+  заблокований або busy.
 
 ---
 

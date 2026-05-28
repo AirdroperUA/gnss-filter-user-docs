@@ -51,6 +51,10 @@ mode after failed updates.
   write through the same timeout wrapper used by the safer option-byte paths.
   Flash/erase operations get the long 300 s timeout; probe/read operations use
   the short connect timeout.
+- **Recover Board final RDP check now prefers option bytes**: after the final
+  mass erase, recovery reads `RDP` from option bytes before using a flash-read
+  fallback. This avoids a misleading "RDP is still active" result when the
+  target is actually RDP0 but the flash read is transiently blocked or busy.
 
 ---
 

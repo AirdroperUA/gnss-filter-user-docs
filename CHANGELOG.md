@@ -28,6 +28,10 @@ mode after failed updates.
   `STM32_Programmer_CLI -ob unlockchip` fallback once, requires another real
   power cycle, and only reports a hardware-stuck chip if option bytes still do
   not clear.
+- **Unlockchip now uses robust ST-Link attach modes**: if the default SWD
+  under-reset attach reports an ambiguous `target not found` / lost-connection
+  message, the tool keeps trying hardware-reset and hotplug modes before
+  deciding whether to power-cycle and verify.
 
 ---
 

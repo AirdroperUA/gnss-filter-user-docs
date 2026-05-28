@@ -30,6 +30,10 @@
   ST-команду `STM32_Programmer_CLI -ob unlockchip`, просить ще один реальний
   power cycle і лише після повторної невдачі повідомляє про hardware-stuck
   стан чипа.
+- **Unlockchip тепер використовує стійкі ST-Link attach режими**: якщо
+  стандартний SWD under-reset attach повертає неоднозначне `target not found`
+  або lost-connection повідомлення, інструмент продовжує пробувати
+  hardware-reset і hotplug режими перед power-cycle та перевіркою.
 
 ---
 

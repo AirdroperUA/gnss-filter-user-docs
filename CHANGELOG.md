@@ -17,26 +17,26 @@ This is a tool-side reliability change, not a firmware behavior change.
   the STM32F4 flash controller is still half-latched after the RDP1->RDP0
   transition.
 - **PCROP/SPRMOD clear fixed for protected-board updates**: the RDP removal
-  write now sends `RDP=0xAA` + `SPRMOD=0` + `BOR_LEV=3` together. STM32F4 only
-  allows SPRMOD to clear during the RDP1->RDP0 transition, so the app no longer
-  tries to clear SPRMOD afterward and no longer falsely labels normal boards as
-  hardware-stuck.
+  write now sends `RDP=0xAA` + `SPRMOD=0` + `nWRP=0xFF` + `BOR_LEV=3`
+  together. STM32F4 only allows SPRMOD to clear during the RDP1->RDP0
+  transition, so the app no longer tries to clear SPRMOD afterward and no
+  longer falsely labels normal boards as hardware-stuck.
 - **Retry works for boards already left at RDP0/SPRMOD1**: if a previous failed
   update left the board readable but PCROP-blocked, the app now runs the legal
-  RDP recycle first, then clears `nWRP`, power-cycles, and retries the firmware
-  write.
+  RDP recycle with `SPRMOD=0` + `nWRP=0xFF` bundled into the RDP drop,
+  power-cycles, and retries the firmware write.
 - **CLI brick window reduced**: `gnss_provision.py` no longer performs a
   separate mass erase before the combined firmware write. It writes the full
   combined image in one CubeProgrammer operation, after the same RDP1
   power-cycle preparation.
 - **CLI retry parity added**: if the command-line updater finds a board already
   readable but blocked by old `RDP0/SPRMOD1` option bytes, it now runs the same
-  legal RDP recycle as the desktop app, clears `nWRP`, power-cycles, and retries
-  the combined firmware write once.
+  legal RDP recycle as the desktop app with `nWRP=0xFF` bundled into the
+  PCROP-clear write, power-cycles, and retries the combined firmware write once.
 - **RDP re-arm verification added**: during the forced PCROP/SPRMOD recovery
   cycle, the app now confirms the temporary `RDP=0xBB` re-arm latched before
-  issuing the `RDP=0xAA` + `SPRMOD=0` drop. If not, it stops before an invalid
-  SPRMOD clear.
+  issuing the `RDP=0xAA` + `SPRMOD=0` + `nWRP=0xFF` drop. If not, it stops
+  before an invalid SPRMOD clear.
 - **PCROP recovery hardened**: the app now verifies RDP by parsing the option
   bytes, not by reading flash, because PCROP can make flash reads look blocked
   even at RDP0. The PCROP-clear write also includes `nWRP=0xFF` so SPRMOD is

@@ -6,6 +6,25 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## Tooling update - 2026-05-29
+
+Follow-up recovery fix for STM32F401 boards that are already readable as
+`RDP0` but still latched in `SPRMOD=1` / PCROP mode.
+
+- **Forced PCROP re-arm now writes only RDP1**: Recover Board now re-arms the
+  temporary RDP1 state with `RDP=0xBB` only. It no longer tries to clear
+  `WRP0` during the RDP0->RDP1 step, because STM32F4 only allows PCROP/WRP0
+  bits to be cleared during the following RDP1->RDP0 regression.
+- **Recover skips the invalid RDP-drop write when RDP is already clear**: if
+  the board is already at `RDP0`, the app goes straight to SPRMOD
+  verification/repair instead of attempting a no-op `RDP=0xAA` transaction
+  that also carried unsafe `WRP0=0x00` at RDP0.
+- **Recover Board confirmation is back to OK/Cancel**: the typed `RECOVER`
+  prompt was removed. The app now uses the normal destructive-action
+  confirmation dialog.
+
+---
+
 ## Tooling update — 2026-05-28
 
 Emergency recovery update for STM32F401 boards left in `SPRMOD=1` / PCROP
@@ -76,10 +95,10 @@ mode after failed updates.
   transitions after a reset.
 - **CLI option-byte timeout now matches the desktop app**: command-line
   option-byte writes now use the documented 180 s timeout, matching the GUI.
-- **PCROP repair re-arm now clears the sector mask**: forced recovery writes
-  `WRP0=0x00`/`nWRP0=0x00` during temporary RDP1 re-arm before the final
-  RDP1->RDP0 clear, so boards left with an old all-sectors PCROP mask get a
-  cleaner recovery transition.
+- **PCROP repair re-arm is RDP-only**: forced recovery now writes only
+  `RDP=0xBB` during temporary RDP1 re-arm. `WRP0=0x00` is applied only during
+  the following RDP1->RDP0 clear, which is the legal transition for clearing
+  PCROP/WRP0 bits on STM32F4.
 - **Bootloader option-byte writes fail closed when SPRMOD is active**: if a
   board somehow boots with `SPRMOD=1` still latched, the bootloader no longer
   attempts BOR or RDP option-byte writes. Recover Board must repair that state.
@@ -103,9 +122,8 @@ mode after failed updates.
   CLI requires typing the expected UID-short, or the full UID, before it starts
   the erase. This cannot prove the physical UID before mass erase, but it
   prevents blind updates of the wrong protected board.
-- **Recover Board now requires typed confirmation**: the desktop app no longer
-  starts recovery from a simple OK/Cancel dialog. The operator must type
-  `RECOVER` before the app begins the destructive local erase sequence.
+- **Recover Board confirmation uses OK/Cancel again**: the desktop app keeps a
+  destructive-action confirmation, but no longer requires typing `RECOVER`.
 - **Retired Phase-C paths now fail closed**: the visible Update button has
   used ST-Link/SWD since v1.6.0, but the old USB-C/Phase-C update and log
   worker methods still existed in the desktop app file. They now return a

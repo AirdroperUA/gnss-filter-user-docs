@@ -207,7 +207,7 @@ flash, and verifies that the chip is blank. It does **not** reinstall firmware
 or contact the license server. When recovery finishes, click **Activate** (or
 **Update**) with your license key to provision the board again.
 
-Recover Board is destructive. The app asks you to type `RECOVER` before it
+Recover Board is destructive. The app shows a confirmation dialog before it
 starts so a misclick cannot erase a working board.
 
 The recovery may walk you through up to **three** physical power cycles

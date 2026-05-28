@@ -6,6 +6,24 @@
 
 ---
 
+## Оновлення інструментів - 2026-05-29
+
+Додаткове виправлення recovery для STM32F401 плат, які вже читаються як
+`RDP0`, але все ще залишаються у `SPRMOD=1` / PCROP mode.
+
+- **Forced PCROP re-arm тепер пише лише RDP1**: Recover Board тимчасово
+  повертає RDP1 тільки записом `RDP=0xBB`. Він більше не намагається очищати
+  `WRP0` під час кроку RDP0->RDP1, бо STM32F4 дозволяє очищати PCROP/WRP0
+  біти лише під час наступного переходу RDP1->RDP0.
+- **Recover пропускає недійсний RDP-drop write, якщо RDP уже знято**: якщо
+  плата вже у `RDP0`, додаток одразу переходить до перевірки/ремонту SPRMOD,
+  замість no-op `RDP=0xAA` транзакції з небезпечним `WRP0=0x00` у RDP0.
+- **Recover Board знову використовує OK/Cancel підтвердження**: typed
+  `RECOVER` prompt прибрано. Додаток використовує звичайний destructive-action
+  confirmation dialog.
+
+---
+
 ## Оновлення інструментів — 2026-05-28
 
 Екстрене оновлення recovery для STM32F401 плат, які після невдалих оновлень
@@ -82,10 +100,10 @@
 - **CLI timeout для option bytes тепер збігається з desktop app**: записи
   option bytes у command-line tool використовують задокументований timeout
   180 с, як і GUI.
-- **PCROP repair re-arm тепер очищає mask секторів**: forced recovery записує
-  `WRP0=0x00`/`nWRP0=0x00` під час тимчасового повернення RDP1 перед фінальним
-  RDP1->RDP0 clear, щоб плати зі старим all-sectors PCROP mask проходили
-  чистіший recovery transition.
+- **PCROP repair re-arm тепер не чіпає WRP0**: forced recovery записує лише
+  `RDP=0xBB` під час тимчасового повернення RDP1. `WRP0=0x00` застосовується
+  тільки під час наступного RDP1->RDP0 clear, тобто в дозволеному переході для
+  очищення PCROP/WRP0 бітів на STM32F4.
 - **Bootloader option-byte writes зупиняються без припущень, якщо SPRMOD
   активний**: якщо плата якимось чином завантажиться з уже зафіксованим
   `SPRMOD=1`, bootloader більше не намагається писати BOR або RDP option
@@ -110,9 +128,9 @@
   CLI вимагає ввести очікуваний UID-short або повний UID перед стартом erase.
   Це не може довести фізичний UID до mass erase, але зупиняє сліпе оновлення
   не тієї захищеної плати.
-- **Recover Board тепер вимагає typed confirmation**: desktop app більше не
-  запускає recovery з простого OK/Cancel діалогу. Оператор має ввести
-  `RECOVER` перед початком destructive local erase sequence.
+- **Recover Board знову використовує OK/Cancel підтвердження**: desktop app
+  залишає destructive-action confirmation, але більше не вимагає вводити
+  `RECOVER`.
 - **Retired Phase-C paths тепер fail-closed**: видима кнопка Update
   використовує ST-Link/SWD з v1.6.0, але старі USB-C/Phase-C worker-и для
   update і log download ще залишались у файлі desktop app. Тепер вони одразу

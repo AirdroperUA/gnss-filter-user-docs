@@ -99,10 +99,10 @@ mode after failed updates.
   intentional erase/re-provision.
 - **Protected-board Update now requires operator confirmation before erase**:
   when RDP1 blocks UID reads, the desktop app shows the expected activation UID
-  and UID-short before dropping RDP. The CLI requires typing the expected
-  UID-short, or the full UID, before it starts the erase. This cannot prove the
-  physical UID before mass erase, but it prevents blind updates of the wrong
-  protected board.
+  and UID-short, then requires typing the UID-short before dropping RDP. The
+  CLI requires typing the expected UID-short, or the full UID, before it starts
+  the erase. This cannot prove the physical UID before mass erase, but it
+  prevents blind updates of the wrong protected board.
 
 ---
 

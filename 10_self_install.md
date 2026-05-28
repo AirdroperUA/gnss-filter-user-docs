@@ -180,9 +180,10 @@ ambiguous across multiple boards, the app stops before touching the protected
 board.
 
 If Update reaches an RDP1-protected board, the app shows the expected
-activation UID and UID-short before the erase. Continue only when the ST-Link
-is attached to that exact board. RDP1 hides the physical UID, so the app cannot
-verify the connected chip until after the required mass erase.
+activation UID and UID-short before the erase, then requires you to type that
+UID-short. Continue only when the ST-Link is attached to that exact board. RDP1
+hides the physical UID, so the app cannot verify the connected chip until
+after the required mass erase.
 
 If the board is already protected, use **Update** rather than **Activate**.
 Activate now refuses any RDP1-protected board before removing RDP, even when

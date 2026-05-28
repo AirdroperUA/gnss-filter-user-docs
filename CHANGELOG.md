@@ -55,10 +55,14 @@ mode after failed updates.
   mass erase, recovery reads `RDP` from option bytes before using a flash-read
   fallback. This avoids a misleading "RDP is still active" result when the
   target is actually RDP0 but the flash read is transiently blocked or busy.
-- **Malformed option-byte dumps now fall back safely**: if recovery can read
-  option bytes but the `RDP` line is missing or unparseable, it no longer
-  treats that as a clear board. It falls back to the flash-read RDP probe and
-  stops if protection still appears active.
+- **Malformed option-byte dumps now fall back safely**: if the desktop app or
+  CLI can read option bytes but the `RDP` line is missing or unparseable, it no
+  longer treats that as a clear board. It falls back to the flash-read RDP
+  probe and stops if protection still appears active.
+- **Desktop app flash-read probes now have bounded timeouts**: chip-family
+  detection, RDP flash probes, UID reads, UID-stub reads, and single-word flash
+  readback now use the short CubeProgrammer timeout. This keeps unstable
+  ST-Link sessions from looking like the app is stuck.
 
 ---
 

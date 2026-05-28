@@ -37,6 +37,10 @@ This is a tool-side reliability change, not a firmware behavior change.
   cycle, the app now confirms the temporary `RDP=0xBB` re-arm latched before
   issuing the `RDP=0xAA` + `SPRMOD=0` drop. If not, it stops before an invalid
   SPRMOD clear.
+- **PCROP recovery hardened**: the app now verifies RDP by parsing the option
+  bytes, not by reading flash, because PCROP can make flash reads look blocked
+  even at RDP0. The PCROP-clear write also includes `nWRP=0xFF` so SPRMOD is
+  cleared together with valid sector-protection bits.
 - **Recovery wording corrected**: Recover Board unlocks, erases, and verifies
   a blank chip. It does not reinstall firmware; after recovery, run
   **Activate** or **Update** with the license key.

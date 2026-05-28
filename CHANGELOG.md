@@ -46,6 +46,11 @@ mode after failed updates.
   writing firmware, Activate/Update checks `RDP` from option bytes first. A
   board already left readable at `RDP0/SPRMOD1` now goes directly into the
   PCROP repair path instead of being treated as a fresh RDP1-removal case.
+- **CLI flash operations now have bounded timeouts**: the command-line tool now
+  routes UID reads, RDP flash probes, flash word reads, mass erase, and flash
+  write through the same timeout wrapper used by the safer option-byte paths.
+  Flash/erase operations get the long 300 s timeout; probe/read operations use
+  the short connect timeout.
 
 ---
 

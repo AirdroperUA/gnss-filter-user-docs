@@ -37,6 +37,11 @@ mode after failed updates.
   does not falsely fail just because the normal SWD attach is unstable. The CLI
   recovery path also routes its option-byte writes through the shared timeout
   wrapper.
+- **Post-RDP verification now prefers option bytes**: after the required power
+  cycle following an RDP1->RDP0 drop, Activate/Update and Recover Board parse
+  `RDP` from `-ob displ` before using any flash-read fallback. This prevents
+  PCROP-blocked flash reads at RDP0 from being mistaken for still-active RDP1
+  and lets the SPRMOD/WRP repair path run.
 
 ---
 

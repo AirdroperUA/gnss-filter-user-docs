@@ -39,6 +39,11 @@
   остаточною помилкою, тому recovery не падає лише через нестабільний
   стандартний SWD attach. CLI recovery також проводить option-byte записи через
   спільний timeout wrapper.
+- **Перевірка після зняття RDP тепер спочатку читає option bytes**: після
+  обов'язкового power cycle під час переходу RDP1->RDP0 Activate/Update і
+  Recover Board парсять `RDP` з `-ob displ` перед будь-якою перевіркою через
+  читання flash. Це не дає PCROP-блокованому flash у RDP0 виглядати як
+  активний RDP1 і дозволяє запустити repair-шлях для SPRMOD/WRP.
 
 ---
 

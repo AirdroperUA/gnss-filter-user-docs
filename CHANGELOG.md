@@ -103,6 +103,9 @@ mode after failed updates.
   CLI requires typing the expected UID-short, or the full UID, before it starts
   the erase. This cannot prove the physical UID before mass erase, but it
   prevents blind updates of the wrong protected board.
+- **Recover Board now requires typed confirmation**: the desktop app no longer
+  starts recovery from a simple OK/Cancel dialog. The operator must type
+  `RECOVER` before the app begins the destructive local erase sequence.
 
 ---
 

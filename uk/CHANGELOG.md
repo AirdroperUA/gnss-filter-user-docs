@@ -110,6 +110,9 @@
   CLI вимагає ввести очікуваний UID-short або повний UID перед стартом erase.
   Це не може довести фізичний UID до mass erase, але зупиняє сліпе оновлення
   не тієї захищеної плати.
+- **Recover Board тепер вимагає typed confirmation**: desktop app більше не
+  запускає recovery з простого OK/Cancel діалогу. Оператор має ввести
+  `RECOVER` перед початком destructive local erase sequence.
 
 ---
 

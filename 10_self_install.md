@@ -207,6 +207,9 @@ flash, and verifies that the chip is blank. It does **not** reinstall firmware
 or contact the license server. When recovery finishes, click **Activate** (or
 **Update**) with your license key to provision the board again.
 
+Recover Board is destructive. The app asks you to type `RECOVER` before it
+starts so a misclick cannot erase a working board.
+
 The recovery may walk you through up to **three** physical power cycles
 (unplug/replug USB at each prompt). This is mandatory: STM32F4 option
 bytes only latch on a real VDD drop, and a `Reset` button press does

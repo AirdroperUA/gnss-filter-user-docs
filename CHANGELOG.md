@@ -88,9 +88,9 @@ mode after failed updates.
   the desktop app guard against writing the wrong board.
 - **Update preflights license activation before touching RDP**: the desktop app
   and CLI now call `POST /api/v1/lookup-uid` before ST-Link Update. If the
-  license is invalid, has no activated board, or has multiple activated boards
-  without a UID hint, the tool stops before CubeProgrammer connects or an RDP1
-  erase can start.
+  license is invalid, has no activated board, or has multiple activated
+  boards, the tool stops before CubeProgrammer connects or an RDP1 erase can
+  start. Update refuses to guess which protected board is attached.
 - **Activate refuses all RDP1-protected boards**: Activate now checks the
   license before hardware access, but still refuses to remove RDP1 even if the
   entered license has no activations. RDP1 hides the UID, so Activate cannot

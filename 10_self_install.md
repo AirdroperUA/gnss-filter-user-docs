@@ -199,7 +199,8 @@ bytes only latch on a real VDD drop, and a `Reset` button press does
 > to clear during the same RDP1->RDP0 option-byte transition. **Always use
 > this app's "Recover Board" button** — it runs the verified sequence and
 > handles the required physical power cycles. If "Recover Board" still reports
-> the chip is hardware-stuck after that legal RDP recycle, replace the
+> the chip is hardware-stuck after the legal RDP recycle and ST `unlockchip`
+> fallback, replace the
 > BlackPill (~$5) — your license is bound to chip UID and a fresh board will
 > provision cleanly with the same license key.
 

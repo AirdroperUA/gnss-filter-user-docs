@@ -23,6 +23,11 @@ mode after failed updates.
   reset the chip before SPRMOD/WRP are applied.
 - **Bootloader option-byte mask corrected**: the bootloader sanitizer now uses
   the STM32F401 six-bit WRP0 field instead of a generic eight-bit nWRP mask.
+- **Last-resort bad-option-byte recovery added**: if the legal RDP1->RDP0
+  recycle still leaves `SPRMOD=1`, Recover Board now tries ST's
+  `STM32_Programmer_CLI -ob unlockchip` fallback once, requires another real
+  power cycle, and only reports a hardware-stuck chip if option bytes still do
+  not clear.
 
 ---
 

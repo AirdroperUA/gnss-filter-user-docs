@@ -25,6 +25,11 @@
 - **Виправлено bootloader option-byte mask**: sanitizer у bootloader тепер
   використовує шестибітне поле WRP0 для STM32F401 замість generic 8-bit nWRP
   mask.
+- **Додано останній fallback для поганих option bytes**: якщо легальний
+  цикл RDP1->RDP0 все ще залишає `SPRMOD=1`, Recover Board один раз пробує
+  ST-команду `STM32_Programmer_CLI -ob unlockchip`, просить ще один реальний
+  power cycle і лише після повторної невдачі повідомляє про hardware-stuck
+  стан чипа.
 
 ---
 

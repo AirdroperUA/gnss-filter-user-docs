@@ -179,6 +179,10 @@ activated board on the server. If the license is invalid, not activated yet, or
 ambiguous across multiple boards, the app stops before touching the protected
 board.
 
+If the board is already protected and already activated, use **Update** rather
+than **Activate**. Activate now refuses that case before removing RDP, which
+prevents an accidental erase from the wrong button.
+
 > **Note:** RDP1 (readout protection) is removed and re-applied automatically
 > by the app. On an already-protected board, the app may pause after removing
 > RDP1 and ask you to physically power-cycle the board. Unplug USB, wait at

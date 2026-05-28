@@ -97,6 +97,12 @@ mode after failed updates.
   prove the connected board is blank or belongs to that license before erase.
   Use Update for an already activated board, or Recover Board for an
   intentional erase/re-provision.
+- **Protected-board Update now requires operator confirmation before erase**:
+  when RDP1 blocks UID reads, the desktop app shows the expected activation UID
+  and UID-short before dropping RDP. The CLI requires typing the expected
+  UID-short, or the full UID, before it starts the erase. This cannot prove the
+  physical UID before mass erase, but it prevents blind updates of the wrong
+  protected board.
 
 ---
 

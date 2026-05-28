@@ -179,6 +179,11 @@ activated board on the server. If the license is invalid, not activated yet, or
 ambiguous across multiple boards, the app stops before touching the protected
 board.
 
+If Update reaches an RDP1-protected board, the app shows the expected
+activation UID and UID-short before the erase. Continue only when the ST-Link
+is attached to that exact board. RDP1 hides the physical UID, so the app cannot
+verify the connected chip until after the required mass erase.
+
 If the board is already protected, use **Update** rather than **Activate**.
 Activate now refuses any RDP1-protected board before removing RDP, even when
 the entered license has no activations. RDP1 hides the UID, so Activate cannot

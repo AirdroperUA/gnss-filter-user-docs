@@ -35,6 +35,9 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
 - **Successful Recover Board now shows the next step**: after recovery verifies
   blank flash and cleared RDP, the desktop app opens an OK dialog telling the
   user to click **Activate** to provision the recovered board.
+- **Landing-page app download now points at the pinned published EXE**: the
+  server no longer depends on GitHub's moving `latest` redirect, so the public
+  download link cannot serve an older cached desktop app after a release.
 - **Activation logs now separate server registration from physical flashing**:
   Activate reports whether the UID was already registered on the server or is
   being newly reserved, then logs when the firmware bundle has been returned

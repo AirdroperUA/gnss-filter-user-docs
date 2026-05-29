@@ -11,6 +11,11 @@ All notable firmware and tool changes are documented here.
 Follow-up recovery fix for STM32F401 boards that are already readable as
 `RDP0` but still latched in `SPRMOD=1` / PCROP mode.
 
+- **Activation logs now separate server registration from physical flashing**:
+  Activate reports whether the UID was already registered on the server or is
+  being newly reserved, then logs when the firmware bundle has been returned
+  and board flashing starts. The board is only physically provisioned after
+  the final `Provisioning complete` line.
 - **Activation now writes the bootloader last and locks in the same ST-Link
   session**: the app mass-erases first, writes/verifies the application and
   metadata while the bootloader sector is blank, then writes/verifies the

@@ -11,6 +11,15 @@ All notable firmware and tool changes are documented here.
 Follow-up recovery fix for STM32F401 boards that are already readable as
 `RDP0` but still latched in `SPRMOD=1` / PCROP mode.
 
+- **Activation now writes the bootloader last and locks in the same ST-Link
+  session**: the app mass-erases first, writes/verifies the application and
+  metadata while the bootloader sector is blank, then writes/verifies the
+  bootloader and applies RDP1/BOR/SPRMOD/WRP in one CubeProgrammer command.
+  This prevents the bootloader from running and making flash unreadable before
+  host-side verification finishes.
+- **Bootloader option-byte cleanup now detects F401xD/E layout**: if the
+  bootloader ever has to enforce RDP itself, it uses the eight-bit WRP mask on
+  STM32F401xD/E devices instead of the six-bit F401xB/C mask.
 - **STM32F401xD/E write-protect recovery now uses per-sector WRP bits**: some
   boards expose `WRP0..WRP7` as individual option bytes and reject the packed
   `WRP0=0x3F` value. Recover/Update now falls back to

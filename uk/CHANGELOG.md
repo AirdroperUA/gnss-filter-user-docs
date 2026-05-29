@@ -11,6 +11,15 @@
 Додаткове виправлення recovery для STM32F401 плат, які вже читаються як
 `RDP0`, але все ще залишаються у `SPRMOD=1` / PCROP mode.
 
+- **Активація тепер записує bootloader останнім і блокує плату в тій самій
+  ST-Link сесії**: застосунок спочатку робить mass erase, записує та перевіряє
+  application і metadata, поки сектор bootloader ще порожній, а потім записує
+  та перевіряє bootloader і застосовує RDP1/BOR/SPRMOD/WRP однією командою
+  CubeProgrammer. Це не дає bootloader запуститися і зробити flash нечитабельним
+  до завершення перевірки на ПК.
+- **Bootloader тепер враховує layout option bytes для F401xD/E**: якщо
+  bootloader колись сам має застосувати RDP, він використовує восьмибітну WRP
+  маску на STM32F401xD/E замість шестибітної маски F401xB/C.
 - **Recovery write-protect для STM32F401xD/E тепер використовує per-sector WRP біти**:
   деякі плати показують `WRP0..WRP7` як окремі option bytes і відхиляють
   packed значення `WRP0=0x3F`. Recover/Update тепер переходить на

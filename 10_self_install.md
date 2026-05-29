@@ -197,9 +197,10 @@ If support asks you to test a development build, it may appear as a separate
 only for the requested test; the stable latest firmware remains the default.
 
 Before any RDP1 erase, Update verifies that the license already has an
-activated board on the server. If the license is invalid, not activated yet, or
-ambiguous across multiple boards, the app stops before touching the protected
-board.
+activated board on the server. If the license is invalid or not activated yet,
+the app stops before touching the protected board. If multiple boards are
+registered on the same license, the app first asks you to choose the target by
+typing its UID-short or full UID from the server list.
 
 If Update reaches an RDP1-protected board, the app shows the expected
 activation UID and UID-short before the erase, then requires you to type that

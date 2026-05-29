@@ -35,6 +35,11 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
 - **Successful Recover Board now shows the next step**: after recovery verifies
   blank flash and cleared RDP, the desktop app opens an OK dialog telling the
   user to click **Activate** to provision the recovered board.
+- **Multi-board licenses can now update a selected board**: when a license has
+  multiple registered boards, the desktop app and CLI ask the operator to type
+  the target UID-short or full UID from the server list before any ST-Link
+  access starts. The protected-board RDP1 erase confirmation still appears
+  later if the connected board hides its physical UID.
 - **Landing-page app download now points at the pinned published EXE**: the
   server no longer depends on GitHub's moving `latest` redirect, so the public
   download link cannot serve an older cached desktop app after a release.
@@ -157,9 +162,10 @@ mode after failed updates.
   the desktop app guard against writing the wrong board.
 - **Update preflights license activation before touching RDP**: the desktop app
   and CLI now call `POST /api/v1/lookup-uid` before ST-Link Update. If the
-  license is invalid, has no activated board, or has multiple activated
-  boards, the tool stops before CubeProgrammer connects or an RDP1 erase can
-  start. Update refuses to guess which protected board is attached.
+  license is invalid or has no activated board, the tool stops before
+  CubeProgrammer connects or an RDP1 erase can start. If multiple boards are
+  registered, the operator must explicitly select the target UID before
+  hardware access starts.
 - **Activate refuses all RDP1-protected boards**: Activate now checks the
   license before hardware access, but still refuses to remove RDP1 even if the
   entered license has no activations. RDP1 hides the UID, so Activate cannot

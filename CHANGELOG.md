@@ -43,6 +43,10 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
 - **Landing-page app download now points at the pinned published EXE**: the
   server no longer depends on GitHub's moving `latest` redirect, so the public
   download link cannot serve an older cached desktop app after a release.
+- **Power-cycle prompts no longer tell users to plug into BlackPill USB-C**:
+  desktop app, CLI, and self-install docs now say to remove and restore board
+  power. If the board is powered from ST-Link 3V3, unplug/replug the ST-Link
+  USB from the PC; do not use the BlackPill USB-C connector.
 - **Activation logs now separate server registration from physical flashing**:
   Activate reports whether the UID was already registered on the server or is
   being newly reserved, then logs when the firmware bundle has been returned

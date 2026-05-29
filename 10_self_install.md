@@ -48,7 +48,8 @@ Hardware video: [ST-Link Wiring and Board Pinout](12_video_tutorials.md#stlink-p
 | SWDIO | DIO (PA13) |
 | SWCLK | CLK (PA14) |
 
-Power the BlackPill from the ST-Link 3V3 (or USB, either works).
+Power the BlackPill from the ST-Link 3V3 pin. Do **not** power it from the
+BlackPill USB-C connector.
 
 ```
   ST-Link V2                   BlackPill
@@ -87,17 +88,22 @@ Connecting to target via ST-Link...
 Reading board UID...
 Board UID: aabbccddeeff1122334455 (short: 12345678)
 Contacting license server...
-Firmware version: 1.5.5
-  Bootloader: 47104 bytes
-  Application: 73732 bytes
+Firmware: v1.6.17
+  Bootloader:  37624 bytes
+  Application: 80884 bytes
   Metadata: 148 bytes
-Erasing flash...
-Writing bootloader (0x08000000)...
-Writing application (0x0800C000)...
-Writing metadata (0x0801FC00)...
-Setting readout protection (RDP Level 1)...
+Erasing flash... before staged write...
+Writing application + metadata (81044 bytes)...
+  Bootloader @ 0x08000000 (37624 bytes)
+  Application @ 0x0800C000 (80884 bytes)
+  Metadata @ 0x0801FC00 (148 bytes)
+  Verifying application/metadata readback before bootloader lock...
+  Writing bootloader + verifying + setting RDP Level 1...
 
-Provisioning complete!
+=== Provisioning complete! ===
+  Board UID:  12345678
+  Firmware:   v1.6.17
+  Protection: RDP1 + UID-bound
 ```
 
 > **Note:** If the board was previously activated, the app automatically handles
@@ -128,9 +134,10 @@ counts.
 ## Step 3 — Verify
 
 1. Disconnect the ST-Link
-2. Power the board via USB or your aircraft power supply
+2. Power the board from the aircraft GPS-port power pins or a bench supply on
+   the board power pins. Do **not** plug into the BlackPill USB-C connector.
 3. Connect to [Mission Planner](https://ardupilot.org/planner/) and check for the filter boot message in the
-   Messages tab (e.g. `GNSS filter v1.5.5 UID=12345678`)
+   Messages tab (e.g. `GNSS filter v1.6.17 UID=12345678`)
 
 **Next steps:** Wire the filter into your drone using the [Wiring Guide](#wiring), then configure your flight controller in [Setup & Flash](#setup-flash).
 
@@ -220,8 +227,9 @@ then Activate after recovery finishes.
 > **Note:** during Update of an already-protected board, RDP1 (readout
 > protection) is removed and re-applied automatically by the app. The app may
 > pause after removing RDP1 and ask you to physically power-cycle the board.
-> Unplug USB, wait at least 10 seconds, plug it back in, then click **OK**.
-> Pressing `Reset` is not enough for this step.
+> Remove board power for at least 10 seconds, then power it again and click
+> **OK**. If the board is powered from the ST-Link 3V3 pin, unplug/replug the
+> ST-Link USB from the PC. Pressing `Reset` is not enough for this step.
 
 ### Recovery (ST-Link V2 SWD)
 
@@ -235,10 +243,10 @@ your license key to provision the board again.
 Recover Board is destructive. The app shows a confirmation dialog before it
 starts so a misclick cannot erase a working board.
 
-The recovery may walk you through up to **three** physical power cycles
-(unplug/replug USB at each prompt). This is mandatory: STM32F4 option
-bytes only latch on a real VDD drop, and a `Reset` button press does
-**not** count.
+The recovery may walk you through up to **three** physical power cycles. Remove
+board power at each prompt, wait at least 10 seconds, then power it again. This
+is mandatory: STM32F4 option bytes only latch on a real VDD drop, and a
+`Reset` button press does **not** count.
 
 > **WARNING — do NOT use STM32CubeProgrammer GUI to clear RDP, WRP0,
 > or SPRMOD manually on the BlackPill.** STM32F4 only allows SPRMOD/PCROP
@@ -295,7 +303,7 @@ The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public li
 | "Invalid license key" | Double-check the key from your purchase email |
 | "License already activated on a different board" | Each key works on one board only. Contact support for replacement. |
 | "ST-Link not found" (update) | Plug the ST-Link into a different USB port and re-check the 4-pin SWD wiring (3V3, GND, A14/SWCLK, A13/SWDIO). |
-| RDP Level 1 warning on re-flash | Board is already protected. The app handles this automatically. If it asks for a power-cycle, physically unplug/replug USB; do not just press `Reset`. |
+| RDP Level 1 warning on re-flash | Board is already protected. The app handles this automatically. If it asks for a power-cycle, remove and restore board power; do not just press `Reset`. |
 
 ---
 

@@ -111,14 +111,15 @@ ST-Link and does not read, erase, or flash the STM32.
 The status view shows:
 
 - registered boards on the license
-- boards that have reported a completed flash
-- total successful flash attempts
+- boards that have reported a completed flash from app version 2026.05.29.7+
+- registered boards that do not yet have a flash report
+- total reported successful flash attempts
 - latest firmware available on the server
 - per-board flash timestamps and firmware versions
 
-Older activations may show as registered with no completed flash report until
-they are activated or updated with an app version that reports final flash
-success.
+Older activations may show as registered with no completed flash report. That
+does not necessarily mean the board was never flashed; it means the activation
+happened before the app started reporting final physical flash success.
 
 ## Step 3 — Verify
 

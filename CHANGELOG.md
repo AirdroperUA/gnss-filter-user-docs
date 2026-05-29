@@ -14,13 +14,15 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
 - **License-only firmware status check**: the desktop app now has a
   **Check Status** button that uses only the license key and does not touch
   ST-Link or the board. It shows registered boards, boards that have reported
-  completed flashing, total successful flash attempts, latest server firmware,
-  and per-board flash timestamps.
+  completed flashing, registered boards without a flash report, total reported
+  successful flash attempts, latest server firmware, and per-board flash
+  timestamps.
 - **Completed flashing is now tracked separately from activation**: server
   registration still happens before board writes start, but the app reports
   physical flash completion only after the final bootloader/RDP lock step.
-  Older activations may show as registered until they are updated with a
-  reporting app build.
+  Older activations may show as registered without a flash report until they
+  are updated with a reporting app build; they are shown as legacy/unknown,
+  not as confirmed failed flashes.
 - **Successful Activate/Update now shows a clear popup**: after the final
   physical success point, the desktop app opens an OK dialog with firmware
   version and board UID so users do not have to inspect the log to know the

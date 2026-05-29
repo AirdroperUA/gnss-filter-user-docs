@@ -32,6 +32,9 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
   physical success point, the desktop app opens an OK dialog with firmware
   version and board UID so users do not have to inspect the log to know the
   operation finished correctly.
+- **Successful Recover Board now shows the next step**: after recovery verifies
+  blank flash and cleared RDP, the desktop app opens an OK dialog telling the
+  user to click **Activate** to provision the recovered board.
 - **Activation logs now separate server registration from physical flashing**:
   Activate reports whether the UID was already registered on the server or is
   being newly reserved, then logs when the firmware bundle has been returned

@@ -52,6 +52,9 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
   of "Server firmware version" / "Latest firmware", so selecting a dev firmware
   in the dropdown no longer looks inconsistent with the stable default shown
   below it.
+- **Firmware dropdown now marks the first entry as stable default**: the desktop
+  app shows `vX.Y.Z (stable default)` instead of `vX.Y.Z (latest)`, while dev
+  builds remain separate `vX.Y.Z (dev)` entries.
 - **Landing-page license status uses the same stable-default wording**: the
   public license checker now labels the server firmware value as **Default
   stable firmware** instead of the generic "Firmware".
@@ -310,8 +313,8 @@ change is required.
 ### Provisioning app / server
 
 - **Dev firmware is clearly separated from stable**: the firmware dropdown
-  keeps `v1.6.15 (latest)` as the normal default and shows `v1.6.16 (dev)` at
-  the bottom of the list.
+  keeps `v1.6.15 (stable default)` as the normal default and shows
+  `v1.6.16 (dev)` at the bottom of the list.
 - **Selecting the dev build flashes the right image**: the server and updated
   app carry separate display and raw-version metadata, so `v1.6.16 (dev)` is
   shown to the operator but the board receives raw firmware version `1.6.16`.

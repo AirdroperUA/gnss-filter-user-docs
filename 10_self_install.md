@@ -65,7 +65,7 @@ BlackPill USB-C connector.
 
 1. Open the **AirDroper GNSS Filter** app
 2. Enter your license key (e.g. `GF-XXXX-XXXX-XXXX`)
-3. Leave **Firmware version** on the default latest entry unless support asked
+3. Leave **Firmware version** on the default stable entry unless support asked
    you to test a specific version.
 4. Plug in exactly **one** ST-Link V2. If you have more than one
    connected (lab bench with several adapters), the app will stop and
@@ -194,16 +194,16 @@ The same hardware as the initial flash:
 2. Open the **AirDroper GNSS Filter** app
 3. Enter your license key
 4. Choose the firmware version if support asked you to test a specific build;
-   otherwise leave the default latest entry selected.
+   otherwise leave the default stable entry selected.
 5. Click **Update**
 6. The app connects via ST-Link, downloads the new firmware customised for
    your board, and flashes it (~30–60 seconds)
 7. The board resets automatically when done
 
-Leave **Firmware version** on the default latest entry for normal updates.
+Leave **Firmware version** on the default stable entry for normal updates.
 If support asks you to test a development build, it may appear as a separate
 `vX.Y.Z (dev)` entry at the bottom of the firmware list. Select that entry
-only for the requested test; the stable latest firmware remains the default.
+only for the requested test; the latest stable firmware remains the default.
 
 Before any RDP1 erase, Update verifies that the license already has an
 activated board on the server. If the license is invalid or not activated yet,

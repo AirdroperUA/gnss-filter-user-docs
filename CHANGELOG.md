@@ -11,6 +11,10 @@ All notable firmware and tool changes are documented here.
 Follow-up recovery fix for STM32F401 boards that are already readable as
 `RDP0` but still latched in `SPRMOD=1` / PCROP mode.
 
+- **Successful Activate/Update now shows a clear popup**: after the final
+  physical success point, the desktop app opens an OK dialog with firmware
+  version and board UID so users do not have to inspect the log to know the
+  operation finished correctly.
 - **Activation logs now separate server registration from physical flashing**:
   Activate reports whether the UID was already registered on the server or is
   being newly reserved, then logs when the firmware bundle has been returned

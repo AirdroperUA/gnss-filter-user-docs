@@ -121,7 +121,7 @@ The status view shows:
 - boards that have reported authenticated completed flash status from app version 2026.05.29.9+
 - registered boards that do not yet have a flash report
 - total reported successful flash attempts
-- latest firmware available on the server
+- default stable firmware available on the server
 - per-board flash timestamps and firmware versions
 
 Older activations may show as registered with no completed flash report. That

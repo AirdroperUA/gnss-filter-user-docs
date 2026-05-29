@@ -15,7 +15,7 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
   **Check Status** button that uses only the license key and does not touch
   ST-Link or the board. It shows registered boards, boards that have reported
   completed flashing, registered boards without a flash report, total reported
-  successful flash attempts, latest server firmware, and per-board flash
+  successful flash attempts, default stable firmware, and per-board flash
   timestamps.
 - **Completed flashing is now tracked separately from activation**: server
   registration still happens before board writes start, but the app reports
@@ -427,13 +427,13 @@ Stability and privacy release on top of v1.6.2. No new tuning parameters, no wir
 
 - **License key no longer in URL**: the licence-status lookup has a new `POST /api/v1/license-status` variant that takes the key in the request body. The landing-page self-service form uses the new path so keys stop appearing in nginx access logs. The legacy `GET ?key=…` form still works for older clients.
 - **Audit IPs are XFF-aware**: the retention-sweep and PII-erase admin actions now record the real client IP via `X-Forwarded-For`, not the nginx reverse-proxy loopback address. Audit rows written before this release remain as-is.
-- **Pin an older firmware version on activation**: `/api/v1/activate` now accepts an optional `version` field. The provisioning tool uses this when you've selected something other than "(latest)" in the version dropdown.
+- **Pin an older firmware version on activation**: `/api/v1/activate` now accepts an optional `version` field. The provisioning tool uses this when you've selected something other than the stable default in the version dropdown.
 
 ### Tools — AirDroper GNSS Filter app
 
 - **Clean shutdown during provisioning**: closing the app window while an ST-Link write is in progress now kills the child `STM32_Programmer_CLI` cleanly, instead of leaving orphaned processes holding the SWD port.
 - **Multi-adapter pre-check on Activate**: the Activate button now refuses to start if more than one ST-Link V2 is plugged in, with the same "unplug the others" dialog that Recovery has used since v1.6.0. Prevents the wrong board being re-provisioned when a lab bench has several adapters attached.
-- **Version-pinned activations**: when you pick a non-latest version in the firmware dropdown, Activate now sends that choice to the server (matches what Update already did).
+- **Version-pinned activations**: when you pick a version other than the stable default in the firmware dropdown, Activate now sends that choice to the server (matches what Update already did).
 
 ### Docs
 

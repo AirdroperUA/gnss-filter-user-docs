@@ -25,8 +25,9 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
   not as confirmed failed flashes.
 - **Flash-status reports are now authenticated**: the server returns a
   short-lived report token with each ST-Link Activate/Update bundle, and the
-  final flash-status callback rejects missing, expired, or mismatched tokens.
-  Use desktop app `2026.05.29.9` or newer for trusted flash-status counts.
+  final flash-status callback rejects missing, expired, reused, or mismatched
+  tokens. Use desktop app `2026.05.29.9` or newer for authenticated
+  flash-status counts.
 - **Successful Activate/Update now shows a clear popup**: after the final
   physical success point, the desktop app opens an OK dialog with firmware
   version and board UID so users do not have to inspect the log to know the

@@ -52,6 +52,9 @@ Follow-up recovery fix for STM32F401 boards that are already readable as
   of "Server firmware version" / "Latest firmware", so selecting a dev firmware
   in the dropdown no longer looks inconsistent with the stable default shown
   below it.
+- **Landing-page license status uses the same stable-default wording**: the
+  public license checker now labels the server firmware value as **Default
+  stable firmware** instead of the generic "Firmware".
 - **Activation logs now separate server registration from physical flashing**:
   Activate reports whether the UID was already registered on the server or is
   being newly reserved, then logs when the firmware bundle has been returned

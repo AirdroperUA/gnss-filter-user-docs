@@ -236,7 +236,7 @@ that board's unique hardware ID.
 
 ### How do I update the firmware?
 
-Wire an ST-Link V2 to the 4-pin SWD header (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), open the **AirDroper GNSS Filter** app, choose **Update (ST-Link)**, enter your license key, and click Start. The app handles RDP removal, flashing, and re-protection automatically. See the update section in the [Self-Install Guide](#self-install).
+Wire an ST-Link V2 to the 4-pin SWD header (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), open the **AirDroper GNSS Filter** app, enter your license key, choose the firmware version if support asked you to test a specific build, and click **Update**. The app handles RDP removal, flashing, and re-protection automatically. See the update section in the [Self-Install Guide](#self-install).
 
 ### Can I re-provision a board that already has firmware?
 

@@ -63,13 +63,14 @@ Power the BlackPill from the ST-Link 3V3 (or USB, either works).
 ## Step 2 — Activate and flash
 
 1. Open the **AirDroper GNSS Filter** app
-2. Select **Activate (ST-Link)** mode
-3. Enter your license key (e.g. `GF-XXXX-XXXX-XXXX`)
+2. Enter your license key (e.g. `GF-XXXX-XXXX-XXXX`)
+3. Leave **Firmware version** on the default latest entry unless support asked
+   you to test a specific version.
 4. Plug in exactly **one** ST-Link V2. If you have more than one
    connected (lab bench with several adapters), the app will stop and
    ask you to unplug the others — this prevents flashing the wrong
    board.
-5. Click **Start** — the app will automatically:
+5. Click **Activate** — the app will automatically:
    - Connect to the board via ST-Link
    - Read your board's unique hardware ID
    - Download firmware customized for your board
@@ -184,9 +185,10 @@ The same hardware as the initial flash:
 
 1. Wire the ST-Link to the ICWkey SWD header as shown above
 2. Open the **AirDroper GNSS Filter** app
-3. Select **Update (ST-Link)** mode
-4. Enter your license key
-5. Click **Start**
+3. Enter your license key
+4. Choose the firmware version if support asked you to test a specific build;
+   otherwise leave the default latest entry selected.
+5. Click **Update**
 6. The app connects via ST-Link, downloads the new firmware customised for
    your board, and flashes it (~30–60 seconds)
 7. The board resets automatically when done
@@ -227,8 +229,8 @@ If a board ever fails to boot — for example after a power loss mid-flash —
 use the same ST-Link V2 wiring above and click **Recover Board** in the app.
 Recovery unlocks the STM32, clears stuck option-byte protection, mass-erases
 flash, and verifies that the chip is blank. It does **not** reinstall firmware
-or contact the license server. When recovery finishes, click **Activate** (or
-**Update**) with your license key to provision the board again.
+or contact the license server. When recovery finishes, click **Activate** with
+your license key to provision the board again.
 
 Recover Board is destructive. The app shows a confirmation dialog before it
 starts so a misclick cannot erase a working board.

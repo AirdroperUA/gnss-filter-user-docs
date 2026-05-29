@@ -102,6 +102,24 @@ Provisioning complete!
 > **Note:** If the board was previously activated, the app automatically handles
 > removing readout protection, erasing, and re-flashing — no manual steps needed.
 
+### Check firmware status by license key
+
+Use **Check Status** when you only want to inspect the license and do not want
+to touch the board. This mode uses the license key only; it does not connect to
+ST-Link and does not read, erase, or flash the STM32.
+
+The status view shows:
+
+- registered boards on the license
+- boards that have reported a completed flash
+- total successful flash attempts
+- latest firmware available on the server
+- per-board flash timestamps and firmware versions
+
+Older activations may show as registered with no completed flash report until
+they are activated or updated with an app version that reports final flash
+success.
+
 ## Step 3 — Verify
 
 1. Disconnect the ST-Link

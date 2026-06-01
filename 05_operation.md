@@ -145,6 +145,20 @@ The following screenshot shows expected status-text format in GCS messages.
 - If `SATS=0`, `fix=9999ms`, and `nav` is fresh, the receiver is communicating but has no valid position fix. On u-blox firmware v1.6.15+, field recovery parameter `UBX_RESET=1` hot-starts, `UBX_RESET=2` cold-starts, and `UBX_RESET=3` clears saved receiver config and reloads defaults.
 - On u-blox firmware v1.6.15+, no-fix or zero-satellite states also emit `ubxpvt ...`, `ubxrf ...`, `ubxsig ...`, and `ubxgnss ...` lines. `ubxpvt` shows the receiver's NAV-PVT fix flags; `ubxrf` shows antenna power/status, RF noise, AGC, jamming state, and CW interference suppression; `ubxsig` shows explicit jamming/spoofing state when supported; `ubxgnss` shows which GNSS constellation blocks are enabled.
 
+### u-blox no-fix recovery
+
+If logs show `SATS=0`, `fix=9999ms`, fresh `nav`, and `ubxpvt f0 ... sv0`, the
+receiver is talking but has no valid position fix. On the bench, try:
+
+1. Set Mission Planner parameter `UBX_RESET` to `3`.
+2. Wait for `UBX_RESET=3 clearing u-blox config` and `u-blox config cleared; reinit in 5s`.
+3. Power-cycle the whole GPS/filter setup.
+4. Test outdoors with clear sky for 10-15 minutes.
+5. Keep `SNR_EN=0` until the receiver gets a stable fix again.
+
+`UBX_RESET=3` deletes saved u-blox BBR/Flash receiver configuration. Use it only
+for recovery or bench diagnostics, not as a normal flight setting.
+
 ![Example log output](diagrams/log_example.jpg)
 
 ## Rejoin sequence

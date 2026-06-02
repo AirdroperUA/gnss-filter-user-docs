@@ -88,7 +88,7 @@ Connecting to target via ST-Link...
 Reading board UID...
 Board UID: aabbccddeeff1122334455 (short: 12345678)
 Contacting license server...
-Firmware: v1.6.17
+Firmware: vX.Y.Z
   Bootloader:  37624 bytes
   Application: 80884 bytes
   Metadata: 148 bytes
@@ -102,7 +102,7 @@ Writing application + metadata (81044 bytes)...
 
 === Provisioning complete! ===
   Board UID:  12345678
-  Firmware:   v1.6.17
+  Firmware:   vX.Y.Z
   Protection: RDP1 + UID-bound
 ```
 
@@ -137,7 +137,7 @@ counts.
 2. Power the board from the aircraft GPS-port power pins or a bench supply on
    the board power pins. Do **not** plug into the BlackPill USB-C connector.
 3. Connect to [Mission Planner](https://ardupilot.org/planner/) and check for the filter boot message in the
-   Messages tab (e.g. `GNSS filter v1.6.17 UID=12345678`)
+   Messages tab (e.g. `GNSS filter vX.Y.Z UID=12345678`)
 
 **Next steps:** Wire the filter into your drone using the [Wiring Guide](#wiring), then configure your flight controller in [Setup & Flash](#setup-flash).
 

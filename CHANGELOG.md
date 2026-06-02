@@ -6,6 +6,30 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.18 - 2026-06-02
+
+Firmware-only u-blox SNR stability test build. v1.6.15 remains the stable
+server default; choose `v1.6.18 (dev)` only when support asks you to test it.
+
+### Firmware
+
+- **FC GPS back-channel can no longer change the u-blox receiver profile in
+  normal protected mode**: field logs showed repeated `SNR=NA` bursts with
+  healthy position/fix data and small `fcgps rx` increments just before
+  `NAV-SAT` stopped. The filter now drains and counts those FC back-channel
+  bytes but does not forward them into the receiver, so ArduPilot
+  auto-config/probe writes cannot disable the `NAV-SAT` stream used for SNR.
+- **`fcgps rx` is now a drain counter in normal mode**: it still shows that the
+  flight controller is sending bytes on the GPS back-channel, but those bytes
+  are not allowed to reconfigure the receiver. Dedicated raw-lab bridge builds
+  remain bidirectional.
+- **u-blox CFG-GNSS diagnostics corrected**: the `ubxgnss ... ch.../...` line
+  now reads the receiver channel counts from the correct `UBX-CFG-GNSS`
+  payload fields. This fixes misleading diagnostics such as `ch60/0`; it does
+  not change constellation configuration.
+
+---
+
 ## Tooling update - 2026-05-29
 
 Follow-up recovery fix for STM32F401 boards that are already readable as

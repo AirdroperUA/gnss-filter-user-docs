@@ -87,7 +87,7 @@ Connecting to target via ST-Link...
 Reading board UID...
 Board UID: aabbccddeeff1122334455 (short: 12345678)
 Contacting license server...
-Firmware: v1.6.17
+Firmware: vX.Y.Z
   Bootloader:  37624 bytes
   Application: 80884 bytes
   Metadata: 148 bytes
@@ -101,7 +101,7 @@ Writing application + metadata (81044 bytes)...
 
 === Provisioning complete! ===
   Board UID:  12345678
-  Firmware:   v1.6.17
+  Firmware:   vX.Y.Z
   Protection: RDP1 + UID-bound
 ```
 
@@ -135,7 +135,7 @@ Writing application + metadata (81044 bytes)...
 2. Подайте живлення на плату від GPS-порту літака або стендового живлення на
    піни живлення плати. **Не** підключайте USB-C роз'єм BlackPill.
 3. Підключіться до Mission Planner і перевірте повідомлення про старт фільтра
-   у вкладці Messages (напр. `GNSS filter v1.6.17 UID=12345678`)
+   у вкладці Messages (напр. `GNSS filter vX.Y.Z UID=12345678`)
 
 ---
 

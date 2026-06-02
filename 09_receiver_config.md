@@ -224,6 +224,10 @@ is missing or stale.
   ACK-verified after the link is already at `460800`.
 - This path makes the receiver UART UBX-only. Keep the FC GPS type in `AUTO` or
   `u-blox`, not NMEA.
+- Firmware v1.6.18+ protects this receiver profile in normal mode by draining
+  FC GPS back-channel writes instead of forwarding them into the receiver.
+  `fcgps rx` can still increase in logs, but ArduPilot auto-config writes
+  cannot disable `NAV-SAT`.
 
 ### Manual baud mode (`UBX_BAUD` set to receiver baud rate)
 

@@ -142,6 +142,7 @@ The following screenshot shows expected status-text format in GCS messages.
 - On u-blox firmware v1.6.15+, the stale-SNR recovery command re-enables NAV-SAT through legacy `CFG-MSG` and `CFG-VALSET` on UART1/UART2 only when NAV-SAT frames are missing or stale. A recovery line such as `NAV-SAT cfg ack legacy=1 u1=1 u2=1` shows which paths the receiver ACKed.
 - On u-blox firmware v1.6.16+, the recovery timer starts when SNR first goes stale, while the config rewrite still waits for NAV-SAT itself to go stale. This shortens intermittent `SNR=NA` recovery after a receiver-side NAV-SAT output change from roughly two stale windows to about one stale window.
 - On u-blox firmware v1.6.18+, normal protected mode drains FC GPS back-channel bytes instead of forwarding them to the receiver. `fcgps rx` can still increase, but those bytes are counted and discarded so ArduPilot auto-config writes cannot turn off `NAV-SAT`.
+- On u-blox firmware v1.6.19+, if the receiver is alive but remains at `SATS=0` before DR1, the filter automatically sends a u-blox cold start plus STM32 reinit after about 2 minutes. It does not run `UBX_RESET=3` automatically. After that automatic retry it logs `If stuck: bench UBX_RESET=3`; use the bench-only recovery steps below only if acquisition still does not recover.
 - If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds, a `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)` message is logged. The SNR guard cannot trip while SNR data is absent.
 - If `SATS=0`, `fix=9999ms`, and `nav` is fresh, the receiver is communicating but has no valid position fix. On u-blox firmware v1.6.15+, field recovery parameter `UBX_RESET=1` hot-starts, `UBX_RESET=2` cold-starts, and `UBX_RESET=3` clears saved receiver config and reloads defaults.
 - On u-blox firmware v1.6.15+, no-fix or zero-satellite states also emit `ubxpvt ...`, `ubxrf ...`, `ubxsig ...`, and `ubxgnss ...` lines. `ubxpvt` shows the receiver's NAV-PVT fix flags; `ubxrf` shows antenna power/status, RF noise, AGC, jamming state, and CW interference suppression; `ubxsig` shows explicit jamming/spoofing state when supported; `ubxgnss` shows which GNSS constellation blocks are enabled.
@@ -159,6 +160,9 @@ receiver is talking but has no valid position fix. On the bench, try:
 
 `UBX_RESET=3` deletes saved u-blox BBR/Flash receiver configuration. Use it only
 for recovery or bench diagnostics, not as a normal flight setting.
+The firmware does not automatically clear saved u-blox configuration because
+that can slow acquisition or remove a receiver profile that was intentionally
+saved by the module vendor or operator.
 
 ![Example log output](diagrams/log_example.jpg)
 

@@ -6,6 +6,28 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.19 - 2026-06-02
+
+Firmware-only u-blox no-fix recovery test build. v1.6.15 remains the stable
+server default; choose `v1.6.19 (dev)` only when support asks you to test it.
+
+### Firmware
+
+- **u-blox zero-satellite assist before DR1**: when the receiver is alive but
+  remains at `SATS=0`, the filter now sends a cold start plus STM32 reinit
+  after about 2 minutes. This is limited to u-blox autoconfig mode and does not
+  run in DR1, raw bridge mode, or FC GPS forward-bypass mode.
+- **No automatic destructive u-blox config clear**: `UBX_RESET=3` remains a
+  manual bench/recovery command. The firmware does not clear saved u-blox
+  BBR/Flash configuration automatically, because that can slow acquisition or
+  delete an intentionally saved receiver profile.
+- **Manual fallback stays documented**: if automatic zero-satellite recovery
+  does not restore acquisition, the bench fallback remains `UBX_RESET=3`
+  followed by a full power-cycle. The firmware now prints
+  `If stuck: bench UBX_RESET=3` after the automatic retry.
+
+---
+
 ## v1.6.18 - 2026-06-02
 
 Firmware-only u-blox SNR stability test build. v1.6.15 remains the stable

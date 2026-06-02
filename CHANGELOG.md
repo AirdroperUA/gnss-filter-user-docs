@@ -6,6 +6,24 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.20 - 2026-06-02
+
+Firmware-only u-blox SNR recovery test build. v1.6.15 remains the stable
+server default; choose `v1.6.20 (dev)` only when support asks you to test it.
+
+### Firmware
+
+- **Faster intermittent NAV-SAT recovery**: when a u-blox receiver already has a
+  healthy fix and NAV-SAT later disappears, the firmware now re-enables NAV-SAT
+  after about 8 seconds instead of waiting the full 30-second stale-SNR window.
+- **Startup/no-fix behavior stays conservative**: no-fix, zero-C/N0, and
+  startup acquisition cases still use the slower existing path so the firmware
+  does not churn receiver configuration while RF acquisition is still unstable.
+- **SNR guard remains safe**: stale or missing SNR still cannot trigger DR1 by
+  itself. The faster recovery only shortens the `SNR=NA` display gap.
+
+---
+
 ## v1.6.19 - 2026-06-02
 
 Firmware-only u-blox no-fix recovery test build. v1.6.15 remains the stable

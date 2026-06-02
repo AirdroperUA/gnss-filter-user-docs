@@ -6,6 +6,19 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.23 - 2026-06-02
+
+### Added
+
+- Added `GNSS_TYPE=2` for Septentrio Mosaic X5 receivers configured for NMEA.
+- Added Mosaic X5 setup guidance to the receiver configuration docs.
+
+### Changed
+
+- Mosaic X5 mode uses passive NMEA autobaud and does not send receiver reset or auto-configuration commands. If no fix persists, the filter only re-runs the passive NMEA baud scan.
+
+---
+
 ## v1.6.22 - 2026-06-02
 
 Firmware-only u-blox autoconfig cleanup build. v1.6.15 remains the stable

@@ -78,8 +78,9 @@ If GNSS or MAVLink does not work after wiring, see `03_wiring_debug.md`.
 - Receiver protocol mode is selected by `GNSS_TYPE`:
   - `0`: u-blox/UBX
   - `1`: UM980/UM981/UM982 NMEA
-- For `GNSS_TYPE=1`, the filter expects one physical UM980 link only:
-  - UM980 `COM1` -> STM32 `A2/A3`
+  - `2`: Septentrio Mosaic X5 NMEA
+- For `GNSS_TYPE=1` or `GNSS_TYPE=2`, the filter expects one physical receiver link only:
+  - receiver serial output (`COM1`, `COM2`, or selected Mosaic stream) -> STM32 `A2/A3`
   - the STM32 reads spoofing/SNR data from that same stream
   - the STM32 forwards that same stream to the FC GPS UART on `A11/A12`
 - u-blox autoconfig behavior is controlled by `UBX_BAUD`:

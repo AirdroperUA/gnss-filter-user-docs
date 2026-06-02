@@ -6,6 +6,19 @@
 
 ---
 
+## v1.6.23 - 2026-06-02
+
+### Додано
+
+- Додано `GNSS_TYPE=2` для приймачів Septentrio Mosaic X5, налаштованих на NMEA.
+- Додано інструкцію налаштування Mosaic X5 у документацію конфігурації приймача.
+
+### Змінено
+
+- Mosaic X5 mode використовує passive NMEA autobaud і не надсилає receiver reset або auto-configuration команди. Якщо no-fix триває, фільтр лише повторює passive NMEA baud scan.
+
+---
+
 ## v1.6.22 - 2026-06-02
 
 Тестова прошивка для очищення u-blox autoconfig. v1.6.15 залишається стабільною

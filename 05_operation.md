@@ -52,11 +52,11 @@ The onboard status LED follows the same state shown in logs:
 
 ### Spoofing confidence score
 
-The firmware computes a weighted confidence score (0–100) from up to 8 detection signals. The score is visible in Mission Planner as `DR_CONF` in the named-value telemetry and is recorded in each spoofing event log entry. Higher values indicate more evidence of spoofing. The score adapts to available data — signals that require UBX-specific messages (NAV-SAT, NAV-CLOCK, NAV-DOP) are skipped for UM980/NMEA receivers.
+The firmware computes a weighted confidence score (0–100) from up to 8 detection signals. The score is visible in Mission Planner as `DR_CONF` in the named-value telemetry and is recorded in each spoofing event log entry. Higher values indicate more evidence of spoofing. The score adapts to available data — signals that require UBX-specific messages (NAV-SAT, NAV-CLOCK, NAV-DOP) are skipped for NMEA receivers such as UM980 and Mosaic X5.
 
 ### UBX-only vs universal detection
 
-Most detection signals work with both u-blox and UM980 receivers. The following advanced signals are **u-blox only** because they require UBX binary messages not available in NMEA:
+Most detection signals work with u-blox and passive NMEA receivers. The following advanced signals are **u-blox only** because they require UBX binary messages not available in NMEA:
 
 | Signal | Required UBX message |
 |--------|---------------------|
@@ -64,7 +64,7 @@ Most detection signals work with both u-blox and UM980 receivers. The following 
 | GDOP sudden change | NAV-DOP (gDOP field) |
 | Clock bias jump | NAV-CLOCK (clkB field) |
 
-Velocity-position consistency works with both receivers but is more precise with u-blox (uses NED velocity from NAV-PVT) vs UM980 (derives from RMC speed/course).
+Velocity-position consistency works with both receiver classes but is more precise with u-blox (uses NED velocity from NAV-PVT) than passive NMEA receivers (derived from RMC speed/course).
 
 ## Startup guard
 
@@ -125,8 +125,9 @@ Default `DR1_MAXMS=0` leaves this disabled. **Use with caution** — the default
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode.
+- `GNSS_TYPE=2`: Septentrio Mosaic X5 NMEA mode.
 - `GNSS_TYPE` changes require STM32 reboot.
-- In `GNSS_TYPE=1`, the STM32 expects one physical UM980 receiver stream on `A2/A3` and forwards that same stream to the FC GPS UART.
+- In `GNSS_TYPE=1` or `GNSS_TYPE=2`, the STM32 expects one physical NMEA receiver stream on `A2/A3` and forwards that same stream to the FC GPS UART.
 
 ## Log example (GCS)
 
@@ -137,7 +138,7 @@ The following screenshot shows expected status-text format in GCS messages.
   - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
   - GNSS summary line: `data=... fix=... nav=... SATS=... SNR=...`
 - `fix` is the age of the last valid position/altitude fix; `nav` is the age of the last valid GNSS nav-data frame seen by the filter.
-- `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With UM980/981, it means no `GSV` sentences are arriving.
+- `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With NMEA receivers such as UM980 or Mosaic X5, it means no `GSV` sentences are arriving.
 - On u-blox firmware v1.6.12+, persistent `SNR=NA` also emits `snrdbg n... a... l... s... g... o... b...`: NAV-SAT frames seen, frame age, last length, reported satellites, usable C/N0 satellites, oversize drops, malformed/checksum drops.
 - On u-blox firmware v1.6.15+, the stale-SNR recovery command re-enables NAV-SAT through legacy `CFG-MSG` and `CFG-VALSET` on UART1/UART2 only when NAV-SAT frames are missing or stale. A recovery line such as `NAV-SAT cfg ack legacy=1 u1=1 u2=1` shows which paths the receiver ACKed.
 - On u-blox firmware v1.6.16+, the recovery timer starts when SNR first goes stale, while the config rewrite still waits for NAV-SAT itself to go stale. This shortens intermittent `SNR=NA` recovery after a receiver-side NAV-SAT output change from roughly two stale windows to about one stale window.
@@ -197,6 +198,8 @@ The filter automatically attempts to recover a stuck GNSS receiver when no valid
 
 **UM980/981**: hot restart sends `RESET\r\n` over the GNSS UART; cold/factory restart sends `FRESET\r\n`.
 After `FRESET`, the STM32 waits for the receiver to boot and rescans the active GNSS baud.
+
+**Mosaic X5 / passive NMEA**: the STM32 does not send receiver reset commands. If no fix persists, it only re-runs the passive NMEA baud scan. Use Septentrio RxTools/Web UI to reset or reconfigure the receiver.
 
 Recovery status messages are logged to GCS (`INFO` for hot, `WARNING` for cold/retry).
 

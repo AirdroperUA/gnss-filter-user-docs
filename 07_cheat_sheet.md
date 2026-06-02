@@ -16,6 +16,7 @@ See the [Wiring Guide](#wiring) for full diagrams.
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
+- `GNSS_TYPE=2`: Septentrio Mosaic X5 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
 - `FCGPS_UART=1`: A11/A12 active as FC GPS UART (normal operation, default).
 - `FCGPS_UART=0`: A11/A12 released into input mode. Do not use during flight.
 - After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).
@@ -96,7 +97,7 @@ See [Tuning](#tuning) to adjust these thresholds.
 
 ## 7b) Spoofing Confidence Score (v1.5.5+)
 
-The filter computes `DR_CONF` (0–100) combining 8 detection signals. Visible in Mission Planner named-value telemetry and in event logs. Higher = more evidence of spoofing. u-blox receivers use all 8 signals; UM980 uses the subset available via NMEA.
+The filter computes `DR_CONF` (0–100) combining 8 detection signals. Visible in Mission Planner named-value telemetry and in event logs. Higher = more evidence of spoofing. u-blox receivers use all 8 signals; passive NMEA receivers such as UM980 and Mosaic X5 use the subset available via NMEA.
 
 ## 8) Status Log Messages
 

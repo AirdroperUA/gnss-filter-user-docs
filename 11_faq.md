@@ -23,6 +23,7 @@ Rover). The filter communicates via standard MAVLink2 telemetry.
 
 - **u-blox**: M8, M9, M10, F9, F10 families (`GNSS_TYPE=0`)
 - **Unicore**: UM980, UM981, UM982 (`GNSS_TYPE=1`) — requires one-time setup, see [Receiver Config](#receiver-config)
+- **Septentrio**: Mosaic X5 (`GNSS_TYPE=2`) — NMEA mode, requires one-time setup, see [Receiver Config](#receiver-config)
 
 ### Can I use it with PX4 or iNav?
 
@@ -80,7 +81,7 @@ all devices share a common ground. See the [Wiring Guide](#wiring) for details.
 1. Check wiring — TX and RX must be crossed (see the [Wiring Guide](#wiring))
 2. Check that `SERIAL_BAUD` matches (460800 for GPS UART, 115200 for MAVLink)
 3. Set `FCGPS_FWD=1` temporarily to force the FC GPS UART on, raw-forward GPS, and verify data reaches the FC, even before the filter accepts the fix. Return it to `0` before flight.
-4. For UM980: make sure `GPS_AUTO_CONFIG=0` in ArduPilot (see [Receiver Config](#receiver-config))
+4. For UM980 or Mosaic X5: make sure the receiver is pre-configured and ArduPilot is not overwriting that profile (see [Receiver Config](#receiver-config))
 
 If still stuck, see the [Wiring Debug](#wiring-debug) guide for step-by-step troubleshooting.
 
@@ -88,6 +89,7 @@ If still stuck, see the [Wiring Debug](#wiring-debug) guide for step-by-step tro
 
 - If your receiver is u-blox (NEO-M8, NEO-M9, ZED-F9P, etc.): `GNSS_TYPE=0`
 - If your receiver is Unicore UM980, UM981, or UM982: `GNSS_TYPE=1`
+- If your receiver is Septentrio Mosaic X5 outputting NMEA: `GNSS_TYPE=2`
 
 See [Setup & Flash](#setup-flash) for how to change this parameter.
 
@@ -96,6 +98,10 @@ See [Setup & Flash](#setup-flash) for how to change this parameter.
 Yes. The filter does **not** auto-configure the UM980. You must apply the
 configuration profile via UPrecise before first flight. See
 [Receiver Config](#receiver-config) for the exact commands.
+
+### Do I need to configure my Mosaic X5 receiver?
+
+Yes. The filter does **not** auto-configure Mosaic X5. Configure the receiver with Septentrio RxTools/Web UI so it outputs NMEA `GGA`, `RMC`, `GSA`, `GSV`, and `VTG` on the serial stream connected to STM32, then save the profile to boot.
 
 ### Do I need to configure my u-blox receiver?
 
@@ -162,13 +168,13 @@ Starting with v1.5.5, the filter computes a 0–100 confidence score from up to
 is sent as `DR_CONF` in MAVLink telemetry and logged in each spoofing event.
 
 u-blox receivers use all 8 signals (SNR, pseudorange residual, SNR temporal
-correlation, heading, GDOP, time, velocity-position, clock bias). UM980
-receivers use the signals available via NMEA (~5 of 8). The score adapts
+correlation, heading, GDOP, time, velocity-position, clock bias). Passive
+NMEA receivers such as UM980 and Mosaic X5 use the signals available via NMEA (~5 of 8). The score adapts
 automatically — unavailable signals are excluded from the weighted average.
 
-### Do all detection features work with UM980?
+### Do all detection features work with NMEA receivers?
 
-Most features work with both u-blox and UM980. Three advanced signals are
+Most features work with u-blox, UM980, and Mosaic X5. Three advanced signals are
 **u-blox only** because they require UBX binary protocol data:
 
 - **Pseudorange residual analysis** (from NAV-SAT)

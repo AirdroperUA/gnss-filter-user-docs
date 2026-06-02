@@ -8,6 +8,64 @@
 |---|---|---|
 | `0` | u-blox M8 / M9 / M10 / F9 / F10, а також u-blox-сумісні gateway-модулі | `1` (AUTO) або `2` (u-blox) |
 | `1` | Unicore UM980 / UM981 / UM982 | `24` (UnicoreNMEA) |
+| `2` | Septentrio Mosaic X5 | тип GPS NMEA |
+
+---
+
+## Septentrio Mosaic X5
+
+**Потрібна ручна попередня конфігурація.** STM32-фільтр підтримує Mosaic X5
+через стандартний NMEA-вихід. У цьому релізі він не парсить Septentrio SBF і
+**не** надсилає до приймача Septentrio-команди конфігурації або reset.
+Налаштуйте приймач через Septentrio RxTools/Web UI перед першим польотом.
+
+### Крок 1 — Налаштування Mosaic X5 через RxTools/Web UI
+
+Налаштуйте serial-потік, підключений до STM32 `A2/A3`:
+
+| Налаштування | Рекомендоване значення |
+|---|---|
+| Baud | `460800` |
+| Формат serial | 8 data bits, no parity, 1 stop bit |
+| Режим входу/виходу | NMEA output на вибраному stream |
+| Версія NMEA | 4.10 або новіша, якщо доступна |
+| Збереження | Зберегти current configuration у boot/nonvolatile configuration |
+
+Увімкніть такі NMEA-речення на вибраному вихідному stream:
+
+| Речення | Частота | Для чого використовується |
+|---|---|---|
+| `GGA` | бажано 5 Гц | fix, позиція, висота, супутники, HDOP |
+| `RMC` | бажано 5 Гц | дата/час, резервна швидкість/курс |
+| `GSA` | 1-5 Гц | тип fix та DOP |
+| `GSV` | 1-5 Гц | SNR супутників (`SNR=...`) |
+| `VTG` | бажано 5 Гц | резервна швидкість/курс |
+
+Еквівалентні сімейства команд Septentrio: `setCOMSettings`,
+`setDataInOut`, `setNMEAVersion`, `setNMEAOutput`, `exeCopyConfigFile`.
+Назва stream залежить від конкретного порту, тому краще використовувати
+RxTools/Web UI, якщо у вас ще немає перевіреного command script.
+
+### Крок 2 — Налаштування STM32-фільтра
+
+| Параметр | Значення | Примітки |
+|---|---|---|
+| `GNSS_TYPE` | `2` | Вибирає passive NMEA шлях Mosaic X5, потрібне перезавантаження |
+
+### Крок 3 — Налаштування ArduPilot FC
+
+Встановіть GPS-драйвер FC у режим NMEA та узгодьте baud GPS-порту FC з потоком
+приймача, зазвичай `SERIAL3_BAUD=460`. Вимкніть auto-config з боку FC, якщо
+ваша конфігурація ArduPilot намагається переписувати порти або NMEA-вихід
+приймача.
+
+### Покриття функцій виявлення
+
+Mosaic X5 використовує те саме passive NMEA покриття, що й шлях UM980/NMEA:
+стрибок позиції, висота, SNR, розворот курсу, geo-fence, GPS-час і
+velocity-position consistency працюють з NMEA-потоку. UBX-only сигнали
+(pseudorange residual, clock bias і UBX GDOP jump) недоступні до появи
+native Septentrio SBF parser.
 
 ---
 

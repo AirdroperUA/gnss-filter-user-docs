@@ -6,10 +6,30 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.22 - 2026-06-02
+
+Firmware-only u-blox autoconfig cleanup build. v1.6.15 remains the stable
+server default; choose `v1.6.22 (dev)` only when support asks you to test it.
+
+### Firmware
+
+- **Autoconfig starts from receiver defaults**: in direct u-blox mode with
+  `UBX_BAUD=0`, boot now forces the receiver to the target baud, clears/loads
+  receiver defaults, rescans baud, then applies and saves the filter's UBX
+  profile.
+- **Manual baud/gateway mode is excluded**: if `UBX_BAUD>0`, the filter skips
+  the boot clear/autoconfig path and keeps using the configured baud directly.
+  This preserves intentional operator/vendor profiles.
+- **Expected UX**: direct F9/F10/M9/M10 receivers should recover from stale
+  saved u-center or vendor settings without needing a manual `UBX_RESET=3`
+  bench step first.
+
+---
+
 ## v1.6.21 - 2026-06-02
 
 Firmware-only u-blox SNR recovery correction. v1.6.15 remains the stable server
-default; choose `v1.6.21 (dev)` only when support asks you to test it.
+default. Superseded by `v1.6.22 (dev)`.
 
 ### Firmware
 

@@ -172,15 +172,18 @@ them at boot. For this class of module:
 
 ### Default auto-config profile (recommended, `UBX_BAUD = 0`)
 
-Leave the u-blox at factory defaults if possible. At boot the filter scans common baud
-rates and repeatedly sends this port command until the receiver moves to `460800`:
+Use this mode for direct single-receiver u-blox modules where the filter owns
+the receiver profile. At boot the filter scans common baud rates and repeatedly
+sends this port command until the receiver moves to `460800`:
 
 ```text
 UBX-CFG-PRT    UART1 460800 8N1 in=UBX out=UBX
 ```
 
-Once the filter has switched its own UART to `460800`, it applies the following
-ACK-verified profile:
+In firmware v1.6.22+, once the filter has switched its own UART to `460800`,
+it first clears/loads the receiver defaults, then runs the baud-forcing scan
+again because the default load can move the receiver UART back to a factory
+baud. After the second scan, it applies the following ACK-verified profile:
 
 ```text
 UBX-CFG-MSG    NMEA-GGA  off
@@ -205,7 +208,9 @@ UBX-CFG-TMODE3 mode=disabled
 UBX-CFG-CFG    save current configuration to BBR/Flash
 ```
 
-Nothing to do on the receiver side.
+Nothing to do on the receiver side for direct modules. Do not use this mode
+for gateway modules or receivers with an intentional custom profile; set
+`UBX_BAUD` to the receiver baud so the boot clear/autoconfig path is skipped.
 
 **F10 / M10 note (firmware 1.6.15+):** newer u-blox generations use the
 `CFG-VALSET` configuration interface and do not reliably respond to the

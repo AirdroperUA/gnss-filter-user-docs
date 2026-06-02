@@ -6,10 +6,26 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.21 - 2026-06-02
+
+Firmware-only u-blox SNR recovery correction. v1.6.15 remains the stable server
+default; choose `v1.6.21 (dev)` only when support asks you to test it.
+
+### Firmware
+
+- **Corrected fast NAV-SAT recovery gate**: v1.6.20 shortened the stale-SNR
+  timer, but the old 30-second NAV-SAT freshness gate could still block the
+  fast path. v1.6.21 uses the same 8-second window for both checks when a
+  healthy u-blox fix already exists.
+- **No change to startup/no-fix behavior**: no-fix, zero-C/N0, and startup
+  acquisition cases still use the slower 30-second path.
+
+---
+
 ## v1.6.20 - 2026-06-02
 
 Firmware-only u-blox SNR recovery test build. v1.6.15 remains the stable
-server default; choose `v1.6.20 (dev)` only when support asks you to test it.
+server default. Superseded by `v1.6.21 (dev)`.
 
 ### Firmware
 

@@ -104,8 +104,8 @@ The filter computes `DR_CONF` (0–100) combining 8 detection signals. Visible i
 In Mission Planner `Messages`, filter status appears about every **10 seconds** (configurable via `LOG_MS`):
 
 ```
-ARM=... DR=... BLEND=... LAT=... LONG=...
 data=... fix=... nav=... SATS=... SNR=...
+ARM=... DR=... BLEND=... LAT=... LONG=...
 ```
 
 See [Operation](#operation) for how to interpret these messages.

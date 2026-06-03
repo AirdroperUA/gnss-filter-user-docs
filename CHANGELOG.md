@@ -6,6 +6,20 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## v1.6.24 - 2026-06-03
+
+Firmware-only status-log cleanup build.
+
+### Changed
+
+- Periodic status logs now emit only one `data=...` line and one
+  `ARM=... DR=...` line per `LOG_MS` interval, instead of duplicating each
+  line under both MAVLink identities.
+- The normal periodic `fcgps tx=... rx=...` diagnostic line was removed to keep
+  Mission Planner Messages readable during healthy operation.
+
+---
+
 ## v1.6.23 - 2026-06-02
 
 Official stable release, promoted on 2026-06-03 after field validation of the

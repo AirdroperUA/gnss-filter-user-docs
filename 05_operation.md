@@ -135,14 +135,14 @@ The following screenshot shows expected status-text format in GCS messages.
 
 - In Mission Planner `Messages`, these periodic STM32 filter logs normally appear about once every **10 seconds** by default.
 - You typically see two back-to-back lines in the same moment:
-  - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
   - GNSS summary line: `data=... fix=... nav=... SATS=... SNR=...`
+  - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 - `fix` is the age of the last valid position/altitude fix; `nav` is the age of the last valid GNSS nav-data frame seen by the filter.
 - `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With NMEA receivers such as UM980 or Mosaic X5, it means no `GSV` sentences are arriving.
 - On u-blox firmware v1.6.12+, persistent `SNR=NA` also emits `snrdbg n... a... l... s... g... o... b...`: NAV-SAT frames seen, frame age, last length, reported satellites, usable C/N0 satellites, oversize drops, malformed/checksum drops.
 - On u-blox firmware v1.6.15+, the stale-SNR recovery command re-enables NAV-SAT through legacy `CFG-MSG` and `CFG-VALSET` on UART1/UART2 only when NAV-SAT frames are missing or stale. A recovery line such as `NAV-SAT cfg ack legacy=1 u1=1 u2=1` shows which paths the receiver ACKed.
 - On u-blox firmware v1.6.16+, the recovery timer starts when SNR first goes stale, while the config rewrite still waits for NAV-SAT itself to go stale. This shortens intermittent `SNR=NA` recovery after a receiver-side NAV-SAT output change from roughly two stale windows to about one stale window.
-- On u-blox firmware v1.6.18+, normal protected mode drains FC GPS back-channel bytes instead of forwarding them to the receiver. `fcgps rx` can still increase, but those bytes are counted and discarded so ArduPilot auto-config writes cannot turn off `NAV-SAT`.
+- On u-blox firmware v1.6.18+, normal protected mode drains FC GPS back-channel bytes instead of forwarding them to the receiver, so ArduPilot auto-config writes cannot turn off `NAV-SAT`.
 - On u-blox firmware v1.6.19+, if the receiver is alive but remains at `SATS=0` before DR1, the filter automatically sends a u-blox cold start plus STM32 reinit after about 2 minutes. It does not run `UBX_RESET=3` automatically. After that automatic retry it logs `If stuck: bench UBX_RESET=3`; use the bench-only recovery steps below only if acquisition still does not recover.
 - On u-blox firmware v1.6.21+, if a healthy fix already exists and NAV-SAT later disappears, the first NAV-SAT re-enable runs after about 8 seconds instead of the normal 30-second stale-SNR window. Startup and no-fix cases still use the slower path.
 - On u-blox firmware v1.6.22+, direct autoconfig mode (`UBX_BAUD=0`) clears/loads receiver defaults at boot, rescans the receiver baud, then applies and saves the filter's UBX profile. Manual baud mode (`UBX_BAUD>0`) skips this boot clear and leaves the receiver profile under operator/vendor control.

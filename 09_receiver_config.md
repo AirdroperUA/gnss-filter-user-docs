@@ -288,8 +288,7 @@ is missing or stale.
   `u-blox`, not NMEA.
 - Firmware v1.6.18+ protects this receiver profile in normal mode by draining
   FC GPS back-channel writes instead of forwarding them into the receiver.
-  `fcgps rx` can still increase in logs, but ArduPilot auto-config writes
-  cannot disable `NAV-SAT`.
+  ArduPilot auto-config writes cannot disable `NAV-SAT`.
 
 ### Manual baud mode (`UBX_BAUD` set to receiver baud rate)
 

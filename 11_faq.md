@@ -150,8 +150,8 @@ automatically tries to restart the GPS receiver.
 
 Yes. The filter sends status messages via MAVLink every 10 seconds
 (configurable via `LOG_MS`). In Mission Planner's Messages tab you'll see:
-- Mode/state: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 - GNSS summary: `data=... fix=... nav=... SATS=... SNR=...`
+- Mode/state: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 
 See the [Cheat Sheet](#cheat-sheet) for a quick reference on reading these messages.
 

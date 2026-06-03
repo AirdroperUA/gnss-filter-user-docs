@@ -60,7 +60,7 @@ if your ArduPilot setup attempts to rewrite NMEA receiver settings.
 
 ### Detection feature coverage
 
-Mosaic X5 uses the same passive NMEA coverage as the UM980 NMEA path:
+Mosaic X5 uses the same passive NMEA coverage as the UM980/UM981/UM982 NMEA path:
 position jump, altitude, SNR, heading reversal, geo-fence, GPS time, and
 velocity-position consistency work from the NMEA stream. UBX-only signals
 (pseudorange residual, GNSS clock bias, and UBX GDOP jump) are not available
@@ -155,12 +155,12 @@ MODE ROVER UAV HIGHDYN
   parse these sentences. The driver gets DOP from GGA and accuracy data from
   AGRICA. Omitting them saves serial bandwidth.
 
-### Detection feature coverage (UM980 vs u-blox)
+### Detection feature coverage (passive NMEA vs u-blox)
 
-The UM980/NMEA path supports all core detection features (position jump,
-altitude, SNR, heading reversal, geo-fence, GPS time). However, three
-advanced signals are u-blox only because NMEA does not provide the
-underlying data:
+The passive NMEA path used by UM980/UM981/UM982 and Mosaic X5 supports all
+core detection features (position jump, altitude, SNR, heading reversal,
+geo-fence, GPS time). However, three advanced signals are u-blox only because
+NMEA does not provide the underlying data:
 
 - **Pseudorange residual analysis** — requires UBX NAV-SAT `prRes` field
 - **GDOP sudden change** — requires UBX NAV-DOP `gDOP` field (NMEA GSA only has PDOP/HDOP/VDOP)

@@ -55,12 +55,13 @@ Reboot is not required after every parameter write.
 2. `02_wiring.md` - physical wiring for STM32, GNSS receiver, and FC.
 3. `03_wiring_debug.md` - diagnose GNSS/GPS/MAVLink wiring issues.
 4. `04_setup_and_flash.md` - setup and FC serial configuration.
-5. `05_operation.md` - runtime behavior (DR0/DR1, GNSS forwarding, event pulse).
-6. `06_tuning.md` - live tuning parameters and Mission Planner workflow.
-7. `07_cheat_sheet.md` - one-page quick reference for field checks and actions.
-8. `08_lab_validation.md` - safe lab validation workflow before real flights.
-9. `09_receiver_config.md` - GNSS receiver configuration for u-blox, UM980, and Mosaic X5 (profiles, ArduPilot GPS type settings).
-10. `10_self_install.md` - self-install guide for flashing firmware onto a blank board using a license key.
-11. `11_faq.md` - frequently asked questions (hardware, setup, operation, receiver modes, licensing).
-12. `12_video_tutorials.md` - YouTube tutorial library with previews, embedded players, and related written guides.
-13. `../../CHANGELOG.md` - full firmware version history and release notes.
+5. `04_recovery.md` - recovery page and support escalation notes.
+6. `05_operation.md` - runtime behavior (DR0/DR1, GNSS forwarding, event pulse).
+7. `06_tuning.md` - live tuning parameters and Mission Planner workflow.
+8. `07_cheat_sheet.md` - one-page quick reference for field checks and actions.
+9. `08_lab_validation.md` - safe lab validation workflow before real flights.
+10. `09_receiver_config.md` - GNSS receiver configuration for u-blox, UM980, and Mosaic X5 (profiles, ArduPilot GPS type settings).
+11. `10_self_install.md` - self-install guide for flashing firmware onto a blank board using a license key.
+12. `11_faq.md` - frequently asked questions (hardware, setup, operation, receiver modes, licensing).
+13. `12_video_tutorials.md` - YouTube tutorial library with previews, embedded players, and related written guides.
+14. `CHANGELOG.md` - full firmware version history and release notes.

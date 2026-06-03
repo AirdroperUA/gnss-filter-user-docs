@@ -162,8 +162,8 @@ See [Operation](#operation) for the full state machine and [Tuning](#tuning) to 
 
 The filter computes a confidence score (0–100) combining up to 8 independent detection signals. A higher score means more signals indicate spoofing. The score is sent as `DR_CONF` in MAVLink telemetry and recorded in each spoofing event log.
 
-| Signal | Weight | u-blox | UM980 |
-|--------|--------|--------|-------|
+| Signal | Weight | u-blox | NMEA receivers (UM980 / Mosaic X5) |
+|--------|--------|--------|------------------------------------|
 | SNR span anomaly | 20 | Yes | Yes |
 | Pseudorange residual stddev | 15 | Yes | No |
 | SNR temporal correlation | 12 | Yes | Partial |
@@ -173,7 +173,7 @@ The filter computes a confidence score (0–100) combining up to 8 independent d
 | Velocity-position consistency | 10 | Yes | Partial |
 | Clock bias jump | 11 | Yes | No |
 
-Signals marked "No" or "Partial" for UM980 are skipped in the weighted average — the score adapts to available data. u-blox receivers get a more comprehensive confidence score due to richer protocol data.
+Signals marked "No" or "Partial" for passive NMEA receivers are skipped in the weighted average — the score adapts to available data. u-blox receivers get a more comprehensive confidence score due to richer protocol data.
 
 ## 6) Returning from DR1 (rejoin)
 
@@ -244,4 +244,4 @@ u-blox, UM980/UM981/UM982, and Septentrio Mosaic X5 are supported. For areas wit
 
 **u-blox** is still a great choice and is auto-configured by the filter at boot — just plug it in.
 
-For UM980 or Mosaic setup instructions, see [Receiver Config](#receiver-config). For general wiring, see the [Wiring Guide](#wiring).
+For UM980/UM981/UM982 or Mosaic X5 setup instructions, see [Receiver Config](#receiver-config). For general wiring, see the [Wiring Guide](#wiring).

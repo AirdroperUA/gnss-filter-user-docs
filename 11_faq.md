@@ -150,8 +150,8 @@ automatically tries to restart the GPS receiver.
 
 Yes. The filter sends status messages via MAVLink every 10 seconds
 (configurable via `LOG_MS`). In Mission Planner's Messages tab you'll see:
-- Mode/state: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 - GNSS summary: `data=... fix=... nav=... SATS=... SNR=...`
+- Mode/state: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 
 See the [Cheat Sheet](#cheat-sheet) for a quick reference on reading these messages.
 
@@ -174,15 +174,16 @@ automatically — unavailable signals are excluded from the weighted average.
 
 ### Do all detection features work with NMEA receivers?
 
-Most features work with u-blox, UM980, and Mosaic X5. Three advanced signals are
-**u-blox only** because they require UBX binary protocol data:
+Most features work with u-blox and passive NMEA receivers such as
+UM980/UM981/UM982 and Mosaic X5. Three advanced signals are **u-blox only**
+because they require UBX binary protocol data:
 
 - **Pseudorange residual analysis** (from NAV-SAT)
 - **GDOP sudden change detection** (from NAV-DOP)
 - **Clock bias jump detection** (from NAV-CLOCK)
 
 The core protections (position jump, altitude, SNR, heading, time, geo-fence)
-work with both receivers.
+work with both receiver classes.
 
 ### What are the new DR1_MAXMS and FENCE_RAD parameters?
 

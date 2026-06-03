@@ -198,7 +198,7 @@ The filter automatically attempts to recover a stuck GNSS receiver when no valid
 
 **u-blox**: hot restart uses UBX `CFG-RST` with `navBbrMask=0x0000`; cold restart uses `navBbrMask=0xFFFF`.
 
-**UM980/981**: hot restart sends `RESET\r\n` over the GNSS UART; cold/factory restart sends `FRESET\r\n`.
+**UM980/981/982**: hot restart sends `RESET\r\n` over the GNSS UART; cold/factory restart sends `FRESET\r\n`.
 After `FRESET`, the STM32 waits for the receiver to boot and rescans the active GNSS baud.
 
 **Mosaic X5 / passive NMEA**: the STM32 does not send receiver reset commands. If no fix persists, it only re-runs the passive NMEA baud scan. Use Septentrio RxTools/Web UI to reset or reconfigure the receiver.

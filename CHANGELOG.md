@@ -8,6 +8,9 @@ All notable firmware and tool changes are documented here.
 
 ## v1.6.23 - 2026-06-02
 
+Official stable release, promoted on 2026-06-03 after field validation of the
+u-blox F9P SNR recovery path and Mosaic X5 passive-NMEA support.
+
 ### Added
 
 - Added `GNSS_TYPE=2` for Septentrio Mosaic X5 receivers configured for NMEA.
@@ -21,8 +24,9 @@ All notable firmware and tool changes are documented here.
 
 ## v1.6.22 - 2026-06-02
 
-Firmware-only u-blox autoconfig cleanup build. v1.6.15 remains the stable
-server default; choose `v1.6.22 (dev)` only when support asks you to test it.
+Firmware-only u-blox autoconfig cleanup build. At release time, v1.6.15
+remained the stable server default; choose `v1.6.22 (dev)` only when support
+asks you to test it.
 
 ### Firmware
 
@@ -41,8 +45,8 @@ server default; choose `v1.6.22 (dev)` only when support asks you to test it.
 
 ## v1.6.21 - 2026-06-02
 
-Firmware-only u-blox SNR recovery correction. v1.6.15 remains the stable server
-default. Superseded by `v1.6.22 (dev)`.
+Firmware-only u-blox SNR recovery correction. At release time, v1.6.15
+remained the stable server default. Superseded by `v1.6.22 (dev)`.
 
 ### Firmware
 
@@ -57,8 +61,8 @@ default. Superseded by `v1.6.22 (dev)`.
 
 ## v1.6.20 - 2026-06-02
 
-Firmware-only u-blox SNR recovery test build. v1.6.15 remains the stable
-server default. Superseded by `v1.6.21 (dev)`.
+Firmware-only u-blox SNR recovery test build. At release time, v1.6.15
+remained the stable server default. Superseded by `v1.6.21 (dev)`.
 
 ### Firmware
 
@@ -75,8 +79,9 @@ server default. Superseded by `v1.6.21 (dev)`.
 
 ## v1.6.19 - 2026-06-02
 
-Firmware-only u-blox no-fix recovery test build. v1.6.15 remains the stable
-server default; choose `v1.6.19 (dev)` only when support asks you to test it.
+Firmware-only u-blox no-fix recovery test build. At release time, v1.6.15
+remained the stable server default; choose `v1.6.19 (dev)` only when support
+asks you to test it.
 
 ### Firmware
 
@@ -97,8 +102,9 @@ server default; choose `v1.6.19 (dev)` only when support asks you to test it.
 
 ## v1.6.18 - 2026-06-02
 
-Firmware-only u-blox SNR stability test build. v1.6.15 remains the stable
-server default; choose `v1.6.18 (dev)` only when support asks you to test it.
+Firmware-only u-blox SNR stability test build. At release time, v1.6.15
+remained the stable server default; choose `v1.6.18 (dev)` only when support
+asks you to test it.
 
 ### Firmware
 
@@ -418,8 +424,8 @@ SNR recovery behavior and tightens DR1 timing semantics.
 
 ## v1.6.16 — 2026-05-21
 
-Dev/test u-blox SNR recovery timing update. v1.6.15 remains the stable
-server default; v1.6.16 is selectable only when you explicitly choose the
+Dev/test u-blox SNR recovery timing update. At release time, v1.6.15 remained
+the stable server default; v1.6.16 is selectable only when you explicitly choose the
 `v1.6.16 (dev)` firmware entry in the provisioning app. No wiring or tuning
 change is required.
 

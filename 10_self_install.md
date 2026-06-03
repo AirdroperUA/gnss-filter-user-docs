@@ -290,7 +290,7 @@ permanently removed from the firmware in v1.6.8.
 
 ### EW interference map
 
-The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public live map showing global GNSS interference from multiple sources (aircraft ADS-B, marine AIS, Ukraine air raid alerts, 61 known EW zones, crowdsourced reports, and deployed board events). No login required. You can also embed it on your site via [gps.airdroper.org/ew-map/embed](https://gps.airdroper.org/ew-map/embed), subscribe to email/Telegram alerts, or use the public API for route risk assessment. See the [FAQ](#faq) for details.
+The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public live map showing global GNSS interference from multiple sources (aircraft ADS-B, marine AIS, Ukraine air raid alerts, 61 known EW zones, GDELT conflict events, NASA FIRMS thermal anomalies, and crowdsourced reports). No login required. You can also embed it on your site via [gps.airdroper.org/ew-map/embed](https://gps.airdroper.org/ew-map/embed), subscribe to email/Telegram alerts, or use the public API for route risk assessment. See the [FAQ](#faq) for details.
 
 ---
 

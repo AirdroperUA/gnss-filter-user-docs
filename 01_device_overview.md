@@ -184,7 +184,7 @@ The filter returns to DR0 (normal GPS) only after all quality checks pass for a 
 - `FCGPS_FWD=1` is for diagnostics only — it forces the FC GPS UART on, raw-forwards GPS to the FC, and bypasses DR1, the boot north gate, and the hemisphere fence (see [Cheat Sheet](#cheat-sheet)). Return it to `0` before flight.
 - `BOOT_DLYMS` delays DR triggers right after power-up to reduce startup false trips.
 - The GCS map can show GPS jumps during spoofing; use DR state and the [Cloud Dashboard](https://gps.airdroper.org/dashboard) as primary truth.
-- The [EW Interference Map](https://gps.airdroper.org/ew-map) shows live global GNSS interference from multiple sources (ADS-B, AIS, air raid alerts, board events) — check it before flying in unfamiliar areas.
+- The [EW Interference Map](https://gps.airdroper.org/ew-map) shows live global GNSS interference from multiple public sources (ADS-B, AIS, air raid alerts, known EW zones, conflict feeds, thermal anomalies, and crowdsourced reports) — check it before flying in unfamiliar areas.
 - Save a baseline parameter profile before changing field settings.
 
 ## 8) Electronic warfare systems compatibility

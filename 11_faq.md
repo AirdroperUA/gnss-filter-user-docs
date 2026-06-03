@@ -276,7 +276,8 @@ A live web map at [gps.airdroper.org/ew-map](https://gps.airdroper.org/ew-map) s
 - **Marine AIS vessel data** — detects ships reporting GPS failures in the Baltic and beyond
 - **Ukraine air raid alerts** — real-time per-oblast alert status
 - **61 known EW zones** — static military interference zones worldwide, cross-referenced with live data
-- **Board events** — spoofing events from deployed GNSS Filter boards
+- **GDELT conflict events** — recent conflict signals that can correlate with EW activity
+- **NASA FIRMS thermal anomalies** — fire/thermal detections that can help confirm active risk areas
 - **Crowdsourced reports** — user-submitted interference sightings
 
 The map is free and requires no login. Data refreshes automatically.

@@ -48,7 +48,7 @@ The onboard status LED follows the same state shown in logs:
 - Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius (up to 2000 km) triggers DR1.
 - Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.
 - GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
-- DR1 max duration (`DR1_MAXMS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered. Use for missions that cannot tolerate indefinite GPS blocking.
+- DR1 max duration (`DR1_MAXMS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered, but only after `DR_LOCK_MS` has elapsed. Use for missions that cannot tolerate indefinite GPS blocking.
 
 ### Spoofing confidence score
 
@@ -114,7 +114,9 @@ Symptoms in logs: no specific message, but a `DR` that sticks across a MAVLink d
 
 By default, once DR1 latches, the filter stays in DR1 until the normal rejoin gates clear — there is no time-based forced exit. If your mission profile cannot tolerate an open-ended DR1 (e.g. long-range flight where losing GPS for the whole remaining leg is worse than accepting partially-recovered GPS), set `DR1_MAXMS` to a non-zero millisecond value. Once reached, the filter force-exits DR1 and resumes forwarding even if spoof confidence is still high.
 
-Default `DR1_MAXMS=0` leaves this disabled. **Use with caution** — the default is safer for most missions.
+`DR1_MAXMS` cannot override `DR_LOCK_MS`: if the max timer expires first, the filter still stays in DR1 until the lock window finishes. Default `DR1_MAXMS=0` leaves the max-duration exit disabled. **Use with caution** — the default is safer for most missions.
+
+Bench testing can use short DR lock values so you do not wait minutes between trials. After bench validation, set `DR_LOCK_MS=120000` or higher for real flights so every DR1 trigger holds protection for at least 2 minutes before any rejoin or forced-exit path can restore DR0.
 
 ## GNSS forwarding diagnostics
 

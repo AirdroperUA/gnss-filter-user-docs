@@ -88,7 +88,7 @@ The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tu
 - **RJ_LOIT_GM**: Loiter gate override distance. It replaces the dynamic gate after the loiter hold time. Increase for very slow loitering; decrease for tighter protection.
 - **RJ_STAB_MS**: Required stability window before rejoin/blend starts. Longer values improve safety but delay rejoin.
 - **BLEND_MS**: Duration of the DR1 to DR0 blend. Longer blends smooth transitions; shorter blends rejoin faster.
-- **DR_LOCK_MS**: Minimum lockout time after entering DR1. During this time the rejoin stability timer, GNSS blend, and DR0 exit are blocked even if GNSS looks good. It also takes precedence over `DR1_MAXMS`, so DR1 cannot be force-exited before this lock window expires. Increase to avoid rapid flip-flopping; decrease for faster recovery.
+- **DR_LOCK_MS**: Minimum lockout time after entering DR1. During this time the rejoin stability timer, GNSS blend, and DR0 exit are blocked even if GNSS looks good. It also takes precedence over `DR1_MAXMS`, so DR1 cannot be force-exited before this lock window expires. Short values are useful for bench testing; after bench validation, set `DR_LOCK_MS=120000` or higher for real flights unless you intentionally need faster recovery. This keeps DR1 active for at least 2 minutes after any trigger and avoids rapid DR0/DR1 flip-flopping.
 - **DR1_MAXMS**: Hard upper bound on how long the filter is allowed to stay latched in DR1 after the `DR_LOCK_MS` minimum has elapsed. When non-zero, DR1 is forcibly exited after this many milliseconds regardless of spoof confidence, but not before the lock window. Default `0` = disabled (infinite latch — the filter stays in DR1 until rejoin gates clear normally). Use a non-zero value only if your mission profile prefers "possibly-wrong GPS" over "inertial-only forever" — e.g. a long-range flight where losing GPS for the entire remaining leg is worse than accepting a partially-recovered spoofed signal. Most users should leave this at `0`.
 
 ### Spoof guard (position jump)
@@ -326,6 +326,6 @@ Rejoin can start as soon as GNSS quality and geometry checks are stable for `RJ_
 
 - `RJ_REQEKF=1`
 - `EKF_OKRJMS=5000`
-- `DR_LOCK_MS=15000`
+- `DR_LOCK_MS=120000`
 
-Even with good GNSS, DR0 restore waits for both EKF-good window and lockout expiry.
+Even with good GNSS, DR0 restore waits for both the EKF-good window and the lockout expiry. Use shorter values only for bench testing; after bench validation, `120000` ms is the recommended minimum field setting.

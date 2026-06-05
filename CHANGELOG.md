@@ -19,7 +19,7 @@ All notable firmware and tool changes are documented here.
 
 ## v1.6.24 - 2026-06-03
 
-Firmware-only status-log cleanup build.
+Official stable release, promoted on 2026-06-06 after field validation.
 
 ### Changed
 

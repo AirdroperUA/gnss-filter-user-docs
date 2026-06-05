@@ -70,6 +70,11 @@ See the [Device Overview](#device-overview) for a full explanation.
 5. Click `Write Params`
 6. Click `Refresh Params` to confirm
 
+Optional but recommended: install
+[AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod)
+first so Mission Planner shows descriptions, ranges, units, and option labels
+instead of raw parameter names only.
+
 ## 6) Parameter Write Rules
 
 - If write does not apply on first click, repeat `Write Params`. 1-2 attempts are normal; 3+ suggests a very busy MAVLink link.

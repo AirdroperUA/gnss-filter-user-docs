@@ -67,6 +67,11 @@
 5. Натисніть `Write Params`
 6. Натисніть `Refresh Params` для перевірки
 
+Необов'язково, але рекомендовано: спочатку встановіть
+[AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod),
+щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів,
+а не лише сирі назви параметрів.
+
 ## 6) Правила запису параметрів
 
 - Читання і запис параметрів виконуються у Mission Planner (Full Parameter List).

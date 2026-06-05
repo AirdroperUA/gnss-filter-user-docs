@@ -33,6 +33,9 @@ Video tutorials:
 2. **[AirDroper GNSS Filter](https://gps.airdroper.org/download/app)** app — download from the link.
    This is the graphical Windows tool that handles everything for you.
 
+3. **[AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod)** ZIP — optional but recommended.
+   It installs Mission Planner descriptions, ranges, units, option labels, and ready `.param` presets for the STM32 filter parameters.
+
 ---
 
 ## Step 1 — Wire the ST-Link

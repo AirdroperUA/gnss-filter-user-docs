@@ -6,6 +6,17 @@
 
 ---
 
+## Документація/інструменти - 2026-06-05
+
+### Додано
+
+- Опубліковано ZIP метаданих параметрів Mission Planner:
+  [gps.airdroper.org/download/mission-planner-mod](https://gps.airdroper.org/download/mission-planner-mod).
+  Пакет додає описи, діапазони, одиниці, підписи варіантів і готові `.param`
+  presets для параметрів STM32-фільтра.
+
+---
+
 ## v1.6.24 - 2026-06-03
 
 Збірка лише прошивки для очищення статус-логів.

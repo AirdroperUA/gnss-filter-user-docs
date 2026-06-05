@@ -9,6 +9,7 @@ Important: STM32 filter parameters are changed in Mission Planner:
 - choose STM32 system (`SYSID 42`)
 - `Refresh Params` -> edit value -> `Write Params`
 - on a busy MAVLink link, a write may need 1-2 attempts; always `Refresh Params` to confirm
+- Optional but recommended: install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows parameter descriptions, ranges, units, and option labels.
 
 Boards for normal flight use are expected to ship with a normal build already installed.
 

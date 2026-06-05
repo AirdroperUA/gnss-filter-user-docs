@@ -4,6 +4,20 @@
 
 Фільтр публікує вибрані константи як MAVLink `PARAM_*`, тому поведінку можна змінювати без оновлення прошивки.
 
+## Описи параметрів у Mission Planner
+
+Mission Planner може показувати параметри плати фільтра лише як сирі назви. Щоб
+додати описи, діапазони, одиниці та підписи варіантів, встановіть drop-in пакет
+метаданих для Mission Planner:
+
+[Завантажити AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod)
+
+Розпакуйте ZIP, закрийте Mission Planner і двічі клацніть
+`install_airdroper_params.bat`. У тому самому ZIP є готові `.param` пресети для
+Mission Planner. Для звичайного польового baseline після стендових тестів
+використовуйте `airdroper_filter_field_safe.param`: він залишає `SNR_EN=0`,
+встановлює `LOG_MS=10000` і `DR_LOCK_MS=120000`.
+
 ## Доступні параметри тюнінгу
 
 | Param | Значення | Default | Min | Max |

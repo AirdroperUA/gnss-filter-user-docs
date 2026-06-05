@@ -6,6 +6,17 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## Docs/Tools - 2026-06-05
+
+### Added
+
+- Published the Mission Planner parameter metadata ZIP at
+  [gps.airdroper.org/download/mission-planner-mod](https://gps.airdroper.org/download/mission-planner-mod).
+  The package installs descriptions, ranges, units, option labels, and ready
+  `.param` presets for the STM32 filter parameters.
+
+---
+
 ## v1.6.24 - 2026-06-03
 
 Firmware-only status-log cleanup build.

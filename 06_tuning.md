@@ -4,6 +4,20 @@
 
 The filter exposes selected constants as MAVLink `PARAM_*` values, so you can tune behavior without updating firmware.
 
+## Mission Planner Parameter Descriptions
+
+Mission Planner may show the spoofing-board parameters as raw names only. To add
+descriptions, ranges, units, and option labels, install the Mission Planner
+metadata pack:
+
+[Download AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod)
+
+Unzip it, close Mission Planner, then double-click
+`install_airdroper_params.bat`. The same ZIP includes ready-to-load Mission
+Planner `.param` presets. Use `airdroper_filter_field_safe.param` as the normal
+field baseline after bench testing; it keeps `SNR_EN=0`, sets `LOG_MS=10000`,
+and sets `DR_LOCK_MS=120000`.
+
 ## Exposed Tune Parameters
 
 | Param | Meaning | Default | Min | Max |

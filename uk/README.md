@@ -9,6 +9,7 @@
 - оберіть систему STM32 (`SYSID 42`)
 - `Refresh Params` -> змініть значення -> `Write Params`
 - на завантаженому MAVLink-лінку запис може потребувати 1-2 спроби; завжди робіть `Refresh Params` для підтвердження
+- Необов'язково, але рекомендовано: встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів.
 
 Для штатного польоту на платі має бути встановлена звичайна робоча збірка.
 

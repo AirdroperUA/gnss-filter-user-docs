@@ -14,9 +14,11 @@ Mission Planner може показувати параметри плати фі
 
 Розпакуйте ZIP, закрийте Mission Planner і двічі клацніть
 `install_airdroper_params.bat`. У тому самому ZIP є готові `.param` пресети для
-Mission Planner. Для звичайного польового baseline після стендових тестів
-використовуйте `airdroper_filter_field_safe.param`: він залишає `SNR_EN=0`,
-встановлює `LOG_MS=10000` і `DR_LOCK_MS=120000`.
+Mission Planner. Інсталятор підтримує як сучасні файли метаданих
+`*.apm.pdef.xml`, так і старі кешовані `ParameterMetaData.xml`. Для звичайної
+польової базової конфігурації після стендових тестів використовуйте
+`airdroper_filter_field_safe.param`: він залишає `SNR_EN=0`, встановлює
+`LOG_MS=10000` і `DR_LOCK_MS=120000`.
 
 ## Доступні параметри тюнінгу
 

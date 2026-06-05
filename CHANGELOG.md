@@ -6,6 +6,16 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## Docs/Tools - 2026-06-06
+
+### Changed
+
+- Updated the Mission Planner parameter metadata installer so it supports both
+  modern `*.apm.pdef.xml` metadata files and older cached
+  `ParameterMetaData.xml` installations.
+
+---
+
 ## Docs/Tools - 2026-06-05
 
 ### Added

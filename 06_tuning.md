@@ -14,9 +14,11 @@ metadata pack:
 
 Unzip it, close Mission Planner, then double-click
 `install_airdroper_params.bat`. The same ZIP includes ready-to-load Mission
-Planner `.param` presets. Use `airdroper_filter_field_safe.param` as the normal
-field baseline after bench testing; it keeps `SNR_EN=0`, sets `LOG_MS=10000`,
-and sets `DR_LOCK_MS=120000`.
+Planner `.param` presets. The installer supports both modern
+`*.apm.pdef.xml` metadata and older cached `ParameterMetaData.xml`
+installations. Use `airdroper_filter_field_safe.param` as the normal field
+baseline after bench testing; it keeps `SNR_EN=0`, sets `LOG_MS=10000`, and
+sets `DR_LOCK_MS=120000`.
 
 ## Exposed Tune Parameters
 

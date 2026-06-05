@@ -13,6 +13,8 @@ All notable firmware and tool changes are documented here.
 - Updated the Mission Planner parameter metadata installer so it supports both
   modern `*.apm.pdef.xml` metadata files and older cached
   `ParameterMetaData.xml` installations.
+- Added `README_UK.md` to the downloadable Mission Planner ZIP so Ukrainian
+  setup instructions are available inside the package.
 
 ---
 

@@ -155,6 +155,10 @@ Yes. The filter sends status messages via MAVLink every 10 seconds
 
 See the [Cheat Sheet](#cheat-sheet) for a quick reference on reading these messages.
 
+### Where do I download the Mission Planner parameter patch?
+
+Download [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod). It installs parameter descriptions, ranges, units, option labels, and ready `.param` presets for the STM32 filter. Close Mission Planner before running the installer, then reopen Mission Planner and refresh the parameter list.
+
 ### What does the B5 pin do?
 
 It outputs a 3-second high pulse on each DR0→DR1 transition. You can

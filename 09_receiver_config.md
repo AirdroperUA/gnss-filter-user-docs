@@ -3,6 +3,7 @@
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Set `GNSS_TYPE` in Mission Planner to match your receiver, then reboot the STM32.
+Install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) first if Mission Planner does not show descriptions, units, ranges, or option labels for `GNSS_TYPE`, `UBX_BAUD`, and receiver-specific settings.
 
 | `GNSS_TYPE` | Receiver family | ArduPilot `GPS1_TYPE` |
 |---|---|---|

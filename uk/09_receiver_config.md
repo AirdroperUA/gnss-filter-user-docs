@@ -3,6 +3,7 @@
 > Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Встановіть `GNSS_TYPE` у Mission Planner відповідно до вашого приймача, потім перезавантажте STM32.
+Спершу встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), якщо Mission Planner не показує описи, одиниці, діапазони або підписи варіантів для `GNSS_TYPE`, `UBX_BAUD` та параметрів приймача.
 
 | `GNSS_TYPE` | Сімейство приймачів | ArduPilot `GPS1_TYPE` |
 |---|---|---|

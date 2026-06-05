@@ -69,6 +69,7 @@ Quick verification:
   1. `Config/Tuning` -> `Full Parameter List`
   2. select STM32 (`SYSID 42`)
   3. click `Refresh Params` and verify values populate.
+- If the STM32 parameters appear as raw names only, install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) before troubleshooting tuning values.
 
 ## 4) Common mistakes
 
@@ -84,9 +85,10 @@ Quick verification:
 If parameter write/read is unstable:
 
 1. Open only one GCS instance on the COM port.
-2. In `Full Parameter List`, click `Refresh Params` before editing.
-3. Edit value, click `Write Params`, then `Refresh Params` again.
-4. If value did not persist, click `Write Params` again.
-5. On a busy telemetry link, 2-5 write attempts can be normal before the value sticks.
-6. If link drops temporarily, wait up to 30-45 seconds and refresh again.
-7. Reboot STM32 only when changing `GNSS_TYPE` or `UBX_BAUD`, or if value still does not apply.
+2. Install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) if descriptions, ranges, units, or option labels are missing.
+3. In `Full Parameter List`, click `Refresh Params` before editing.
+4. Edit value, click `Write Params`, then `Refresh Params` again.
+5. If value did not persist, click `Write Params` again.
+6. On a busy telemetry link, 2-5 write attempts can be normal before the value sticks.
+7. If link drops temporarily, wait up to 30-45 seconds and refresh again.
+8. Reboot STM32 only when changing `GNSS_TYPE` or `UBX_BAUD`, or if value still does not apply.

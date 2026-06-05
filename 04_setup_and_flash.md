@@ -67,6 +67,7 @@ Flight controller parameters:
   - `Config/Tuning` -> `Full Parameter List`
   - select STM32 (`SYSID=42`)
   - `Refresh Params` -> edit value -> `Write Params`
+- Before tuning, install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows STM32 parameter descriptions, ranges, units, and option labels instead of raw names only.
 - Reboot is not required after every parameter write.
 - On a busy MAVLink link, `Write Params` may need 1-2 attempts. More than 2 attempts indicates high telemetry load.
 

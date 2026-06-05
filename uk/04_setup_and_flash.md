@@ -67,6 +67,7 @@
   - `Config/Tuning` -> `Full Parameter List`
   - виберіть STM32 (`SYSID=42`)
   - `Refresh Params` -> змініть значення -> `Write Params`
+- Перед тюнінгом встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів для параметрів STM32, а не лише сирі назви.
 - Перезавантаження не потрібне після кожного запису параметра.
 
 Вибір режиму приймача на STM32:

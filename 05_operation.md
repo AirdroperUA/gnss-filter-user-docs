@@ -139,6 +139,7 @@ The following screenshot shows expected status-text format in GCS messages.
 - You typically see two back-to-back lines in the same moment:
   - GNSS summary line: `data=... fix=... nav=... SATS=... SNR=...`
   - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
+- If Mission Planner shows raw parameter names while you are tuning log or SNR settings, install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) and refresh the parameter list.
 - `fix` is the age of the last valid position/altitude fix; `nav` is the age of the last valid GNSS nav-data frame seen by the filter.
 - `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With NMEA receivers such as UM980 or Mosaic X5, it means no `GSV` sentences are arriving.
 - On u-blox firmware v1.6.12+, persistent `SNR=NA` also emits `snrdbg n... a... l... s... g... o... b...`: NAV-SAT frames seen, frame age, last length, reported satellites, usable C/N0 satellites, oversize drops, malformed/checksum drops.

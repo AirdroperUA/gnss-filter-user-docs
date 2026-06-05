@@ -15,6 +15,9 @@
   `ParameterMetaData.xml`.
 - До ZIP-пакета Mission Planner додано `README_UK.md`, щоб українська
   інструкція з налаштування була доступна безпосередньо в пакеті.
+- Посилання на ZIP Mission Planner Params повторюється в розділах setup,
+  tuning, receiver config, FAQ і troubleshooting, щоб пакет метаданих було
+  легше знайти під час відповідного workflow.
 
 ---
 

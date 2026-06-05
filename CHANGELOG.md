@@ -15,6 +15,9 @@ All notable firmware and tool changes are documented here.
   `ParameterMetaData.xml` installations.
 - Added `README_UK.md` to the downloadable Mission Planner ZIP so Ukrainian
   setup instructions are available inside the package.
+- Repeated the Mission Planner params download link in setup, tuning, receiver
+  configuration, FAQ, and troubleshooting pages so users can find the metadata
+  package while working through the relevant workflow.
 
 ---
 

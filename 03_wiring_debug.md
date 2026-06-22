@@ -4,6 +4,11 @@
 
 Use this guide when GNSS is not detected, DR1 stays active, or MAVLink tuning does not work.
 
+For WeAct H743 DroneCAN, there is no FC GPS UART and no FC MAVLink UART. GNSS
+debugging still starts at `A2/A3`, but FC-side debugging moves to CAN wiring,
+CAN bitrate, ArduPilot DroneCAN setup, and the onboard screen. See the full
+[H743 DroneCAN Guide](13_h743_dronecan.md).
+
 ## 1) GNSS path (STM32 <-> GNSS)
 
 Symptoms:
@@ -35,11 +40,15 @@ Quick verification:
 
 ## 2) FC GPS path (STM32 <-> FC GPS UART)
 
+Skip this section for H743 DroneCAN firmware. That build publishes GPS over
+DroneCAN and does not drive an FC GPS UART. For H743 standalone UART builds,
+use `C6/C7` instead of F401 `A11/A12`.
+
 Symptoms:
 - FC shows **No GPS** or **No GPS config data** while filter sees GNSS traffic.
 
 Checks:
-1. **UART pins**: STM32 `A11/A12` to FC GPS UART with TX/RX crossed.
+1. **UART pins**: STM32 `A11/A12` on F401, or `C6/C7` on H743 UART builds, to FC GPS UART with TX/RX crossed.
 2. **FC serial protocol/baud**:
    - Typical u-blox setup: GPS protocol + 460800 baud.
    - For UM980/UM981/UM982 or Mosaic workflows, FC GPS protocol must match your receiver output.
@@ -53,6 +62,9 @@ Quick verification:
 - Return `FCGPS_FWD=0` for normal anti-spoof operation.
 
 ## 3) MAVLink path (STM32 <-> FC telemetry)
+
+Skip this section for H743 DroneCAN firmware. That build has no FC MAVLink
+serial link and no Mission Planner MAVLink parameter interface in v1.
 
 Symptoms:
 - Mission Planner cannot reliably read/write STM32 params.
@@ -79,6 +91,32 @@ Quick verification:
 - `GNSS_TYPE` changed but STM32 not rebooted.
 - `UBX_BAUD` changed but STM32 not rebooted.
 - Testing DR recovery during startup while `BOOT_DLYMS` still active.
+
+## 4b) H743 DroneCAN path
+
+Symptoms:
+- DroneCAN node does not appear.
+- ArduPilot does not receive DroneCAN GPS.
+- The H743 screen shows `PUB BLK`, `WHY GPS`, `WHY DR1`, or `WHY CAN ERR`.
+
+Checks:
+1. **CAN transceiver required**: H743 `PB8/PB9` are logic-level FDCAN pins.
+   They must go through a 3.3 V CAN transceiver such as SN65HVD230.
+2. **CAN pin crossing to transceiver**: `PB9 -> TXD`, `PB8 <- RXD`.
+3. **Bus wiring**: transceiver `CANH/CANL/GND` to the FC CAN port, with common
+   ground.
+4. **Bitrate**: H743 firmware uses `1 Mbps`; FC CAN port must match.
+5. **ArduPilot parameters**: enable the correct CAN driver, set DroneCAN
+   protocol, and set the GPS instance type to `9`.
+6. **Termination**: enable the module's 120 ohm terminator only if the H743
+   node is at a physical bus end.
+7. **USB-C pins**: leave `PA11/PA12` unused by external wiring. They belong to
+   USB-C on H743.
+
+Quick verification:
+- The screen should show `GNSS FILTER` and eventually `PUB ON DR0`.
+- DroneCAN/SLCAN tooling should show node ID `42`.
+- During DR1, `Fix2/Auxiliary` stop but `NodeStatus` remains online.
 
 ## 5) Mission Planner parameter write issues
 

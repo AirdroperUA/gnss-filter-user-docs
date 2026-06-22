@@ -11,6 +11,12 @@
 - на завантаженому MAVLink-лінку запис може потребувати 1-2 спроби; завжди робіть `Refresh Params` для підтвердження
 - Необов'язково, але рекомендовано: встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів.
 
+H743 DroneCAN note: H743 DroneCAN firmware v1 не має Mission Planner MAVLink
+parameters; використовуйте compile-time defaults і native DroneCAN GPS.
+Див. окремий guide: [WeAct H743 DroneCAN](13_h743_dronecan.md), включно з
+HD-15 D-sub box pinout для FC CAN, живлення бокса, GNSS UART/power та optional
+DR1 status.
+
 Для штатного польоту на платі має бути встановлена звичайна робоча збірка.
 
 Перезавантаження не потрібне після кожної зміни параметра.
@@ -65,4 +71,5 @@
 11. `10_self_install.md` - самостійна установка прошивки на чисту плату BlackPill за допомогою ліцензійного ключа.
 12. `11_faq.md` - часті запитання щодо роботи фільтра, апаратного забезпечення, налаштування та ліцензування.
 13. `12_video_tutorials.md` - бібліотека YouTube-уроків з прев'ю, вбудованими плеєрами та пов'язаними інструкціями.
-14. `CHANGELOG.md` - повна історія версій прошивки та примітки до релізів.
+14. `13_h743_dronecan.md` - guide для WeAct H743 DroneCAN: wiring, HD-15 D-sub box pinout, flashing, FC setup, display, validation.
+15. `CHANGELOG.md` - повна історія версій прошивки та примітки до релізів.

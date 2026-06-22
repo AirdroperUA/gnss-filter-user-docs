@@ -10,15 +10,20 @@
 
 - GNSS і STM32: `A2/A3`
 - FC MAVLink і STM32: `A9/A10` (MAVLink2 @ 115200)
-- FC GPS і STM32: `A11/A12` (зазвичай 460800)
+- FC GPS і STM32: `A11/A12` на F401 або `C6/C7` на H743 UART-збірці (зазвичай 460800)
+- H743 DroneCAN: GNSS `A2/A3`, CAN transceiver `PB8/PB9`, USB-C лишається на `A11/A12`
+
+H743 DroneCAN-прошивка не використовує FC MAVLink UART або FC GPS UART.
+ArduPilot має бачити DroneCAN GPS (`GPS1_TYPE=9`) на CAN-порті.
 
 ## 2) Режим приймача (`GNSS_TYPE`)
 
 - `GNSS_TYPE=0`: режим u-blox/UBX.
 - `GNSS_TYPE=1`: режим UM980/UM981/UM982 NMEA. Потребує одноразового налаштування — див. [Конфігурація приймача](#receiver-config).
 - `GNSS_TYPE=2`: режим Septentrio Mosaic X5 NMEA. Потребує одноразового налаштування — див. [Конфігурація приймача](#receiver-config).
-- `FCGPS_UART=1`: A11/A12 активні як FC GPS UART (нормальна робота, за замовчуванням).
-- `FCGPS_UART=0`: A11/A12 переведені у вхідний режим. Не використовуйте під час польоту.
+- `FCGPS_UART=1`: FC GPS UART-піни активні (F401 `A11/A12`, H743 UART `C6/C7`; нормальна робота, за замовчуванням).
+- `FCGPS_UART=0`: FC GPS UART-піни переведені у вхідний режим. Не використовуйте під час польоту.
+- У H743 DroneCAN v1 runtime tuning через Mission Planner відсутній; defaults compile-time.
 - Для `GNSS_TYPE=1` або `GNSS_TYPE=2` використовуйте лише один фізичний NMEA-потік:
   - потік приймача -> STM32 `A2/A3`
   - STM32 пересилає цей самий потік на FC GPS UART
@@ -44,8 +49,14 @@
 **FC показує "No GPS config data":**
 
 1. Перевірте протокол і baud GPS UART на FC — див. [Схема підключення](#wiring)
-2. Перевірте перехресне TX/RX підключення `A11/A12`
+2. Перевірте перехресне TX/RX підключення `A11/A12` на F401 або `C6/C7` на H743 UART-збірці
 3. Перевірте спільну землю
+
+**H743 DroneCAN GPS не з'являється:**
+
+1. Перевірте CAN bitrate `1000000` і `GPS1_TYPE=9`
+2. Перевірте `PB9 -> TXD`, `PB8 -> RXD`, `CANH/CANL/GND`
+3. Перевірте termination тільки на фізичних кінцях CAN-шини
 
 **DR1 не вимикається:**
 

@@ -33,9 +33,24 @@ This document describes how the STM32 filter operates between the GNSS receiver 
   - **Septentrio Mosaic X5** — set `GNSS_TYPE=2` (NMEA mode, requires one-time setup, see [Receiver Config](#receiver-config))
 - **Important:** Test on a low-cost, easy-to-recover drone first (e.g., a small FPV quad or fixed wing). Validate behavior before installing on an expensive aircraft.
 
-> ## ⚠️ The USB-C connector is not used
+### Supported board families
+
+| Board family | Output to FC | User-facing setup path |
+|--------------|--------------|------------------------|
+| STM32F401 BlackPill | FC GPS UART plus FC MAVLink UART | Main user docs and `10_self_install.md` |
+| WeAct H743 standalone UART | FC GPS UART on `PC6/PC7` plus FC MAVLink UART | Development use |
+| WeAct H743 DroneCAN | Native DroneCAN GPS on `PB8/PB9` through a CAN transceiver | [H743 DroneCAN Guide](13_h743_dronecan.md) |
+
+The H743 DroneCAN build is a separate firmware family. It keeps USB-C on
+`PA11/PA12`, publishes GPS as DroneCAN `Fix2/Auxiliary`, and does not use the
+flight controller MAVLink or GPS serial ports.
+
+The USB-C warning below applies to the F401/BlackPill production board. On the
+WeAct H743, USB-C is intentionally reserved for USB OTG FS and ROM DFU.
+
+> ## ⚠️ The BlackPill USB-C connector is not used
 >
-> The board has **no functional USB path**. Pins PA11/PA12 are physically the
+> The F401 BlackPill has **no functional USB path**. Pins PA11/PA12 are physically the
 > same lines as USB D-/D+, but they are repurposed as USART6 — the FC GPS
 > UART. The bootloader does not enumerate as a USB device, and the
 > application disables USB OTG_FS at every boot.
@@ -80,6 +95,11 @@ For detailed wiring instructions, see the [Wiring Guide](#wiring).
 
 ## 3) How data flows
 
+F401 and H743 UART builds forward GNSS bytes to an FC GPS UART. H743 DroneCAN
+builds instead publish filtered GPS as native DroneCAN messages over `PB8/PB9`
+through a CAN transceiver. In both cases, the same GNSS guard logic decides
+whether output is allowed.
+
 In normal mode (DR0), GPS data passes through the filter to your flight controller. When spoofing is detected (DR1), the filter blocks GPS data — your flight controller sees no GPS and switches to dead-reckoning automatically.
 
 <details>
@@ -99,10 +119,15 @@ For UM980/UM981/UM982 and Mosaic X5, one physical receiver connection is enough 
 
 ### DR0 (normal mode)
 
+- On H743 DroneCAN, `Fix2/Auxiliary` messages are published while output is allowed.
+
 - GPS data forwarded to your flight controller.
 - Guards monitor quality continuously in the background.
 
 ### DR1 (protection mode)
+
+- On H743 DroneCAN, GPS `Fix2/Auxiliary` publications stop, but `NodeStatus`
+  stays online with warning health.
 
 - GPS data blocked — your flight controller receives silence.
 - Pin B5 outputs a 3-second pulse on each DR0→DR1 transition (you can connect an LED or buzzer to it).

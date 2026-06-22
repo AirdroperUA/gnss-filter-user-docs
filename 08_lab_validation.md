@@ -24,6 +24,10 @@ This document is focused only on defensive validation of spoofing resilience.
 4. Confirm controlled return to DR0 only after stability/rejoin conditions.
 5. Confirm no oscillation between DR0 and DR1 under stable inputs.
 
+For WeAct H743 DroneCAN, "GNSS forwarding is blocked" means DroneCAN
+`Fix2/Auxiliary` publications stop while `NodeStatus` remains online. Use the
+onboard screen and DroneCAN/SLCAN tooling in addition to flight-controller logs.
+
 ## 4) Recommended Lab Environment
 
 - RF-isolated test area managed by qualified personnel.
@@ -42,6 +46,7 @@ Use controlled, authorized anomaly sources and verify expected filter behavior:
 
 1. **Large position discontinuity**
    - Expected with `FCGPS_FWD=0`: DR1 entry, GNSS forwarding blocked.
+   - Expected on H743 DroneCAN: `PUB BLK DR1`, no new `Fix2/Auxiliary`, node still online.
 2. **Unrealistic implied speed**
    - Expected: DR1 entry and sustained protection state.
 3. **Altitude anomaly pattern**
@@ -58,6 +63,15 @@ Use controlled, authorized anomaly sources and verify expected filter behavior:
 - Presence of trigger messages describing why DR1 was entered.
 - Rejoin messages when returning to DR0.
 - No unexpected FC navigation jumps during DR1.
+
+H743 DroneCAN v1 does not emit filter MAVLink `STATUSTEXT` or `NAMED_VALUE`
+logs. For that build, verify:
+
+- screen state changes (`FILTER OK/WARN/NO OK`, `WHY`, `PUB`)
+- DroneCAN node ID `42` remains visible
+- `NodeStatus` health changes to warning during blocked output
+- `Fix2/Auxiliary` stop during DR1 and resume after rejoin
+- ArduPilot GPS instance reports loss/recovery without accepting suspect fixes
 
 ## 7) Common Validation Failures
 
@@ -79,3 +93,6 @@ All must be true:
 3. DR0 recovery is stable and repeatable.
 4. FC behavior stays controlled (no unsafe navigation jumps).
 5. Logs and test records are complete for review.
+
+For H743 DroneCAN, replace item 2 with: DroneCAN `Fix2/Auxiliary` remain
+suppressed during DR1 while `NodeStatus` stays online.

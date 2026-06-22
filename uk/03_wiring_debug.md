@@ -35,11 +35,15 @@
 
 ## 2) Шлях FC GPS (STM32 <-> FC GPS UART)
 
+Пропустіть цей розділ для H743 DroneCAN-прошивки. Вона публікує GPS через
+DroneCAN і не керує FC GPS UART. Для H743 standalone UART-збірок використовуйте
+`C6/C7` замість F401 `A11/A12`.
+
 Симптоми:
 - FC показує **No GPS** або **No GPS config data**, хоча фільтр бачить GNSS-трафік.
 
 Перевірки:
-1. **UART-піни**: STM32 `A11/A12` до FC GPS UART, TX/RX перехресно.
+1. **UART-піни**: STM32 `A11/A12` на F401 або `C6/C7` на H743 UART-збірках до FC GPS UART, TX/RX перехресно.
 2. **Протокол/baud на FC**:
    - типовий варіант для u-blox: GPS protocol + 460800 baud;
    - для UM980/UM981/UM982 або Mosaic X5 протокол GPS на FC має відповідати виходу вашого приймача.
@@ -53,6 +57,9 @@
 - Після перевірки поверніть `FCGPS_FWD=0` для штатного anti-spoof режиму.
 
 ## 3) Шлях MAVLink (STM32 <-> FC telemetry)
+
+Пропустіть цей розділ для H743 DroneCAN-прошивки. У v1 ця збірка не має FC
+MAVLink serial link і не має Mission Planner MAVLink parameter interface.
 
 Симптоми:
 - Mission Planner не читає/не записує параметри STM32.

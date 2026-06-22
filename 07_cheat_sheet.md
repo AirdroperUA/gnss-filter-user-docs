@@ -10,15 +10,21 @@ See the [Wiring Guide](#wiring) for full diagrams.
 
 - GNSS and STM32: `A2/A3`
 - FC MAVLink and STM32: `A9/A10` (MAVLink2 @ 115200)
-- FC GPS and STM32: `A11/A12` (typically 460800)
+- FC GPS and STM32: `A11/A12` on F401 or `C6/C7` on H743 UART builds (typically 460800)
+- H743 DroneCAN: GNSS `A2/A3`, CAN transceiver `PB8/PB9`, USB-C remains on `A11/A12`
+
+The H743 DroneCAN firmware does not use the FC MAVLink UART or FC GPS UART.
+ArduPilot should see a DroneCAN GPS (`GPS1_TYPE=9`) on the configured CAN port.
+Use [H743 DroneCAN Guide](13_h743_dronecan.md) for the complete setup path.
 
 ## 2) Receiver Mode (`GNSS_TYPE`)
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
 - `GNSS_TYPE=2`: Septentrio Mosaic X5 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
-- `FCGPS_UART=1`: A11/A12 active as FC GPS UART (normal operation, default).
-- `FCGPS_UART=0`: A11/A12 released into input mode. Do not use during flight.
+- `FCGPS_UART=1`: FC GPS UART pins active (F401 `A11/A12`, H743 UART `C6/C7`; normal operation, default).
+- `FCGPS_UART=0`: FC GPS UART pins released into input mode. Do not use during flight.
+- H743 DroneCAN v1 has no Mission Planner runtime tuning; defaults are compile-time.
 - After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).
 
 <details>
@@ -47,8 +53,14 @@ See the [Device Overview](#device-overview) for a full explanation.
 **FC shows "No GPS config data":**
 
 1. Check FC GPS UART protocol and baud — see [Wiring Guide](#wiring)
-2. Check `A11/A12` TX/RX crossing
+2. Check `A11/A12` TX/RX crossing on F401 or `C6/C7` on H743 UART builds
 3. Confirm common ground
+
+**H743 DroneCAN GPS does not appear:**
+
+1. Check CAN bitrate `1000000` and `GPS1_TYPE=9`
+2. Check `PB9 -> TXD`, `PB8 -> RXD`, `CANH/CANL/GND`
+3. Check termination only at physical CAN bus ends
 
 **DR1 stays active:**
 

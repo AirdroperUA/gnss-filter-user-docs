@@ -11,6 +11,12 @@ Important: STM32 filter parameters are changed in Mission Planner:
 - on a busy MAVLink link, a write may need 1-2 attempts; always `Refresh Params` to confirm
 - Optional but recommended: install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows parameter descriptions, ranges, units, and option labels.
 
+H743 DroneCAN note: the H743 DroneCAN firmware does not expose Mission Planner
+MAVLink parameters in v1. It uses compile-time defaults and publishes GPS as
+native DroneCAN messages. Start with `13_h743_dronecan.md` for that board,
+including the HD-15 D-sub box connector pinout for FC CAN, box power, GNSS
+UART/power, and optional DR1 status.
+
 Boards for normal flight use are expected to ship with a normal build already installed.
 
 Reboot is not required after every parameter write.
@@ -65,4 +71,5 @@ Reboot is not required after every parameter write.
 11. `10_self_install.md` - self-install guide for flashing firmware onto a blank board using a license key.
 12. `11_faq.md` - frequently asked questions (hardware, setup, operation, receiver modes, licensing).
 13. `12_video_tutorials.md` - YouTube tutorial library with previews, embedded players, and related written guides.
-14. `CHANGELOG.md` - full firmware version history and release notes.
+14. `13_h743_dronecan.md` - complete WeAct H743 DroneCAN wiring, HD-15 D-sub box pinout, flashing, FC setup, display, and validation guide.
+15. `CHANGELOG.md` - full firmware version history and release notes.

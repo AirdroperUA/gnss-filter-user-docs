@@ -5,6 +5,14 @@
 Цей посібник описує прошивку GNSS-фільтра на чисту плату
 STM32F401CC BlackPill за допомогою ліцензійного ключа, придбаного в магазині.
 
+Для WeAct H743 DroneCAN плат використовуйте окремий
+[H743 DroneCAN Guide](13_h743_dronecan.md). H743 provisioning target-aware:
+`--target h743_dronecan`. AirDroper GNSS Filter app `2026.06.22.3+` має
+**Board target -> H743 WeAct DroneCAN** і **Update transport -> USB-C ROM DFU**
+для вже активованих H743: readable плати отримують лише app+metadata, а
+RDP1-protected плати отримують повний secure USB-C rewrite після підтвердження
+UID-short. Попередження про BlackPill USB-C на цій сторінці стосуються F401.
+
 Кожний ліцензійний ключ активує **одну плату**. Прошивка унікально
 прив'язана до апаратного ID вашої конкретної плати і не може бути скопійована на іншу.
 
@@ -329,10 +337,22 @@ pip install requests pyserial
 gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdroper.org
 ```
 
+Для H743 DroneCAN:
+
+```
+gnss-provision activate --target h743_dronecan --license GF-XXXX-XXXX-XXXX --server https://gps.airdroper.org
+```
+
 ### Оновлення прошивки (ST-Link)
 
 ```
 gnss-provision update --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
+```
+
+Для H743 DroneCAN:
+
+```
+gnss-provision update --target h743_dronecan --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
 ```
 
 CLI зчитує UID плати напряму через ST-Link. Старий прапорець `--uart` для

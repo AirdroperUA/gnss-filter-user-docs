@@ -17,7 +17,9 @@ See the [Device Overview](#device-overview) for a detailed explanation.
 ### Which flight controllers are supported?
 
 Any ArduPilot-based FC running **ArduPilot 4.6.1 or later** (Copter, Plane,
-Rover). The filter communicates via standard MAVLink2 telemetry.
+Rover). The F401 and H743 UART builds communicate via standard MAVLink2
+telemetry plus an FC GPS UART. The H743 DroneCAN build publishes native
+DroneCAN GPS and does not use the FC serial ports.
 
 ### Which GNSS receivers work?
 
@@ -54,10 +56,21 @@ a full table with frequencies and capabilities.
 STM32F401CC BlackPill V2.0 (WeAct Studio). Available from AliExpress,
 Amazon, or electronics stores for ~$5. You can [buy a pre-flashed board](https://airdroper.org/products/gps-spoofing-filter) or flash it yourself — see the [Self-Install Guide](#self-install).
 
+For H743 DroneCAN, use a WeAct Studio MiniSTM32H743VITX plus a 3.3 V CAN
+transceiver such as SN65HVD230. See the
+[H743 DroneCAN Guide](13_h743_dronecan.md).
+
 ### Can I use a different STM32 board?
 
-No. The firmware is compiled specifically for the STM32F401CC BlackPill
-pinout and memory layout.
+Only the supported board targets are documented. The firmware is compiled for
+board-specific pinouts and flash layouts.
+
+### Does the H743 support CAN directly?
+
+The STM32H743 has an internal FDCAN peripheral, but it still needs an external
+CAN transceiver. Connect `PB9/PB8` to a 3.3 V transceiver module, then connect
+that module's `CANH/CANL/GND` to the flight controller CAN port. Do not connect
+`PB8/PB9` directly to CANH/CANL.
 
 ### What baud rates are used?
 
@@ -67,10 +80,15 @@ pinout and memory layout.
 | FC MAVLink ↔ STM32 | 115200 |
 | FC GPS ← STM32 | 460800 |
 
+H743 DroneCAN uses `1 Mbps` CAN on `PB8/PB9` through the transceiver.
+
 ### Do I need to power the STM32 separately?
 
-No. It draws power from the FC telemetry UART or from USB. Make sure
-all devices share a common ground. See the [Wiring Guide](#wiring) for details.
+F401 production boards should be powered from the aircraft wiring or SWD during
+flashing, not from the BlackPill USB-C connector. WeAct H743 can use USB-C for
+bench power/ROM DFU, but flight wiring still needs common ground between GNSS,
+H743, CAN transceiver, and flight controller. See the [Wiring Guide](#wiring)
+and [H743 DroneCAN Guide](13_h743_dronecan.md).
 
 ---
 
@@ -84,6 +102,11 @@ all devices share a common ground. See the [Wiring Guide](#wiring) for details.
 4. For UM980 or Mosaic X5: make sure the receiver is pre-configured and ArduPilot is not overwriting that profile (see [Receiver Config](#receiver-config))
 
 If still stuck, see the [Wiring Debug](#wiring-debug) guide for step-by-step troubleshooting.
+
+For H743 DroneCAN, `FCGPS_FWD` and FC serial checks do not apply. Check CAN
+bitrate `1000000`, DroneCAN protocol on the correct FC CAN driver,
+`GPS1_TYPE=9`, `PB9 -> TXD`, `PB8 <- RXD`, CANH/CANL/GND, bus termination, and
+the H743 screen `WHY`/`PUB` rows.
 
 ### How do I know which GNSS_TYPE to use?
 
@@ -154,6 +177,13 @@ Yes. The filter sends status messages via MAVLink every 10 seconds
 - Mode/state: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 
 See the [Cheat Sheet](#cheat-sheet) for a quick reference on reading these messages.
+
+On H743 DroneCAN v1, the filter does not send MAVLink status text because it
+does not use an FC MAVLink serial link. Use the onboard screen and DroneCAN node
+status instead. The screen shows filter OK/warn/no-OK, a `WHY` reason, FC node
+health/mode, arm/safety state when broadcast, `STATE` from ArduPilot
+NotifyState when available, GPS fix, publish gate, CAN counters, and firmware
+version.
 
 ### Where do I download the Mission Planner parameter patch?
 
@@ -238,7 +268,12 @@ everything to the UM980's non-volatile flash. Configure once, fly forever.
 
 ### Can I install the firmware myself?
 
-Yes. Purchase a license key from the [store](https://airdroper.org/products/gps-spoofing-filter) and follow the [Self-Install Guide](#self-install). All operations — initial activation, firmware updates, and recovery — use the **same ST-Link V2 adapter (~$3)** connected to the 4-pin SWD header (3V3, GND, A14/SWCLK, A13/SWDIO). **The board has no functional USB path** — never plug any cable into the BlackPill's USB-C connector, including for power. PA11/PA12 (which carry the FC GPS UART) are physically the same lines as USB D-/D+, and any USB host signaling will block GPS forwarding to the flight controller.
+For H743 DroneCAN, use target-aware provisioning with
+`--target h743_dronecan` and follow the
+[H743 DroneCAN Guide](13_h743_dronecan.md). Unlocked H743 development builds
+can also be flashed through USB-C ROM DFU.
+
+Yes. Purchase a license key from the [store](https://airdroper.org/products/gps-spoofing-filter) and follow the [Self-Install Guide](#self-install). All F401 operations — initial activation, firmware updates, and recovery — use the **same ST-Link V2 adapter (~$3)** connected to the 4-pin SWD header (3V3, GND, A14/SWCLK, A13/SWDIO). **The F401 board has no functional USB path** — never plug any cable into the BlackPill's USB-C connector, including for power. PA11/PA12 (which carry the FC GPS UART) are physically the same lines as USB D-/D+, and any USB host signaling will block GPS forwarding to the flight controller.
 
 ### Can I use my license on multiple boards?
 
@@ -246,6 +281,15 @@ No. Each license key activates **one board**. The firmware is locked to
 that board's unique hardware ID.
 
 ### How do I update the firmware?
+
+For H743 DroneCAN, use the CLI target `h743_dronecan` or the desktop app
+**Board target -> H743 WeAct DroneCAN** for production provisioning/update.
+App version `2026.06.22.3+` can also update an already activated H743 through
+**Update transport -> USB-C ROM DFU**. Readable boards get app+metadata updates;
+RDP1-protected boards go through UID-short confirmation, USB DFU RDP removal,
+mass erase, app+metadata+bootloader rewrite, and RDP1 relock. For unlocked
+development boards, USB-C ROM DFU can flash `weact_mini_h743vitx_dronecan_usb`
+or `weact_mini_h743vitx_dronecan_phaseb_app_usb`.
 
 Wire an ST-Link V2 to the 4-pin SWD header (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), open the **AirDroper GNSS Filter** app, enter your license key, choose the firmware version if support asked you to test a specific build, and click **Update**. The app handles RDP removal, flashing, and re-protection automatically. See the update section in the [Self-Install Guide](#self-install).
 

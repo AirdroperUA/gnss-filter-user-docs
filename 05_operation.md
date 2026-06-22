@@ -9,6 +9,12 @@
 
 This prevents suspect live GNSS data from reaching FC navigation input while DR1 is active.
 
+On H743 DroneCAN firmware, replace "FC GPS UART" with DroneCAN GPS output:
+`Fix2/Auxiliary` messages are published in DR0 and suppressed in DR1, while
+`uavcan.protocol.NodeStatus` remains online with warning health. The onboard
+screen shows the current output gate (`PUB ON` or `PUB BLK`) and a `WHY`
+reason. See the [H743 DroneCAN Guide](13_h743_dronecan.md).
+
 The onboard status LED follows the same state shown in logs:
 
 - **DR0**: one short blink about every 6 seconds.
@@ -49,6 +55,10 @@ The onboard status LED follows the same state shown in logs:
 - Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.
 - GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
 - DR1 max duration (`DR1_MAXMS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered, but only after `DR_LOCK_MS` has elapsed. Use for missions that cannot tolerate indefinite GPS blocking.
+
+H743 DroneCAN v1 has no FC MAVLink link, so MAVLink-dependent triggers are
+disabled there: EKF-status trip, barometer altitude comparison, and MAVLink
+status logging do not run. GNSS-only guards still run.
 
 ### Spoofing confidence score
 
@@ -122,6 +132,10 @@ Bench testing can use short DR lock values so you do not wait minutes between tr
 
 - `FCGPS_FWD=1` forces the FC GPS UART on and raw-forwards GNSS even in DR1, before the boot north gate, and during hemisphere-fence trips. Diagnostic bench use only.
 - `FCGPS_FWD=0` is the normal anti-spoof setting.
+
+H743 DroneCAN has no `FCGPS_FWD` raw UART bypass. To validate that path, use
+DroneCAN/SLCAN tooling and the onboard screen: node ID `42` should remain
+online, and GPS publishing should change between `PUB ON DR0` and `PUB BLK DR1`.
 
 ## Receiver mode
 
@@ -210,3 +224,5 @@ Recovery status messages are logged to GCS (`INFO` for hot, `WARNING` for cold/r
 
 - If FC constantly shows `No Fix`, verify RC AUX logic is not forcing GPS disable on FC.
 - If map shows jumps during spoofing, trust DR state and filter logs over map position.
+- On H743 DroneCAN, also verify the screen `WHY` row and DroneCAN node status
+  before debugging ArduPilot GPS parameters.

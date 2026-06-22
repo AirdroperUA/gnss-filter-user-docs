@@ -69,7 +69,7 @@ sets `DR_LOCK_MS=120000`.
 | `GN_HOTMS` | GNSS hotstart watchdog trigger (ms) | 15000 | 1000 | 120000 |
 | `GN_COLDMS` | GNSS coldstart watchdog trigger (ms) | 45000 | 2000 | 300000 |
 | `PT_ONLY` | Pass-through-only mode (0/1) | 1 | 0 | 1 |
-| `FCGPS_UART` | FC GPS UART on A11/A12: 1=enabled (normal), 0=released (A11/A12 in input mode) | 1 | 0 | 1 |
+| `FCGPS_UART` | FC GPS UART: 1=enabled (normal), 0=released (F401 A11/A12, H743 UART C6/C7) | 1 | 0 | 1 |
 | `FCGPS_FWD` | Force FC GPS UART on and raw-forward GPS, bypassing DR1, boot north gate, and hemisphere fence (bench only, 0/1) | 0 | 0 | 1 |
 | `LOG_MS` | Filter status log period (ms) | 10000 | 1000 | 120000 |
 | `NAV_AGEMS` | Max NAV age for valid/present GPS (ms) | 5000 | 200 | 60000 |
@@ -134,8 +134,12 @@ sets `DR_LOCK_MS=120000`.
 
 ### DR behavior
 
+H743 DroneCAN v1 does not expose these parameters through Mission Planner and
+does not have an FC GPS UART bypass. Its defaults are compile-time, and DR1
+suppresses DroneCAN `Fix2/Auxiliary` instead of silencing an FC GPS UART.
+
 - **PT_ONLY**: Pass-through-only mode. The filter acts as a clean DR0/DR1 switch — raw GNSS bytes or silence. No synthetic position or blending is used.
-- **FCGPS_UART**: Controls the FC GPS UART on `A11/A12`. `1` = normal operation (GPS forwarding active). `0` = releases `A11/A12` into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.
+- **FCGPS_UART**: Controls the FC GPS UART on `A11/A12` for F401 or `C6/C7` for H743 UART builds. `1` = normal operation (GPS forwarding active). `0` = releases those pins into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.
 - **FCGPS_FWD**: Forces the FC GPS UART on and raw-forwards GNSS to it. Use only for diagnostics; it bypasses the DR1 latch, boot north gate, and `HEMI_EN` hard north fence so the raw GPS path can be verified on a bench. In normal protected mode on u-blox firmware v1.6.18+, FC GPS back-channel bytes are drained and are not forwarded into the receiver.
 
 ### EKF gates

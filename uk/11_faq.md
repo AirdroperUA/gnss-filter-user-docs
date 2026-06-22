@@ -17,7 +17,9 @@
 ### Які контролери польоту підтримуються?
 
 Будь-який FC на базі ArduPilot з версією **ArduPilot 4.6.1 або новішою** (Copter, Plane,
-Rover). Фільтр комунікує через стандартну MAVLink2-телеметрію.
+Rover). F401 і H743 UART-збірки комунікують через стандартну MAVLink2-телеметрію
+та FC GPS UART. H743 DroneCAN-збірка публікує нативний DroneCAN GPS і не
+використовує два FC serial ports.
 
 ### Які GNSS-приймачі працюють?
 
@@ -27,7 +29,7 @@ Rover). Фільтр комунікує через стандартну MAVLink2
 
 ### Чи можна використовувати з PX4 або iNav?
 
-Наразі ні. MAVLink-інтеграція фільтра розроблена для ArduPilot.
+Наразі ні. MAVLink/DroneCAN інтеграція фільтра розроблена для ArduPilot.
 
 ### Від яких систем РЕБ захищає?
 
@@ -51,13 +53,23 @@ Rover). Фільтр комунікує через стандартну MAVLink2
 
 ### Яка плата потрібна?
 
-STM32F401CC BlackPill V2.0 (WeAct Studio). Доступна на AliExpress,
-Amazon або в магазинах електроніки приблизно за ~$5. Можна [придбати готову плату](https://airdroper.org/products/gps-spoofing-filter) або прошити самостійно — див. [Самостійна установка](#self-install).
+STM32F401CC BlackPill V2.0 (WeAct Studio) для основної UART-версії. Для H743
+DroneCAN потрібна WeAct Studio MiniSTM32H743VITX і 3.3 V CAN transceiver,
+наприклад SN65HVD230; повний wiring/flash шлях описаний у
+[H743 DroneCAN Guide](13_h743_dronecan.md). Можна [придбати готову плату](https://airdroper.org/products/gps-spoofing-filter) або прошити самостійно — див. [Самостійна установка](#self-install).
 
 ### Чи можна використати іншу плату STM32?
 
-Ні. Прошивка скомпільована спеціально для розпіновки та карти пам'яті
-STM32F401CC BlackPill.
+Тільки підтримувані target-и. Прошивка скомпільована під конкретну розпіновку
+та карту пам'яті: F401 BlackPill, WeAct H743 standalone UART або WeAct H743
+DroneCAN. Інші STM32-плати потребують окремого board target.
+
+### Чи підтримує H743 CAN напряму?
+
+STM32H743 має FDCAN peripheral, але його `PB8/PB9` - це logic-level TX/RX, не
+CANH/CANL. Для підключення до flight controller CAN port потрібен зовнішній
+3.3 V CAN transceiver, наприклад SN65HVD230. Підключення напряму без
+transceiver не працюватиме.
 
 ### Які швидкості передачі використовуються?
 
@@ -66,11 +78,14 @@ STM32F401CC BlackPill.
 | GNSS ↔ STM32 | 460800 (за замовчуванням, автовизначення) |
 | FC MAVLink ↔ STM32 | 115200 |
 | FC GPS ← STM32 | 460800 |
+| H743 DroneCAN CAN bus | 1000000 |
 
 ### Чи потрібно окреме живлення для STM32?
 
-Ні. Він отримує живлення від телеметричного UART FC або від USB. Переконайтесь,
-що всі пристрої мають спільну землю. Див. [Схема підключення](#wiring) для деталей.
+F401 отримує живлення від FC/SWD; не підключайте BlackPill USB-C. WeAct H743
+можна живити/flash через USB-C для bench/ROM DFU, але CAN/GNSS/FC wiring все
+одно має мати спільну землю. Див. [Схема підключення](#wiring) і
+[H743 DroneCAN Guide](13_h743_dronecan.md).
 
 ---
 
@@ -82,6 +97,10 @@ STM32F401CC BlackPill.
 2. Переконайтесь, що `SERIAL_BAUD` відповідає (460800 для GPS UART, 115200 для MAVLink)
 3. Тимчасово встановіть `FCGPS_FWD=1`, щоб примусово увімкнути FC GPS UART і сиро пересилати GPS на FC навіть до прийняття фікса фільтром. Перед польотом поверніть `0`.
 4. Для UM980 або Mosaic X5: переконайтесь, що приймач попередньо налаштований і ArduPilot не переписує цей профіль (див. [Конфігурація приймача](#receiver-config))
+
+Для H743 DroneCAN замість UART bypass перевірте, що node ID `42` видно у
+DroneCAN/SLCAN tooling, FC CAN port має `CAN_Dx_PROTOCOL=1`, bitrate
+`1000000`, а GPS instance має `GPS1_TYPE=9`.
 
 Якщо проблема залишається, див. [Діагностика підключення](#wiring-debug) для покрокового усунення несправностей.
 
@@ -154,6 +173,10 @@ FC використовує dead-reckoning (IMU + компас + датчик ш
 (налаштовується через `LOG_MS`). У вкладці Messages Mission Planner ви побачите:
 - Зведення GNSS: `data=... fix=... nav=... SATS=... SNR=...`
 - Режим/стан: `ARM=... DR=... BLEND=... LAT=... LONG=...`
+
+На H743 DroneCAN v1 MAVLink status text/logging вимкнені. Стан видно на
+onboard screen (`PUB`, `WHY`, CAN counters, arm/safety bits) і через DroneCAN
+node status.
 
 Див. [Швидка довідка](#cheat-sheet) для швидкого пояснення цих повідомлень.
 
@@ -237,7 +260,7 @@ SD-карти FC (або завантажте через MAVFTP), відкрий
 
 ### Чи можна встановити прошивку самостійно?
 
-Так. Придбайте ліцензійний ключ у [магазині](https://airdroper.org/products/gps-spoofing-filter) та слідуйте [Самостійній установці](#self-install). Усі операції — початкова активація, оновлення прошивки та відновлення — використовують **той самий ST-Link V2 адаптер (~$3)**, підключений до 4-пінного SWD-роз'єму (3V3, GND, A14/SWCLK, A13/SWDIO). **Плата не має робочого USB-шляху** — ніколи не підключайте жодного кабелю до USB-C роз'єму BlackPill, включно з кабелем живлення. PA11/PA12 (по яких іде GPS UART до FC) фізично спільні з USB D-/D+, і будь-яке USB-сигналізування хоста блокуватиме передачу GPS до польотного контролера.
+Так. Придбайте ліцензійний ключ у [магазині](https://airdroper.org/products/gps-spoofing-filter) та слідуйте [Самостійній установці](#self-install). Для F401 усі операції — початкова активація, оновлення прошивки та відновлення — використовують **той самий ST-Link V2 адаптер (~$3)**, підключений до 4-пінного SWD-роз'єму (3V3, GND, A14/SWCLK, A13/SWDIO). **F401 BlackPill не має робочого USB-шляху** — ніколи не підключайте жодного кабелю до USB-C роз'єму BlackPill, включно з кабелем живлення. PA11/PA12 (по яких іде GPS UART до FC) фізично спільні з USB D-/D+, і будь-яке USB-сигналізування хоста блокуватиме передачу GPS до польотного контролера. Для H743 DroneCAN використовуйте target-aware CLI (`--target h743_dronecan`) або H743 USB-C ROM DFU шлях з [H743 DroneCAN Guide](13_h743_dronecan.md).
 
 ### Чи можна використовувати ліцензію на кількох платах?
 
@@ -246,7 +269,7 @@ SD-карти FC (або завантажте через MAVFTP), відкрий
 
 ### Як оновити прошивку?
 
-Підключіть ST-Link V2 до 4-пінного SWD-роз'єму (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), відкрийте додаток **AirDroper GNSS Filter**, введіть ліцензійний ключ, оберіть версію прошивки, якщо підтримка попросила перевірити конкретну збірку, і натисніть **Update / Оновити**. Додаток автоматично знімає RDP, прошиває плату та повторно вмикає захист. Див. розділ оновлення в [Самостійній установці](#self-install).
+Для F401 підключіть ST-Link V2 до 4-пінного SWD-роз'єму (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), відкрийте додаток **AirDroper GNSS Filter**, введіть ліцензійний ключ, оберіть версію прошивки, якщо підтримка попросила перевірити конкретну збірку, і натисніть **Update / Оновити**. Додаток автоматично знімає RDP, прошиває плату та повторно вмикає захист. H743 DroneCAN оновлюйте через `gnss-provision update --target h743_dronecan --stlink ...` або desktop app **Update transport -> USB-C ROM DFU**. Readable H743 плати отримують лише app+metadata; RDP1-protected H743 плати потребують підтвердження UID-short, після чого app виконує повний rewrite app+metadata+bootloader і повертає RDP1. Див. розділ оновлення в [Самостійній установці](#self-install) і [H743 DroneCAN Guide](13_h743_dronecan.md).
 
 ### Чи можна перепровізіонувати плату, яка вже має прошивку?
 
@@ -254,7 +277,7 @@ SD-карти FC (або завантажте через MAVFTP), відкрий
 
 ### Як завантажити логи спуфінгу?
 
-Логи спуфінгу більше не вивантажуються з плати фільтра. Починаючи з прошивки v1.6.0, кожна подія виявлення надсилається як MAVLink-повідомлення **STATUSTEXT** і **NAMED_VALUE_INT**, які ArduPilot записує на SD-карту контролера польоту як стандартні dataflash-записи `MSG` і `NVLI`. Дістаньте `.bin`-лог із SD-карти (або завантажте його через MAVFTP / Mission Planner) і перегляньте у Mission Planner чи [UAV Log Viewer](https://plot.ardupilot.org). Див. розділ логів у [Самостійній установці](#self-install).
+Логи спуфінгу більше не вивантажуються з плати фільтра. Для UART-збірок кожна подія виявлення надсилається як MAVLink-повідомлення **STATUSTEXT** і **NAMED_VALUE_INT**, які ArduPilot записує на SD-карту контролера польоту як стандартні dataflash-записи `MSG` і `NVLI`. H743 DroneCAN v1 не надсилає ці MAVLink logs; використовуйте onboard screen, DroneCAN node status і FC dataflash GPS/CAN evidence. Дістаньте `.bin`-лог із SD-карти (або завантажте його через MAVFTP / Mission Planner) і перегляньте у Mission Planner чи [UAV Log Viewer](https://plot.ardupilot.org). Див. розділ логів у [Самостійній установці](#self-install).
 
 ### Що робити, якщо плата вийшла з ладу?
 

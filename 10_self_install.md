@@ -5,6 +5,15 @@
 This guide covers flashing the GNSS filter firmware onto a blank
 STM32F401CC BlackPill board using a license key purchased from the store.
 
+For WeAct H743 DroneCAN boards, use the separate
+[H743 DroneCAN Guide](13_h743_dronecan.md). H743 provisioning is target-aware
+(`--target h743_dronecan`) and app-aware: AirDroper GNSS Filter app
+`2026.06.22.3` or newer has **Board target -> H743 WeAct DroneCAN** for
+ST-Link/SWD activation/update and **Update transport -> USB-C ROM DFU** for
+already activated H743 updates. Readable boards get app+metadata only;
+RDP1-protected boards get a full secure USB-C rewrite after UID-short
+confirmation. The BlackPill USB-C warnings on this page apply to F401 boards.
+
 Each license key activates **one board**. The firmware is uniquely
 locked to your specific board and cannot be copied to another.
 
@@ -328,10 +337,22 @@ pip install requests pyserial
 gnss-provision activate --license GF-XXXX-XXXX-XXXX --server https://gps.airdroper.org
 ```
 
+For H743 DroneCAN:
+
+```
+gnss-provision activate --target h743_dronecan --license GF-XXXX-XXXX-XXXX --server https://gps.airdroper.org
+```
+
 ### Firmware update (ST-Link)
 
 ```
 gnss-provision update --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
+```
+
+For H743 DroneCAN:
+
+```
+gnss-provision update --target h743_dronecan --license GF-XXXX-XXXX-XXXX --stlink --server https://gps.airdroper.org
 ```
 
 The CLI reads the board UID directly over ST-Link. The old `--uart` update

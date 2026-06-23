@@ -114,7 +114,7 @@ pio run -e weact_mini_h743vitx_dronecan_phaseb_app_usb -t upload
 3. Підключіть USB-C до комп'ютера.
 4. Відпустіть `BOOT0`, коли плата з'явиться як DFU device.
 
-Windows app `AirDroper GNSS Filter` версії `2026.06.23.6` або новіше може
+Windows app `AirDroper GNSS Filter` версії `2026.06.23.7` або новіше може
 оновити вже активовану H743 через USB-C ROM DFU:
 
 1. `Board target` -> `H743 WeAct DroneCAN`.

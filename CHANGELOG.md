@@ -46,6 +46,9 @@ All notable firmware and tool changes are documented here.
 - Rebuilt the desktop app as `2026.06.23.6` so H743 ST-Link/SWD activation,
   update, and recovery use CubeProgrammer's GUI-equivalent
   `mode=NORMAL reset=SWrst` path before the under-reset/hotplug fallbacks.
+- Rebuilt the desktop app as `2026.06.23.7` so ST-Link/DFU connection
+  diagnostics explicitly tell users to close STM32CubeProgrammer GUI or other
+  flashing tools before retrying.
 - The provisioning server now exposes a separate `h743_dronecan` firmware
   channel. F401 firmware remains on the existing `1.6.24` stable channel.
 

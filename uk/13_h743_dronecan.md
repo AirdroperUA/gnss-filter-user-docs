@@ -197,6 +197,12 @@ wired update first before future DroneCAN self-update can work.
 
 Raw NMEA, UBX або MAVLink через CAN у v1 не тунелюються.
 
+Оскільки FC отримує native DroneCAN GPS, H743 DroneCAN не є byte-for-byte GPS
+packet pass-through. Прошивка парсить receiver stream і публікує ті самі live
+fix values у DroneCAN units. Вона не генерує synthetic GPS coordinates, не
+blend-ить coordinates і не переписує raw NMEA/UBX packets; у DR1 вона suppress
+`Fix2/Auxiliary` замість того, щоб надсилати altered GPS data.
+
 `GPS_AUTO_CONFIG=1` є default ArduPilot режимом auto-config тільки для serial
 GPS і є найбезпечнішим для цього фільтра. H743 DroneCAN firmware `v0.1.2+`
 відповідає на optional DroneCAN `param.GetSet` запити ArduPilot для

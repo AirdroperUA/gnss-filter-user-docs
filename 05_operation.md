@@ -16,6 +16,29 @@ warning health; no-fix, low-satellite, and boot-guard suppression keep node
 health `OK`. The onboard screen shows the current output gate (`PUB ON` or
 `PUB BLK`) and a `WHY` reason. See the [H743 DroneCAN Guide](13_h743_dronecan.md).
 
+## GPS Data Integrity
+
+In normal DR0 operation, UART firmware does not rewrite GPS packets. Each byte
+received from the GNSS UART is parsed for guard state and then the same byte is
+forwarded to the FC GPS UART. The filter does not regenerate NMEA sentences,
+does not reserialize UBX, and does not change checksums. If protection enters
+DR1, forwarding is intentionally suppressed; the FC may see silence or the end
+of the current receiver frame cut short at the moment of blocking.
+
+The firmware may configure the receiver at boot. For example, the default
+u-blox profile sets the receiver UART rate and message set used by the filter.
+That changes what the receiver emits, but once a receiver byte reaches the
+filter in DR0, the UART output path forwards that byte unchanged. The normal FC
+GPS back-channel is drained for diagnostics and is not forwarded to the receiver,
+so ArduPilot cannot silently change the receiver message profile through the
+filter.
+
+H743 DroneCAN mode is different because there is no FC GPS UART. It does not
+tunnel raw NMEA or UBX. It converts the live receiver fix fields into native
+DroneCAN `Fix2/Auxiliary` values: latitude/longitude, altitude, velocity,
+satellites, DOP, and accuracy are scaled into DroneCAN units. It does not use
+synthetic or blended GPS coordinates in normal operation.
+
 The onboard status LED follows the same state shown in logs:
 
 - **DR0**: one short blink about every 6 seconds.

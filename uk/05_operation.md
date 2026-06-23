@@ -17,6 +17,28 @@ Onboard screen показує `PUB`, `WHY`, CAN counters, arm/safety bits і Ard
 `NotifyState`, коли цей broadcast присутній. Повний H743 шлях: [H743 DroneCAN
 Guide](13_h743_dronecan.md).
 
+## GPS Data Integrity
+
+У штатному DR0 режимі UART-прошивка не переписує GPS packets. Кожен byte,
+отриманий з GNSS UART, парситься для guard state і той самий byte передається
+на FC GPS UART. Фільтр не генерує нові NMEA sentences, не reserialize UBX і не
+міняє checksums. Якщо захист переходить у DR1, forwarding навмисно
+приглушується; FC може побачити тишу або обрізаний кінець поточного receiver
+frame у момент блокування.
+
+Прошивка може конфігурувати receiver під час boot. Наприклад, default u-blox
+profile задає UART baud і message set, потрібні фільтру. Це змінює те, що
+emits сам receiver, але коли byte вже прийшов у фільтр у DR0, UART output path
+передає його без змін. Normal FC GPS back-channel drain/count only; він не
+forward-иться до receiver, тому ArduPilot не може непомітно змінити receiver
+message profile через фільтр.
+
+H743 DroneCAN mode інший, бо там немає FC GPS UART. Він не tunneling raw NMEA
+або UBX. Він перетворює live receiver fix fields у native DroneCAN
+`Fix2/Auxiliary`: latitude/longitude, altitude, velocity, satellites, DOP і
+accuracy масштабуються в DroneCAN units. У штатному режимі він не використовує
+synthetic або blended GPS coordinates.
+
 Вбудований статусний LED відповідає тому самому стану, який видно в логах:
 
 - **DR0**: один короткий спалах приблизно кожні 6 секунд.

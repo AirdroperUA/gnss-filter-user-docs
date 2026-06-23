@@ -306,6 +306,12 @@ It publishes native DroneCAN GPS messages:
 
 It does not tunnel raw NMEA, UBX, or MAVLink over CAN in v1.
 
+Because the FC receives native DroneCAN GPS, H743 DroneCAN is not byte-for-byte
+GPS packet pass-through. The firmware parses the receiver stream and publishes
+the same live fix values in DroneCAN units. It does not generate synthetic GPS
+coordinates, blend coordinates, or rewrite raw NMEA/UBX packets; in DR1 it
+suppresses `Fix2/Auxiliary` instead of sending altered GPS data.
+
 `GPS_AUTO_CONFIG=1` is ArduPilot's default serial-only GPS auto-config mode and
 is the safest setting for this filter. H743 DroneCAN firmware `v0.1.2` and
 newer responds to ArduPilot's optional DroneCAN `param.GetSet` queries for

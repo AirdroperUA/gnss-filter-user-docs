@@ -15,6 +15,9 @@
   still use ST-Link/SWD or USB-C ROM DFU.
 - Updated the H743 DroneCAN guide to show the full secure flash layout and to
   clarify that standard DroneCAN firmware update is planned but not active yet.
+- Documented and test-guarded the GPS data integrity contract: UART builds
+  forward unchanged receiver bytes in DR0, while H743 DroneCAN publishes parsed
+  live receiver fix values and never sends synthetic/blended GPS coordinates.
 
 ---
 

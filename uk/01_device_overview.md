@@ -119,8 +119,9 @@ H743 DroneCAN шлях відрізняється:
 
 У H743 DR0 прошивка публікує DroneCAN `Fix2` на кожному свіжому GNSS update
 (до 10 Hz) і `Auxiliary` раз на секунду. У H743 DR1 `Fix2/Auxiliary`
-припиняються, але `NodeStatus` лишається online з warning health під час DR1
-latch.
+припиняються, але `NodeStatus` лишається online. Spoof/fault DR1 reasons
+report warning health; no-fix і low-satellite cases keep DroneCAN node health
+`OK`.
 
 ## 4) DR0 та DR1
 

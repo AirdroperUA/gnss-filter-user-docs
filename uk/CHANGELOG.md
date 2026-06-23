@@ -6,14 +6,26 @@
 
 ---
 
+## H743 DroneCAN v0.1.7 - 2026-06-23
+
+### Fixed
+
+- Refined H743 DroneCAN `NodeStatus` health again: latched no-fix and
+  low-satellite DR1 reasons also keep node health `OK`. Warning health is now
+  used only for spoof/fault DR1 reasons, so ArduPilot should stop showing
+  `PreArm: DroneCAN: Node 42 unhealthy!`, коли receiver просто ще не має GPS
+  fix.
+
+---
+
 ## H743 DroneCAN v0.1.6 - 2026-06-23
 
 ### Fixed
 
-- Fixed H743 DroneCAN `NodeStatus` health: normal no-fix, boot guard, or GNSS
-  reconfiguration output suppression remains `OK`. Warning health is now used
-  only for the real DR1 latch, so ArduPilot does not show
-  `PreArm: DroneCAN: Node 42 unhealthy!` while GPS is simply not ready yet.
+- Fixed H743 DroneCAN `NodeStatus` health for boot guard and GNSS
+  reconfiguration output suppression. This release was superseded by
+  `v0.1.7`, which also keeps no-fix and low-satellite DR1 cases from marking
+  the node unhealthy.
 
 ---
 

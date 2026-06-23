@@ -11,8 +11,8 @@
 
 У H743 DroneCAN-прошивці замініть "GPS UART FC" на DroneCAN GPS output:
 у DR0 публікуються `Fix2/Auxiliary`, у DR1 ці GPS-повідомлення
-припиняються. `NodeStatus` лишається online з warning health тільки для
-реального DR1 latch; звичайний no-fix або boot guard лишає node health `OK`.
+припиняються. `NodeStatus` лишається online; spoof/fault DR1 reasons report
+warning health, а no-fix, low-satellite і boot guard лишають node health `OK`.
 Onboard screen показує `PUB`, `WHY`, CAN counters, arm/safety bits і ArduPilot
 `NotifyState`, коли цей broadcast присутній. Повний H743 шлях: [H743 DroneCAN
 Guide](13_h743_dronecan.md).

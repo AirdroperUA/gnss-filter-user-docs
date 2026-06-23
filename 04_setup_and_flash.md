@@ -150,8 +150,9 @@ Flight controller parameters:
 - DR1 protection normally blocks live forwarding from GNSS input to FC GPS UART. The FC receives silence during DR1 unless the diagnostic raw-forward override is enabled.
 - In H743 DroneCAN mode, DR1 protection suppresses DroneCAN `Fix2/Auxiliary`
   instead of silencing a GPS UART. `NodeStatus` remains online and reports
-  warning health during the DR1 latch. Ordinary no-fix, boot guard, or GNSS
-  reconfiguration output suppression keeps DroneCAN node health `OK`.
+  warning health only for spoof/fault DR1 reasons. Ordinary no-fix, low
+  satellites, boot guard, or GNSS reconfiguration output suppression keeps
+  DroneCAN node health `OK`.
 - In H743 DroneCAN mode, the onboard display shows standard DroneCAN node mode
   and ArduPilot `NotifyState` vehicle-state bits. It still does not show exact
   flight-mode names such as Loiter or Auto; those require a later custom

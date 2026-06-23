@@ -11,10 +11,10 @@ This prevents suspect live GNSS data from reaching FC navigation input while DR1
 
 On H743 DroneCAN firmware, replace "FC GPS UART" with DroneCAN GPS output:
 `Fix2/Auxiliary` messages are published in DR0 and suppressed in DR1, while
-`uavcan.protocol.NodeStatus` remains online with warning health only for the
-actual DR1 latch. Normal no-fix or boot-guard suppression keeps node health
-`OK`. The onboard screen shows the current output gate (`PUB ON` or `PUB BLK`)
-and a `WHY` reason. See the [H743 DroneCAN Guide](13_h743_dronecan.md).
+`uavcan.protocol.NodeStatus` remains online. Spoof/fault DR1 reasons report
+warning health; no-fix, low-satellite, and boot-guard suppression keep node
+health `OK`. The onboard screen shows the current output gate (`PUB ON` or
+`PUB BLK`) and a `WHY` reason. See the [H743 DroneCAN Guide](13_h743_dronecan.md).
 
 The onboard status LED follows the same state shown in logs:
 

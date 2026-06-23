@@ -34,6 +34,9 @@ All notable firmware and tool changes are documented here.
 - Rebuilt the desktop app again as `2026.06.23.2` so an H743 app/metadata
   write failure after a successful erase also runs the same recovery path and
   retries before stopping.
+- Rebuilt the desktop app as `2026.06.23.3` so every ST-Link and USB-C flash
+  log prints the flasher app version separately from the board firmware version
+  (`v0.1.0` for the current H743 DroneCAN firmware).
 - The provisioning server now exposes a separate `h743_dronecan` firmware
   channel. F401 firmware remains on the existing `1.6.24` stable channel.
 

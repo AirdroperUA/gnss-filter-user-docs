@@ -158,6 +158,9 @@ Flight controller parameters:
 - H743 DroneCAN `v0.1.4+` params are changed from Mission Planner:
   `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`, then
   `Write Params` and `Commit Params`.
+- H743 DroneCAN `v0.1.5+` can also be tuned directly over USB-C: boot the
+  normal app with `BOOT0` released, connect Mission Planner to the H743 COM
+  port at `115200`, then use `CONFIG -> Full Parameter Tree/List`.
 - UART-build filter params are changed in Mission Planner:
   - `Config/Tuning` -> `Full Parameter List`
   - select STM32 (`SYSID=42`)

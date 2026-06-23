@@ -65,7 +65,9 @@ Quick verification:
 
 Skip this section for H743 DroneCAN firmware. That build has no FC MAVLink
 serial link; H743 `v0.1.4+` parameters are edited from Mission Planner
-`SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
+`SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`. H743
+`v0.1.5+` can also be tuned by connecting Mission Planner directly to the H743
+USB-C COM port at `115200`.
 
 Symptoms:
 - Mission Planner cannot reliably read/write STM32 params.

@@ -27,7 +27,8 @@ The recommended H743 v1 flight configuration is the DroneCAN family:
 - no FC MAVLink serial port
 - no FC GPS serial port
 - tune parameters edited through Mission Planner DroneCAN/UAVCAN node `42`
-  Params on firmware `v0.1.4+`
+  Params on firmware `v0.1.4+`, or by connecting Mission Planner directly to
+  the H743 USB-C COM port on firmware `v0.1.5+`
 
 The standalone H743 UART build exists for development and compatibility work.
 It uses the same idea as the F401 UART build, but its FC GPS UART is `PC6/PC7`
@@ -306,15 +307,20 @@ If the CAN bus has more than one DroneCAN GPS-like node, set the matching
 `GPSx_CAN_OVRIDE` parameter to `42` so ArduPilot binds that GPS instance to the
 filter's static node ID. On a single-GPS bus this is optional.
 
-## 7) Mission Planner DroneCAN Params
+## 7) Mission Planner Params
 
 H743 DroneCAN firmware `v0.1.4` and newer exposes the spoofing/tuning
-parameters through the DroneCAN parameter service. This replaces the old
-F401-style MAVLink parameter path for H743; the normal Mission Planner full
-parameter tree will not show these board parameters because the H743 DroneCAN
+parameters through the DroneCAN parameter service. H743 DroneCAN firmware
+`v0.1.5` and newer also exposes the same parameters over the H743 USB-C COM
+port as a direct MAVLink management link.
+
+The normal Mission Planner full parameter tree connected to the flight
+controller will not show these board parameters because the H743 DroneCAN
 variant has no FC MAVLink serial link.
 
-To edit the filter parameters:
+### Option A: DroneCAN through the flight controller
+
+Use this while the board is on the aircraft CAN bus:
 
 1. Open Mission Planner.
 2. Go to **SETUP -> Optional Hardware -> DroneCAN/UAVCAN**.
@@ -325,9 +331,29 @@ To edit the filter parameters:
 7. Reboot the H743 and re-open node `42` Params if you want to confirm the
    value persisted.
 
-The first two rows, `GPS_TYPE` and `GPS1_TYPE`, are compatibility rows for
-ArduPilot and are locked to `9` (`DroneCAN GPS`). Spoofing/tuning rows start
-after those rows and use the same short names as the F401 firmware, such as
+### Option B: Direct USB-C to the H743
+
+Use this on the bench when you want the familiar Mission Planner MAVLink
+parameter screen without using any flight-controller serial port:
+
+1. Power the H743 normally, not in `BOOT0` ROM DFU mode.
+2. Connect the H743 USB-C port to the computer.
+3. In Mission Planner, select the new H743 COM port and `115200` baud.
+4. Click **Connect**. Mission Planner should see system ID `42`.
+5. Open **CONFIG -> Full Parameter Tree** or **Full Parameter List**.
+6. Edit the spoofing/tuning values and click **Write Params**.
+7. Wait a few seconds for the firmware to save, then reboot/reconnect and
+   verify the value if needed.
+
+This USB-C mode is a normal application management port. It is separate from
+USB-C ROM DFU flashing: hold `BOOT0` only when updating firmware, and leave
+`BOOT0` released when editing parameters.
+
+In the DroneCAN node Params window, the first two rows, `GPS_TYPE` and
+`GPS1_TYPE`, are compatibility rows for ArduPilot and are locked to `9`
+(`DroneCAN GPS`). Spoofing/tuning rows start after those rows. In the direct
+USB-C MAVLink parameter screen, the list starts directly with the
+spoofing/tuning rows. The tune names match the F401 firmware, such as
 `BOOT_NSATS`, `BOOT_NHDOP`, `RJ_BASE_M`, `SP_JMP_MPS`, `SNR_EN`, `FENCE_RAD`,
 and `GNSS_TYPE`.
 
@@ -397,12 +423,13 @@ In DR1 or any blocked state:
 - `NodeStatus` continues at 1 Hz with warning health and vendor status bits
 - the screen shows `FILTER NO OK`, a compact `WHY` reason, and `PUB BLK DR1`
 
-H743 DroneCAN v1 disables MAVLink-dependent behavior:
+H743 DroneCAN v1 disables flight-controller-serial MAVLink behavior:
 
-- no Mission Planner MAVLink parameters; use node `42` DroneCAN Params instead
+- no FC serial Mission Planner parameter path; use node `42` DroneCAN Params
+  or direct H743 USB-C MAVLink params instead
 - no EKF-status trip
 - no barometer altitude comparison
-- no MAVLink `STATUSTEXT` or `NAMED_VALUE` logging from the filter
+- no FC serial MAVLink `STATUSTEXT` or `NAMED_VALUE` logging from the filter
 - no `FCGPS_FWD` raw UART bypass
 
 GNSS-only guards remain active: no-fix, low satellites, position jumps,
@@ -461,6 +488,15 @@ sanity, velocity-position consistency, and receiver clock jump when available.
   node `42` Params.
 - If the value list still looks stale, close and restart Mission Planner.
 
+### USB-C Mission Planner connection does not show params
+
+- Update the H743 DroneCAN firmware to `v0.1.5` or newer.
+- Do not hold `BOOT0`; USB-C parameter editing works only in the normal app,
+  not in ROM DFU mode.
+- Select the H743 USB COM port directly in Mission Planner at `115200`.
+- If Mission Planner is already connected to the flight controller telemetry
+  link, disconnect that session first, then connect to the H743 USB COM port.
+
 ### Screen turns off after boot
 
 - If the board is on H743 DroneCAN firmware `v0.1.0`, the app boots and the
@@ -486,7 +522,7 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 ## 12) What H743 v1 intentionally does not do
 
 - no full MAVLink replacement over CAN
-- no F401-style MAVLink parameter tuning path
+- no FC-serial F401-style MAVLink parameter tuning path
 - no DroneCAN firmware update protocol
 - no raw GNSS tunnel over CAN
 - no exact ArduPilot flight-mode names on the screen

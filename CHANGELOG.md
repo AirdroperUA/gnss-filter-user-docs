@@ -6,6 +6,23 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.1.5 - 2026-06-23
+
+### Added
+
+- Added a direct USB-C MAVLink management port for H743 DroneCAN boards. In the
+  normal app, with `BOOT0` released, Mission Planner can connect to the H743
+  USB COM port at `115200` and edit the same spoofing/tuning parameters from
+  **CONFIG -> Full Parameter Tree/List**.
+
+### Changed
+
+- H743 DroneCAN still does not use any flight-controller serial port. DroneCAN
+  node Params remain the in-aircraft tuning path; USB-C MAVLink is for direct
+  bench/service access to the H743 itself.
+
+---
+
 ## H743 DroneCAN v0.1.4 - 2026-06-23
 
 ### Added

@@ -26,6 +26,8 @@ Use [H743 DroneCAN Guide](13_h743_dronecan.md) for the complete setup path.
 - `FCGPS_UART=0`: FC GPS UART pins released into input mode. Do not use during flight.
 - H743 DroneCAN `v0.1.4+` tuning is in Mission Planner
   `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
+- H743 DroneCAN `v0.1.5+` can also be tuned directly over USB-C by connecting
+  Mission Planner to the H743 COM port at `115200`.
 - After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).
 
 <details>

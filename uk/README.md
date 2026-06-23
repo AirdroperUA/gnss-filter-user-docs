@@ -12,11 +12,13 @@
 - Необов'язково, але рекомендовано: встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів.
 
 H743 DroneCAN note: H743 DroneCAN firmware не має F401-style Mission Planner
-MAVLink parameters. У firmware `v0.1.4+` параметри змінюються через Mission
-Planner `DroneCAN/UAVCAN -> node 42 -> Params`; GPS публікується як native
-DroneCAN GPS. Див. окремий guide: [WeAct H743 DroneCAN](13_h743_dronecan.md),
-включно з HD-15 D-sub box pinout для FC CAN, живлення бокса, GNSS UART/power та
-optional DR1 status.
+MAVLink parameters через flight-controller serial link. У firmware `v0.1.4+`
+параметри змінюються через Mission Planner
+`DroneCAN/UAVCAN -> node 42 -> Params`; у firmware `v0.1.5+` також можна
+підключити Mission Planner напряму до H743 USB-C COM port на `115200`. GPS
+публікується як native DroneCAN GPS. Див. окремий guide:
+[WeAct H743 DroneCAN](13_h743_dronecan.md), включно з HD-15 D-sub box pinout
+для FC CAN, живлення бокса, GNSS UART/power та optional DR1 status.
 
 Для штатного польоту на платі має бути встановлена звичайна робоча збірка.
 

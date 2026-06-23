@@ -135,9 +135,11 @@ sets `DR_LOCK_MS=120000`.
 ### DR behavior
 
 H743 DroneCAN `v0.1.4+` exposes these guard/tune parameters through Mission
-Planner `DroneCAN/UAVCAN -> node 42 -> Params`, not through the F401-style
-MAVLink parameter tree. It does not have an FC GPS UART bypass, and DR1
-suppresses DroneCAN `Fix2/Auxiliary` instead of silencing an FC GPS UART.
+Planner `DroneCAN/UAVCAN -> node 42 -> Params`. H743 DroneCAN `v0.1.5+` also
+exposes the same tune values through the H743 USB-C COM port as a direct
+MAVLink management link at `115200`. The H743 DroneCAN build still has no
+flight-controller serial MAVLink parameter path, no FC GPS UART bypass, and
+DR1 suppresses DroneCAN `Fix2/Auxiliary` instead of silencing an FC GPS UART.
 
 - **PT_ONLY**: Pass-through-only mode. The filter acts as a clean DR0/DR1 switch — raw GNSS bytes or silence. No synthetic position or blending is used.
 - **FCGPS_UART**: Controls the FC GPS UART on `A11/A12` for F401 or `C6/C7` for H743 UART builds. `1` = normal operation (GPS forwarding active). `0` = releases those pins into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.

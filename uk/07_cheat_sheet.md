@@ -25,6 +25,8 @@ ArduPilot має бачити DroneCAN GPS (`GPS1_TYPE=9`) на CAN-порті.
 - `FCGPS_UART=0`: FC GPS UART-піни переведені у вхідний режим. Не використовуйте під час польоту.
 - У H743 DroneCAN `v0.1.4+` tuning відкривається в Mission Planner:
   `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
+- У H743 DroneCAN `v0.1.5+` tuning також доступний напряму через USB-C:
+  Mission Planner -> H743 COM port -> `115200`.
 - Для `GNSS_TYPE=1` або `GNSS_TYPE=2` використовуйте лише один фізичний NMEA-потік:
   - потік приймача -> STM32 `A2/A3`
   - STM32 пересилає цей самий потік на FC GPS UART

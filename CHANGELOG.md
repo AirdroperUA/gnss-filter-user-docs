@@ -6,6 +6,33 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.1.0 - 2026-06-23
+
+### Added
+
+- Published the separate **H743 WeAct DroneCAN** firmware family for WeAct
+  Studio MiniSTM32H743VITX boards with an external 3.3 V CAN transceiver.
+- Added native DroneCAN GPS publishing for ArduPilot: `Fix2` on fresh GNSS
+  updates, `Auxiliary` at 1 Hz, and `NodeStatus` while the node is online.
+- Added the H743 target to the Windows provisioning app as
+  **Board target -> H743 WeAct DroneCAN**.
+- Added H743 update transports in the provisioning app:
+  **ST-Link (SWD)** for activation/update and **USB-C ROM DFU** for already
+  activated H743 boards.
+- Added the complete H743 DroneCAN documentation page, including SN65HVD230
+  wiring, `PB9/PB8` CAN pins, USB-C DFU steps, ArduPilot `GPS1_TYPE=9`
+  setup, onboard screen behavior, and the optional HD-15 D-sub box pinout.
+
+### Changed
+
+- The public download link now serves the desktop app build with H743 DroneCAN
+  target support:
+  [gps.airdroper.org/download/app](https://gps.airdroper.org/download/app).
+- The provisioning server now exposes a separate `h743_dronecan` firmware
+  channel. F401 firmware remains on the existing `1.6.24` stable channel.
+
+---
+
 ## Docs/Tools - 2026-06-06
 
 ### Changed

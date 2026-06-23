@@ -250,5 +250,9 @@ velocity-position consistency і receiver clock jump, якщо дані дост
   оновити. Для вже активованої H743 використовуйте desktop app
   **USB-C ROM DFU** update path, або ST-Link/manual recovery для development
   board, яку треба свідомо відновити.
+- Якщо плата на H743 DroneCAN `v0.1.0` завантажується, синій LED блимає раз на
+  кілька секунд, але екран чорний, оновіть H743 DroneCAN до `v0.1.1` або
+  новішої. `v0.1.1` виправляє полярність backlight для WeAct LCD (`PE10`
+  active-low).
 - Дисплей гасне після boot: firmware вимикає backlight, якщо SPI writes до
   дисплея fail. DroneCAN GPS і guard logic продовжують працювати без екрана.

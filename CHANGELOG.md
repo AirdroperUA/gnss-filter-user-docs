@@ -6,6 +6,17 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.1.1 - 2026-06-23
+
+### Fixed
+
+- Fixed the WeAct H743 onboard LCD backlight polarity. If an H743 DroneCAN
+  board on `v0.1.0` boots with the blue LED blinking every few seconds but the
+  screen stays black, update to `v0.1.1` with the AirDroper GNSS Filter app.
+  DroneCAN GPS output still runs without the screen.
+
+---
+
 ## H743 DroneCAN v0.1.0 - 2026-06-23
 
 ### Added

@@ -396,6 +396,10 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 
 ### Screen turns off after boot
 
+- If the board is on H743 DroneCAN firmware `v0.1.0`, the app boots and the
+  blue LED blinks every few seconds, but the screen stays black, update to
+  H743 DroneCAN `v0.1.1` or newer. `v0.1.1` fixes the WeAct LCD backlight
+  polarity (`PE10` is active-low).
 - The firmware turns the display backlight off if SPI display writes fail, so
   a bad screen connection cannot keep delaying the flight loop.
 - Recheck the onboard display pins, especially `PE12`, `PE14`, `PE11`,

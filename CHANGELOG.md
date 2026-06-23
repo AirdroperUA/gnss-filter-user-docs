@@ -52,6 +52,9 @@ All notable firmware and tool changes are documented here.
 - Rebuilt the desktop app as `2026.06.23.8` so Activate, Update, USB-C DFU,
   and Recover stop before hardware access when STM32CubeProgrammer GUI or a
   leftover STM32 programmer process is already running.
+- Rebuilt the desktop app as `2026.06.23.9` so the busy-programmer preflight
+  tells users to end a stale `STM32_Programmer_CLI.exe` from Windows Task
+  Manager before retrying.
 - The provisioning server now exposes a separate `h743_dronecan` firmware
   channel. F401 firmware remains on the existing `1.6.24` stable channel.
 

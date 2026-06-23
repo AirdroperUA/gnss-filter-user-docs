@@ -166,7 +166,7 @@ To enter STM32 ROM DFU:
 3. Connect USB-C to the computer.
 4. Release `BOOT0` after the board enumerates in DFU mode.
 
-The Windows **AirDroper GNSS Filter** app version `2026.06.23.4` or newer can
+The Windows **AirDroper GNSS Filter** app version `2026.06.23.5` or newer can
 update an already activated H743 over USB-C ROM DFU:
 
 1. Set **Board target** to **H743 WeAct DroneCAN**.
@@ -209,7 +209,7 @@ Windows app provisioning and updates:
    | `SWDIO` | `PA13` / `DIO` |
    | `SWCLK` | `PA14` / `CLK` |
 
-2. Open **AirDroper GNSS Filter** app version `2026.06.23.4` or newer.
+2. Open **AirDroper GNSS Filter** app version `2026.06.23.5` or newer.
 3. Set **Board target** to **H743 WeAct DroneCAN**.
 4. Set **Update transport** to **ST-Link (SWD)** when updating through SWD.
 5. Enter the license key.
@@ -224,6 +224,14 @@ to **H743 WeAct DroneCAN**, it uses ST-Link/SWD, removes H743 RDP Level 1 with
 the H743 RDP-only path, mass-erases flash, verifies `0x08000000` is blank, and
 then tells you to run **Activate** again. Recovery is destructive: it removes
 the firmware, license metadata, and saved settings from the connected H743.
+
+If CubeProgrammer reports `DEV_TARGET_HELD_UNDER_RESET`, the H743 reset line is
+being held low. Release the board RESET button, remove any suspect ST-Link
+`RST/NRST` wire, disconnect the external CAN/GNSS/D-sub harness, power-cycle
+the H743, and retry with only `3V3`, `GND`, `SWDIO`, and `SWCLK` connected.
+If you do use ST-Link `RST/NRST`, connect it only to the WeAct `NRST/RST` pin.
+Do not hold RESET continuously while clicking **Activate**, **Update**, or
+**Recover Board**.
 
 Production-style build:
 

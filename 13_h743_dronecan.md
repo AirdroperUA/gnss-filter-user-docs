@@ -324,6 +324,11 @@ The onboard screen is enabled in the H743 DroneCAN builds. It shows:
   as `ERR 0/0`
 - firmware version/build, shortened on the secure app as `H743 PHASEB`
 
+On H743 DroneCAN `v0.1.3` and newer, the screen draws a boot/progress page
+immediately after display initialization. During the longer receiver
+autobaud/config step it should show `GNSS INIT`; after GNSS startup it changes
+to `BOOT GUARD` and then the normal status page takes over.
+
 Exact ArduPilot flight-mode names such as Loiter, Auto, Guided, or RTL are
 not part of the standard DroneCAN GPS/status messages used by this firmware.
 The screen shows DroneCAN node mode plus ArduPilot vehicle-state bits instead.

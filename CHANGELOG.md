@@ -6,6 +6,16 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.1.3 - 2026-06-23
+
+### Changed
+
+- The WeAct H743 LCD now shows an immediate boot/progress page before the longer
+  GNSS startup path. During receiver autobaud/config, the screen should show
+  `GNSS INIT` instead of staying black until the main loop starts.
+
+---
+
 ## H743 DroneCAN v0.1.2 - 2026-06-23
 
 ### Added

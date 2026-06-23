@@ -212,6 +212,11 @@ Onboard ST7735 screen показує:
 - `PUB ON DR0` або `PUB BLK DR1`
 - CAN counters `CAN tx/rx` і `ERR tx/rx`
 
+У H743 DroneCAN `v0.1.3+` екран одразу показує boot/progress page після
+display init. Під час довшого receiver autobaud/config має бути видно
+`GNSS INIT`; після GNSS startup екран переходить на `BOOT GUARD`, а потім на
+звичайну status page.
+
 Точні назви режимів ArduPilot типу Loiter, Auto, Guided або RTL не входять у
 стандартні DroneCAN GPS/status повідомлення, які використовує v1. Дисплей
 показує доступні стандартні DroneCAN/ArduPilot status bits.

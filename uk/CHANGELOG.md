@@ -6,6 +6,16 @@
 
 ---
 
+## H743 DroneCAN v0.1.3 - 2026-06-23
+
+### Змінено
+
+- WeAct H743 LCD тепер одразу показує boot/progress page перед довшим GNSS
+  startup path. Під час receiver autobaud/config екран має показувати
+  `GNSS INIT`, а не залишатися чорним до старту main loop.
+
+---
+
 ## H743 DroneCAN v0.1.2 - 2026-06-23
 
 ### Додано

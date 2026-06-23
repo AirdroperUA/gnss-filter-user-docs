@@ -43,6 +43,9 @@ All notable firmware and tool changes are documented here.
 - Rebuilt the desktop app as `2026.06.23.5` so H743 ST-Link/SWD attach tries
   lower hardware-reset and hotplug speeds down to 125 kHz and prints a direct
   `DEV_TARGET_HELD_UNDER_RESET` reset-line diagnostic.
+- Rebuilt the desktop app as `2026.06.23.6` so H743 ST-Link/SWD activation,
+  update, and recovery use CubeProgrammer's GUI-equivalent
+  `mode=NORMAL reset=SWrst` path before the under-reset/hotplug fallbacks.
 - The provisioning server now exposes a separate `h743_dronecan` firmware
   channel. F401 firmware remains on the existing `1.6.24` stable channel.
 

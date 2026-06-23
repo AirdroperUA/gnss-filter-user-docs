@@ -134,8 +134,9 @@ sets `DR_LOCK_MS=120000`.
 
 ### DR behavior
 
-H743 DroneCAN v1 does not expose these parameters through Mission Planner and
-does not have an FC GPS UART bypass. Its defaults are compile-time, and DR1
+H743 DroneCAN `v0.1.4+` exposes these guard/tune parameters through Mission
+Planner `DroneCAN/UAVCAN -> node 42 -> Params`, not through the F401-style
+MAVLink parameter tree. It does not have an FC GPS UART bypass, and DR1
 suppresses DroneCAN `Fix2/Auxiliary` instead of silencing an FC GPS UART.
 
 - **PT_ONLY**: Pass-through-only mode. The filter acts as a clean DR0/DR1 switch — raw GNSS bytes or silence. No synthetic position or blending is used.

@@ -155,6 +155,9 @@ Flight controller parameters:
   and ArduPilot `NotifyState` vehicle-state bits. It still does not show exact
   flight-mode names such as Loiter or Auto; those require a later custom
   DroneCAN message or MAVLink tunnel.
+- H743 DroneCAN `v0.1.4+` params are changed from Mission Planner:
+  `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`, then
+  `Write Params` and `Commit Params`.
 - UART-build filter params are changed in Mission Planner:
   - `Config/Tuning` -> `Full Parameter List`
   - select STM32 (`SYSID=42`)

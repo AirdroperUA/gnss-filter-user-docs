@@ -24,7 +24,8 @@ Use [H743 DroneCAN Guide](13_h743_dronecan.md) for the complete setup path.
 - `GNSS_TYPE=2`: Septentrio Mosaic X5 NMEA mode. Requires one-time setup — see [Receiver Config](#receiver-config).
 - `FCGPS_UART=1`: FC GPS UART pins active (F401 `A11/A12`, H743 UART `C6/C7`; normal operation, default).
 - `FCGPS_UART=0`: FC GPS UART pins released into input mode. Do not use during flight.
-- H743 DroneCAN v1 has no Mission Planner runtime tuning; defaults are compile-time.
+- H743 DroneCAN `v0.1.4+` tuning is in Mission Planner
+  `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
 - After changing `GNSS_TYPE`, reboot STM32 (`NRST` or power cycle).
 
 <details>

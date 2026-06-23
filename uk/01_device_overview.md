@@ -217,7 +217,9 @@ H743 DroneCAN шлях відрізняється:
 ## 7) Ключові робочі примітки
 
 - `FCGPS_FWD=1` використовуйте тільки для діагностики, бо він вмикає FC GPS UART, сиро пересилає GPS на FC і обходить DR1, стартову північну перевірку та огорожу півкулі. Перед польотом поверніть `0`.
-- У H743 DroneCAN v1 немає `FCGPS_FWD` raw UART bypass і немає Mission Planner MAVLink-параметрів; defaults задаються compile-time.
+- У H743 DroneCAN немає `FCGPS_FWD` raw UART bypass і немає F401-style Mission
+  Planner MAVLink-параметрів; у firmware `v0.1.4+` tuning доступний через
+  `DroneCAN/UAVCAN -> node 42 -> Params`.
 - H743 onboard screen показує стан публікації GPS, `WHY` reason, CAN counters,
   FC DroneCAN node health/mode, arm/safety bits і ArduPilot `NotifyState`, коли
   цей broadcast присутній.

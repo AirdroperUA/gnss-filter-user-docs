@@ -6,6 +6,28 @@
 
 ---
 
+## H743 DroneCAN v0.1.4 - 2026-06-23
+
+### Додано
+
+- Додано editable H743 spoofing/tuning parameters через Mission Planner
+  `DroneCAN/UAVCAN -> node 42 -> Params`. `GPS_TYPE`/`GPS1_TYPE` залишаються
+  read-only compatibility rows зі значенням `9`; guard/tune params ідуть після
+  них і зберігаються через DroneCAN `Commit Params`.
+- Додано DroneCAN `uavcan.protocol.param.ExecuteOpcode` save handling, щоб
+  кнопка Mission Planner `Commit Params` записувала змінені H743 parameters у
+  flash.
+- Додано `UBX_RESET` як DroneCAN one-shot command для u-blox hot start, cold
+  start або config reset.
+
+### Змінено
+
+- H743 DroneCAN тепер завантажує і зберігає той самий tuning blob, що й UART
+  firmware, але MAVLink-dependent settings залишаються locked off:
+  `RJ_REQEKF=0`, `FCGPS_UART=0`, `FCGPS_FWD=0`.
+
+---
+
 ## H743 DroneCAN v0.1.3 - 2026-06-23
 
 ### Змінено

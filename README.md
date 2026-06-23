@@ -11,11 +11,12 @@ Important: STM32 filter parameters are changed in Mission Planner:
 - on a busy MAVLink link, a write may need 1-2 attempts; always `Refresh Params` to confirm
 - Optional but recommended: install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows parameter descriptions, ranges, units, and option labels.
 
-H743 DroneCAN note: the H743 DroneCAN firmware does not expose Mission Planner
-MAVLink parameters in v1. It uses compile-time defaults and publishes GPS as
-native DroneCAN messages. Start with `13_h743_dronecan.md` for that board,
-including the HD-15 D-sub box connector pinout for FC CAN, box power, GNSS
-UART/power, and optional DR1 status.
+H743 DroneCAN note: the H743 DroneCAN firmware does not expose F401-style
+Mission Planner MAVLink parameters. On firmware `v0.1.4+`, edit its parameters
+from Mission Planner `DroneCAN/UAVCAN -> node 42 -> Params`; GPS output is
+published as native DroneCAN messages. Start with `13_h743_dronecan.md` for
+that board, including the HD-15 D-sub box connector pinout for FC CAN, box
+power, GNSS UART/power, and optional DR1 status.
 
 Boards for normal flight use are expected to ship with a normal build already installed.
 

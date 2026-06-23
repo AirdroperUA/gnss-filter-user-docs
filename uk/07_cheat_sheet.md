@@ -23,7 +23,8 @@ ArduPilot має бачити DroneCAN GPS (`GPS1_TYPE=9`) на CAN-порті.
 - `GNSS_TYPE=2`: режим Septentrio Mosaic X5 NMEA. Потребує одноразового налаштування — див. [Конфігурація приймача](#receiver-config).
 - `FCGPS_UART=1`: FC GPS UART-піни активні (F401 `A11/A12`, H743 UART `C6/C7`; нормальна робота, за замовчуванням).
 - `FCGPS_UART=0`: FC GPS UART-піни переведені у вхідний режим. Не використовуйте під час польоту.
-- У H743 DroneCAN v1 runtime tuning через Mission Planner відсутній; defaults compile-time.
+- У H743 DroneCAN `v0.1.4+` tuning відкривається в Mission Planner:
+  `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
 - Для `GNSS_TYPE=1` або `GNSS_TYPE=2` використовуйте лише один фізичний NMEA-потік:
   - потік приймача -> STM32 `A2/A3`
   - STM32 пересилає цей самий потік на FC GPS UART

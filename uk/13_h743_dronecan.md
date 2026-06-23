@@ -190,13 +190,45 @@ Raw NMEA, UBX або MAVLink через CAN у v1 не тунелюються.
 
 `GPS_AUTO_CONFIG=1` є default ArduPilot режимом auto-config тільки для serial
 GPS і є найбезпечнішим для цього фільтра. H743 DroneCAN firmware `v0.1.2+`
-також відповідає на optional DroneCAN `param.GetSet` запити ArduPilot для
-`GPS_TYPE`/`GPS1_TYPE`, тому `GPS_AUTO_CONFIG=2` не блокує GPS data, але
-налаштування GNSS receiver все одно залишаються локальними і read-only.
+відповідає на optional DroneCAN `param.GetSet` запити ArduPilot для
+`GPS_TYPE`/`GPS1_TYPE`, тому `GPS_AUTO_CONFIG=2` не блокує GPS data.
 
 Якщо на CAN bus є більше одного DroneCAN GPS-like node, задайте відповідний
 `GPSx_CAN_OVRIDE` на `42`, щоб ArduPilot прив'язав GPS instance до static node
 ID фільтра. На single-GPS bus це optional.
+
+## Mission Planner DroneCAN Params
+
+H743 DroneCAN firmware `v0.1.4+` відкриває spoofing/tuning parameters через
+DroneCAN parameter service. Це не MAVLink parameter screen як на F401; для H743
+відкривайте параметри саме з Mission Planner
+`SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
+
+Порядок:
+
+1. Відкрийте Mission Planner.
+2. `SETUP -> Optional Hardware -> DroneCAN/UAVCAN`.
+3. Виберіть активний CAN driver, зазвичай `MAVLinkCAN1`, і натисніть `Connect`.
+4. Дочекайтесь node `42` з назвою `org.airdroper.gnss_filter.h743_dronecan`.
+5. Натисніть `Menu` на node `42` і відкрийте `Parameters`.
+6. Змініть tune value, натисніть `Write Params`, потім `Commit Params`.
+7. Перезавантажте H743 і перевірте, що значення збереглось.
+
+`GPS_TYPE` і `GPS1_TYPE` є read-only compatibility rows зі значенням `9`.
+Реальні tune rows починаються після них: `BOOT_NSATS`, `BOOT_NHDOP`,
+`RJ_BASE_M`, `SP_JMP_MPS`, `SNR_EN`, `FENCE_RAD`, `GNSS_TYPE` тощо.
+
+`UBX_RESET` є one-shot command, не saved setting:
+
+- `UBX_RESET=1` - u-blox hot start
+- `UBX_RESET=2` - u-blox cold start
+- `UBX_RESET=3` - clear u-blox config and reinitialize
+
+H743 DroneCAN тримає MAVLink-dependent F401 settings locked off:
+
+- `RJ_REQEKF = 0`
+- `FCGPS_UART = 0`
+- `FCGPS_FWD = 0`
 
 ## Дисплей
 

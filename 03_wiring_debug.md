@@ -64,7 +64,8 @@ Quick verification:
 ## 3) MAVLink path (STM32 <-> FC telemetry)
 
 Skip this section for H743 DroneCAN firmware. That build has no FC MAVLink
-serial link and no Mission Planner MAVLink parameter interface in v1.
+serial link; H743 `v0.1.4+` parameters are edited from Mission Planner
+`SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
 
 Symptoms:
 - Mission Planner cannot reliably read/write STM32 params.

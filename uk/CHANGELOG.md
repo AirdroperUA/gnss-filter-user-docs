@@ -6,6 +6,18 @@
 
 ---
 
+## Docs/Tools - 2026-06-23
+
+### Changed
+
+- Reserved a separate H743 DroneCAN flash staging region for future
+  Mission Planner/AirDroper app DroneCAN firmware updates. Current H743 updates
+  still use ST-Link/SWD or USB-C ROM DFU.
+- Updated the H743 DroneCAN guide to show the full secure flash layout and to
+  clarify that standard DroneCAN firmware update is planned but not active yet.
+
+---
+
 ## H743 DroneCAN v0.1.7 - 2026-06-23
 
 ### Fixed

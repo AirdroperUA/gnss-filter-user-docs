@@ -159,13 +159,19 @@ RDP1 ховає фізичний UID до erase, тому protected USB-C path �
 
 H743 secure layout:
 
-| Region | Address |
-|--------|---------|
-| Bootloader | `0x08000000` |
-| App | `0x08020000` |
-| Metadata | `0x081E0000` |
+| Region | Address range | Purpose |
+|--------|---------------|---------|
+| Bootloader | `0x08000000 - 0x0801FFFF` | Secure bootloader |
+| Active app | `0x08020000 - 0x080FFFFF` | Signed H743 DroneCAN firmware |
+| Reserved stage | `0x08100000 - 0x081DFFFF` | Reserved for future DroneCAN firmware update |
+| Metadata | `0x081E0000 - 0x081FFFFF` | Signed metadata / update state |
 
 Не прошивайте H743 app або metadata у F401 адреси.
+
+Standard Mission Planner DroneCAN firmware update is planned but not active in
+the current H743 firmware. Today use AirDroper Windows app `ST-Link (SWD)` or
+`USB-C ROM DFU` for H743 updates. Already-deployed H743 boards will need one
+wired update first before future DroneCAN self-update can work.
 
 ## ArduPilot setup
 

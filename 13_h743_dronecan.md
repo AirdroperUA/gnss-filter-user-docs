@@ -265,13 +265,21 @@ python tools/gnss_provision.py activate --target h743_dronecan --license GF-XXXX
 
 The H743 secure layout is separate from F401:
 
-| Region | Address |
-|--------|---------|
-| Bootloader | `0x08000000` |
-| App | `0x08020000` |
-| Metadata | `0x081E0000` |
+| Region | Address range | Purpose |
+|--------|---------------|---------|
+| Bootloader | `0x08000000 - 0x0801FFFF` | Secure bootloader |
+| Active app | `0x08020000 - 0x080FFFFF` | Signed H743 DroneCAN firmware |
+| Reserved stage | `0x08100000 - 0x081DFFFF` | Reserved for future DroneCAN firmware update |
+| Metadata | `0x081E0000 - 0x081FFFFF` | Signed metadata / update state |
 
 Do not flash H743 app or metadata images at F401 addresses.
+
+Firmware update over the standard Mission Planner DroneCAN firmware-update
+window is planned but not active in the current H743 firmware. Use the
+AirDroper Windows app with **ST-Link (SWD)** or **USB-C ROM DFU** for H743
+updates today. When DroneCAN self-update is implemented, already-deployed H743
+boards will need one wired update first so the CAN-update-capable bootloader is
+installed.
 
 ## 6) Flight controller setup
 

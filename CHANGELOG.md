@@ -37,6 +37,9 @@ All notable firmware and tool changes are documented here.
 - Rebuilt the desktop app as `2026.06.23.3` so every ST-Link and USB-C flash
   log prints the flasher app version separately from the board firmware version
   (`v0.1.0` for the current H743 DroneCAN firmware).
+- Rebuilt the desktop app as `2026.06.23.4` so **Recover Board** also supports
+  the H743 WeAct DroneCAN target through ST-Link/SWD using the H743 RDP-only
+  unlock, mass erase, and blank-flash verification path.
 - The provisioning server now exposes a separate `h743_dronecan` firmware
   channel. F401 firmware remains on the existing `1.6.24` stable channel.
 

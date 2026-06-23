@@ -101,7 +101,7 @@ Auto.
 
 Production H743 DroneCAN boards використовують signed H743 bootloader layout:
 bootloader at `0x08000000`, app at `0x08020000`, metadata at `0x081E0000`.
-Desktop app `2026.06.23.1+` може оновлювати вже активовану H743 через
+Desktop app `2026.06.23.4+` може оновлювати вже активовану H743 через
 USB-C ROM DFU. На readable/unlocked платах додаток пише лише app+metadata.
 Для RDP1-protected плат потрібне підтвердження UID-short: додаток знімає RDP
 через USB DFU, просить повернути плату в ROM DFU із затиснутим `BOOT0`, робить

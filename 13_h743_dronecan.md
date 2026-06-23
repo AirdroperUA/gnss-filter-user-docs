@@ -166,7 +166,7 @@ To enter STM32 ROM DFU:
 3. Connect USB-C to the computer.
 4. Release `BOOT0` after the board enumerates in DFU mode.
 
-The Windows **AirDroper GNSS Filter** app version `2026.06.23.1` or newer can
+The Windows **AirDroper GNSS Filter** app version `2026.06.23.4` or newer can
 update an already activated H743 over USB-C ROM DFU:
 
 1. Set **Board target** to **H743 WeAct DroneCAN**.
@@ -209,7 +209,7 @@ Windows app provisioning and updates:
    | `SWDIO` | `PA13` / `DIO` |
    | `SWCLK` | `PA14` / `CLK` |
 
-2. Open **AirDroper GNSS Filter** app version `2026.06.23.1` or newer.
+2. Open **AirDroper GNSS Filter** app version `2026.06.23.4` or newer.
 3. Set **Board target** to **H743 WeAct DroneCAN**.
 4. Set **Update transport** to **ST-Link (SWD)** when updating through SWD.
 5. Enter the license key.
@@ -219,9 +219,11 @@ Windows app provisioning and updates:
 The app reads the H743 UID at `0x1FF1E800`, requests `target=h743_dronecan`
 from the server, flashes app `0x08020000`, metadata `0x081E0000`,
 bootloader `0x08000000`, and then applies H743 RDP Level 1 with `RDP=0xBB`.
-The app's **Recover Board** button remains F401-only; H743 recovery should use
-the normal Activate/Update path or manual STM32CubeProgrammer mass erase when
-you intentionally need to recover a development board.
+The app's **Recover Board** button is target-aware. With **Board target** set
+to **H743 WeAct DroneCAN**, it uses ST-Link/SWD, removes H743 RDP Level 1 with
+the H743 RDP-only path, mass-erases flash, verifies `0x08000000` is blank, and
+then tells you to run **Activate** again. Recovery is destructive: it removes
+the firmware, license metadata, and saved settings from the connected H743.
 
 Production-style build:
 

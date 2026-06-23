@@ -166,7 +166,7 @@ To enter STM32 ROM DFU:
 3. Connect USB-C to the computer.
 4. Release `BOOT0` after the board enumerates in DFU mode.
 
-The Windows **AirDroper GNSS Filter** app version `2026.06.23.9` or newer can
+The Windows **AirDroper GNSS Filter** app version `2026.06.23.10` or newer can
 update an already activated H743 over USB-C ROM DFU:
 
 1. Set **Board target** to **H743 WeAct DroneCAN**.
@@ -209,7 +209,7 @@ Windows app provisioning and updates:
    | `SWDIO` | `PA13` / `DIO` |
    | `SWCLK` | `PA14` / `CLK` |
 
-2. Open **AirDroper GNSS Filter** app version `2026.06.23.9` or newer.
+2. Open **AirDroper GNSS Filter** app version `2026.06.23.10` or newer.
 3. Set **Board target** to **H743 WeAct DroneCAN**.
 4. Set **Update transport** to **ST-Link (SWD)** when updating through SWD.
 5. Enter the license key.
@@ -219,6 +219,10 @@ Windows app provisioning and updates:
 The app reads the H743 UID at `0x1FF1E800`, requests `target=h743_dronecan`
 from the server, flashes app `0x08020000`, metadata `0x081E0000`,
 bootloader `0x08000000`, and then applies H743 RDP Level 1 with `RDP=0xBB`.
+Version `2026.06.23.10+` writes the H743 application and metadata as separate
+flash operations. If CubeProgrammer already erased the board and a repeated
+mass erase fails, the app checks blank bootloader/app/metadata sentinels and
+continues with write + verify when those slots are already blank.
 The app's **Recover Board** button is target-aware. With **Board target** set
 to **H743 WeAct DroneCAN**, it uses ST-Link/SWD, removes H743 RDP Level 1 with
 the H743 RDP-only path, mass-erases flash, verifies `0x08000000` is blank, and
@@ -234,12 +238,12 @@ Do not hold RESET continuously while clicking **Activate**, **Update**, or
 **Recover Board**.
 
 If STM32CubeProgrammer GUI connects with **Mode = Normal** and
-**Reset mode = Software reset**, use app `2026.06.23.9` or newer. That build
+**Reset mode = Software reset**, use app `2026.06.23.10` or newer. That build
 uses the same `mode=NORMAL reset=SWrst` path for H743 before trying
 under-reset and hotplug fallbacks.
 
 Close STM32CubeProgrammer GUI before using the AirDroper app. App
-`2026.06.23.9+` also checks for running STM32 flashing tools before hardware
+`2026.06.23.10+` also checks for running STM32 flashing tools before hardware
 access and stops with a clear message if one is still open. If
 `STM32_Programmer_CLI.exe` remains after closing the GUI, end it from Windows
 Task Manager and retry.

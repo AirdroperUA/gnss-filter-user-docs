@@ -55,6 +55,9 @@ All notable firmware and tool changes are documented here.
 - Rebuilt the desktop app as `2026.06.23.9` so the busy-programmer preflight
   tells users to end a stale `STM32_Programmer_CLI.exe` from Windows Task
   Manager before retrying.
+- Rebuilt the desktop app as `2026.06.23.10` so H743 full rewrites write the
+  app and metadata as separate flash operations, and continue after a failed
+  mass erase when the bootloader/app/metadata slots already read blank.
 - The provisioning server now exposes a separate `h743_dronecan` firmware
   channel. F401 firmware remains on the existing `1.6.24` stable channel.
 

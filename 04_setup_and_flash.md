@@ -1,4 +1,4 @@
-﻿# Setup Manual
+# Setup Manual
 
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
@@ -113,7 +113,7 @@ For licensed H743 DroneCAN provisioning over ST-Link/SWD:
 python tools/gnss_provision.py activate --target h743_dronecan --license GF-XXXX-XXXX-XXXX --server https://gps.airdroper.org
 ```
 
-Or use **AirDroper GNSS Filter** app version `2026.06.23.9` or newer:
+Or use **AirDroper GNSS Filter** app version `2026.06.23.10` or newer:
 select **Board target -> H743 WeAct DroneCAN**. For ST-Link activation/update,
 set **Update transport -> ST-Link (SWD)**, connect ST-Link V2
 `SWDIO -> PA13` and `SWCLK -> PA14`, then click **Activate** or **Update**.

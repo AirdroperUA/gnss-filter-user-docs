@@ -166,7 +166,7 @@ To enter STM32 ROM DFU:
 3. Connect USB-C to the computer.
 4. Release `BOOT0` after the board enumerates in DFU mode.
 
-The Windows **AirDroper GNSS Filter** app version `2026.06.22.3` or newer can
+The Windows **AirDroper GNSS Filter** app version `2026.06.23.1` or newer can
 update an already activated H743 over USB-C ROM DFU:
 
 1. Set **Board target** to **H743 WeAct DroneCAN**.
@@ -209,7 +209,7 @@ Windows app provisioning and updates:
    | `SWDIO` | `PA13` / `DIO` |
    | `SWCLK` | `PA14` / `CLK` |
 
-2. Open **AirDroper GNSS Filter** app version `2026.06.22.3` or newer.
+2. Open **AirDroper GNSS Filter** app version `2026.06.23.1` or newer.
 3. Set **Board target** to **H743 WeAct DroneCAN**.
 4. Set **Update transport** to **ST-Link (SWD)** when updating through SWD.
 5. Enter the license key.

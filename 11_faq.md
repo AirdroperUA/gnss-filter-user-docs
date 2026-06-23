@@ -284,7 +284,7 @@ that board's unique hardware ID.
 
 For H743 DroneCAN, use the CLI target `h743_dronecan` or the desktop app
 **Board target -> H743 WeAct DroneCAN** for production provisioning/update.
-App version `2026.06.22.3+` can also update an already activated H743 through
+App version `2026.06.23.1+` can also update an already activated H743 through
 **Update transport -> USB-C ROM DFU**. Readable boards get app+metadata updates;
 RDP1-protected boards go through UID-short confirmation, USB DFU RDP removal,
 mass erase, app+metadata+bootloader rewrite, and RDP1 relock. For unlocked

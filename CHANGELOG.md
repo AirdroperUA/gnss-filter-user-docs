@@ -6,6 +6,19 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.1.2 - 2026-06-23
+
+### Added
+
+- Added a minimal read-only DroneCAN `uavcan.protocol.param.GetSet` response
+  for ArduPilot `GPS_TYPE`/`GPS1_TYPE` queries. This keeps H743 DroneCAN GPS
+  usable even if `GPS_AUTO_CONFIG=2` is enabled on the flight controller.
+- Documented ArduPilot `GPS_AUTO_CONFIG=1` as the recommended setup and
+  `GPS1_CAN_OVRIDE=42` as the optional node lock when multiple DroneCAN GPS
+  nodes are present.
+
+---
+
 ## H743 DroneCAN v0.1.1 - 2026-06-23
 
 ### Fixed

@@ -76,6 +76,9 @@ Flight controller parameters for the CAN port used by the H743 node:
 - `CAN_D1_PROTOCOL = 1` for CAN1, or `CAN_D2_PROTOCOL = 1` for CAN2
 - `CAN_P1_BITRATE = 1000000` or `CAN_P2_BITRATE = 1000000`
 - `GPS1_TYPE = 9` for DroneCAN GPS
+- `GPS_AUTO_CONFIG = 1` for the default serial-only GPS auto-config mode
+- optional: `GPS1_CAN_OVRIDE = 42` if the bus has more than one DroneCAN
+  GPS-like node
 
 Reboot the flight controller after changing CAN driver parameters. If the H743
 node is at a physical end of the CAN bus, enable the CAN module's 120 ohm

@@ -74,6 +74,9 @@ Firmware defaults:
 - `CAN_D1_PROTOCOL = 1` для CAN1, або `CAN_D2_PROTOCOL = 1` для CAN2
 - `CAN_P1_BITRATE = 1000000` або `CAN_P2_BITRATE = 1000000`
 - `GPS1_TYPE = 9` для DroneCAN GPS
+- `GPS_AUTO_CONFIG = 1` for default serial-only GPS auto-config mode
+- optional: `GPS1_CAN_OVRIDE = 42` if the bus has more than one DroneCAN
+  GPS-like node
 
 Після зміни CAN driver parameters перезавантажте FC. Якщо H743 node стоїть
 на фізичному кінці CAN-шини, увімкніть 120 ohm termination на CAN-модулі;

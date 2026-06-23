@@ -6,6 +6,20 @@
 
 ---
 
+## H743 DroneCAN v0.1.2 - 2026-06-23
+
+### Додано
+
+- Додано мінімальну read-only DroneCAN відповідь
+  `uavcan.protocol.param.GetSet` для ArduPilot запитів `GPS_TYPE`/`GPS1_TYPE`.
+  Це дозволяє H743 DroneCAN GPS працювати навіть коли на FC увімкнено
+  `GPS_AUTO_CONFIG=2`.
+- Задокументовано рекомендований ArduPilot setup `GPS_AUTO_CONFIG=1` і
+  optional node lock `GPS1_CAN_OVRIDE=42`, якщо на CAN bus є кілька DroneCAN
+  GPS nodes.
+
+---
+
 ## H743 DroneCAN v0.1.1 - 2026-06-23
 
 ### Виправлено

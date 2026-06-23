@@ -174,6 +174,8 @@ H743 secure layout:
 | DroneCAN protocol | `CAN_D1_PROTOCOL = 1` | `CAN_D2_PROTOCOL = 1` |
 | Bitrate | `CAN_P1_BITRATE = 1000000` | `CAN_P2_BITRATE = 1000000` |
 | GPS type | `GPS1_TYPE = 9` | `GPS2_TYPE = 9` |
+| GPS auto-config | `GPS_AUTO_CONFIG = 1` | global parameter |
+| Optional GPS node lock | `GPS1_CAN_OVRIDE = 42` | `GPS2_CAN_OVRIDE = 42`, якщо це GPS2 |
 
 Після зміни CAN параметрів перезавантажте FC.
 
@@ -185,6 +187,16 @@ H743 secure layout:
 - `uavcan.equipment.gnss.Auxiliary`
 
 Raw NMEA, UBX або MAVLink через CAN у v1 не тунелюються.
+
+`GPS_AUTO_CONFIG=1` є default ArduPilot режимом auto-config тільки для serial
+GPS і є найбезпечнішим для цього фільтра. H743 DroneCAN firmware `v0.1.2+`
+також відповідає на optional DroneCAN `param.GetSet` запити ArduPilot для
+`GPS_TYPE`/`GPS1_TYPE`, тому `GPS_AUTO_CONFIG=2` не блокує GPS data, але
+налаштування GNSS receiver все одно залишаються локальними і read-only.
+
+Якщо на CAN bus є більше одного DroneCAN GPS-like node, задайте відповідний
+`GPSx_CAN_OVRIDE` на `42`, щоб ArduPilot прив'язав GPS instance до static node
+ID фільтра. На single-GPS bus це optional.
 
 ## Дисплей
 
@@ -244,6 +256,10 @@ velocity-position consistency і receiver clock jump, якщо дані дост
 - FC не бачить GPS: перевірте `GPS1_TYPE=9`, GNSS fix, `PUB ON DR0`, і щоб
   `WHY` не показував `GPS`, `NOFIX`, `SATS`, `JUMP`, `FENCE` або іншу DR1
   причину.
+- Для firmware старішої за H743 DroneCAN `v0.1.2` перевірте
+  `GPS_AUTO_CONFIG=1`.
+- Якщо є кілька DroneCAN GPS nodes, задайте `GPS1_CAN_OVRIDE=42` або override
+  для відповідного GPS instance.
 - USB-C DFU не стартує: тримайте `BOOT0` під час reset/power-up, використайте
   data-capable USB-C cable, від'єднайте ST-Link, перевірте RDP state. Якщо
   плата має RDP Level 1, raw PlatformIO app-only ROM DFU upload не зможе її

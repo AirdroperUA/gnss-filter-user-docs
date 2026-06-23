@@ -281,6 +281,8 @@ Configure the ArduPilot CAN port connected to the H743 transceiver:
 | DroneCAN protocol | `CAN_D1_PROTOCOL = 1` | `CAN_D2_PROTOCOL = 1` |
 | CAN bitrate | `CAN_P1_BITRATE = 1000000` | `CAN_P2_BITRATE = 1000000` |
 | GPS type | `GPS1_TYPE = 9` | `GPS2_TYPE = 9` if using GPS2 |
+| GPS auto-config | `GPS_AUTO_CONFIG = 1` | Same global parameter |
+| Optional GPS node lock | `GPS1_CAN_OVRIDE = 42` | `GPS2_CAN_OVRIDE = 42` if using GPS2 |
 
 Reboot the flight controller after changing CAN driver parameters.
 
@@ -293,6 +295,16 @@ It publishes native DroneCAN GPS messages:
 - `uavcan.equipment.gnss.Auxiliary`
 
 It does not tunnel raw NMEA, UBX, or MAVLink over CAN in v1.
+
+`GPS_AUTO_CONFIG=1` is ArduPilot's default serial-only GPS auto-config mode and
+is the safest setting for this filter. H743 DroneCAN firmware `v0.1.2` and
+newer also responds to ArduPilot's optional DroneCAN `param.GetSet` queries for
+`GPS_TYPE`/`GPS1_TYPE`, so `GPS_AUTO_CONFIG=2` will not block GPS data, but the
+filter still keeps its GNSS receiver configuration local and read-only.
+
+If the CAN bus has more than one DroneCAN GPS-like node, set the matching
+`GPSx_CAN_OVRIDE` parameter to `42` so ArduPilot binds that GPS instance to the
+filter's static node ID. On a single-GPS bus this is optional.
 
 ## 7) Display behavior
 
@@ -382,6 +394,9 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 ### Node appears but FC does not get GPS
 
 - Confirm `GPS1_TYPE=9` or the matching GPS instance type is set to DroneCAN.
+- Confirm `GPS_AUTO_CONFIG=1` on firmware older than H743 DroneCAN `v0.1.2`.
+- If there are multiple DroneCAN GPS nodes, set `GPS1_CAN_OVRIDE=42` or the
+  matching GPS instance override.
 - Confirm the GNSS receiver has a valid fix; the screen should show `GPS FIX`.
 - Confirm the screen shows `PUB ON DR0`, not `PUB BLK DR1`.
 - Confirm `WHY` is not `GNSSCFG`, `GPS`, `SOUTH`, `FENCE`, `NOFIX`, `SATS`,

@@ -416,12 +416,18 @@ In DR0:
 - it publishes `Auxiliary` at 1 Hz
 - `NodeStatus` stays online
 
-In DR1 or any blocked state:
+In DR1:
 
 - `Fix2` and `Auxiliary` are suppressed
 - the flight controller stops receiving fresh GPS from this node
 - `NodeStatus` continues at 1 Hz with warning health and vendor status bits
 - the screen shows `FILTER NO OK`, a compact `WHY` reason, and `PUB BLK DR1`
+
+Normal no-fix, boot guard, or GNSS reconfiguration can also suppress
+`Fix2/Auxiliary`, but those states keep `NodeStatus` health `OK` and report the
+output block only through vendor status bits and the onboard screen. This avoids
+ArduPilot `PreArm: DroneCAN: Node 42 unhealthy!` while the GPS is simply not
+ready yet.
 
 H743 DroneCAN v1 disables flight-controller-serial MAVLink behavior:
 

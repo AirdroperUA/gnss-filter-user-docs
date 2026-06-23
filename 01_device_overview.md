@@ -127,7 +127,7 @@ For UM980/UM981/UM982 and Mosaic X5, one physical receiver connection is enough 
 ### DR1 (protection mode)
 
 - On H743 DroneCAN, GPS `Fix2/Auxiliary` publications stop, but `NodeStatus`
-  stays online with warning health.
+  stays online with warning health during the DR1 latch.
 
 - GPS data blocked — your flight controller receives silence.
 - Pin B5 outputs a 3-second pulse on each DR0→DR1 transition (you can connect an LED or buzzer to it).

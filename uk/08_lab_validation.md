@@ -26,7 +26,7 @@
 
 Для WeAct H743 DroneCAN "блокування пересилання GNSS" означає, що DroneCAN
 `Fix2/Auxiliary` перестають публікуватися, а `NodeStatus` лишається online з
-warning health. Перевіряйте onboard screen і DroneCAN/SLCAN tooling разом із
+warning health only during the actual DR1 latch. Перевіряйте onboard screen і DroneCAN/SLCAN tooling разом із
 логами польотного контролера. Повний H743 setup: [H743 DroneCAN Guide](13_h743_dronecan.md).
 
 ## 4) Рекомендоване лабораторне середовище

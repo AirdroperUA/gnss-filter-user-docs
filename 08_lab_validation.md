@@ -69,7 +69,7 @@ logs. For that build, verify:
 
 - screen state changes (`FILTER OK/WARN/NO OK`, `WHY`, `PUB`)
 - DroneCAN node ID `42` remains visible
-- `NodeStatus` health changes to warning during blocked output
+- `NodeStatus` health changes to warning during the actual DR1 latch
 - `Fix2/Auxiliary` stop during DR1 and resume after rejoin
 - ArduPilot GPS instance reports loss/recovery without accepting suspect fixes
 

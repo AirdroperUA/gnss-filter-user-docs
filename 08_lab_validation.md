@@ -70,7 +70,8 @@ along with:
 
 - screen state changes (`FILTER OK/WARN/NO OK`, `WHY`, `PUB`)
 - DroneCAN node ID `42` remains visible
-- `NodeStatus` health changes to warning only for spoof/fault DR1 reasons
+- `NodeStatus` health changes to warning for spoof/fault DR1 reasons or an
+  enabled I2C sensor that remains missing/stale after startup grace
 - `Fix2/Auxiliary` stop during DR1 and resume after rejoin
 - ArduPilot GPS instance reports loss/recovery without accepting suspect fixes
 - camera S1/index `0` and filter S2/index `1` remain active in DR1

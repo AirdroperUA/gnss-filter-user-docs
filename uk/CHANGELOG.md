@@ -6,6 +6,70 @@
 
 ---
 
+## H743 DroneCAN v0.4.2 - 2026-07-21
+
+### Змінено
+
+- Налаштовано стандартні параметри H743 fixed-wing для літака з крейсерською
+  швидкістю близько 120 км/год: `EKF_TRIPMS=500`, `SP_JMP_MPS=200`,
+  `SP_ABS_M=400` та `RJ_LOIT_V=0`. Власні значення зберігаються під час
+  оновлення; стандартні значення F401 не змінено. Математичні guard-тести
+  охоплюють design envelope до 65 м/с (234 км/год), але не замінюють перевірку
+  за польотними логами.
+
+### Виправлено
+
+- Перевірка стрибків тепер використовує епохи GNSS, а не час надходження UART,
+  тому дублікати та backlog не створюють хибних тривог швидкості. Generic
+  втрата EKF використовує налаштований debounce, тоді як явний
+  `GPS_GLITCHING` спрацьовує негайно після inhibition. `UNINITIALIZED`
+  допускається лише до першого healthy EKF report у FC session; після цього
+  startup exemption не відкривається повторно.
+- Явний no-fix, зміна приймача та завершення DroneCAN Fix2 в межах однієї епохи
+  тепер працюють fail-closed без змішування полів або обходу jump guard.
+  Некоректні координати від активного джерела скасовують fix, а зміна джерела
+  очищує попередні дані quality/SNR;
+  Fix2 UTC timestamp зберігає millisecond precision приймача.
+- Boot, DR lock, rejoin і EKF grace таймери коректно працюють після 24,9 діб
+  uptime та через 32-bit rollover таймера.
+
+---
+
+## H743 DroneCAN v0.4.1 - 2026-07-21
+
+### Додано
+
+- Додано двосекторний H743 parameter journal із commit-last записом і stable
+  name keys, які зберігають unknown values у межах supported schemas.
+- F401 runtime sector erase замінено transactional append-only journal; коли
+  journal full, persistence відхиляється, а останні committed settings
+  зберігаються.
+
+### Змінено
+
+- Production defaults тепер fail closed із live FC heartbeat/EKF evidence,
+  EKF-confirmed rejoin, двохвилинним DR1 lock, enabled SNR guard, без forced
+  DR1 timeout і з location-redacted status text.
+- Parameter writes і resets вимагають fresh, explicitly disarmed FC evidence
+  від configured або leased DroneCAN peer.
+- Secure H743 app/staging windows мають по 640 KiB. Production bootloader
+  перевіряє RDP1 і зберігає anti-rollback compatibility floor v0.4.0; server
+  застосовує той самий floor до customer-visible selection paths.
+
+### Виправлено
+
+- Усі private DR geometry, altitude, confidence, EKF і fence gates працюють у
+  pass-through mode та протягом optional GNSS blend.
+- Malformed, stale, non-finite, out-of-range або wrong-source GNSS, MAVLink і
+  DroneCAN safety evidence тепер fail closed. Виправлено heading reversal на
+  1 Hz, antimeridian residuals і GetSet DSDL decoding.
+- Lease expiry або FC reboot очищує обидва напрями обох MAVLink tunnels, скидає
+  всі FC-derived states і повторно запитує повний telemetry set.
+- Посилено MS4525/HMC5983 reads, I2C recovery, nonblocking display/USB work і
+  non-overlapping `NodeStatus` vendor layout.
+
+---
+
 ## H743 DroneCAN v0.4.0 - 2026-07-21
 
 ### Додано

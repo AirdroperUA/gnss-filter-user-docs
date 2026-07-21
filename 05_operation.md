@@ -73,7 +73,10 @@ The onboard status LED follows the same state shown in logs:
 
 - No-fix or low-satellite condition (`sats < 5`) triggers DR1 immediately (after startup guard window).
 - Position jump, altitude checks, SNR checks, and EKF checks can also trigger DR1 based on tuning.
-- `EKF_TRIPMS=0` means EKF-based DR1 trip is immediate when EKF is unhealthy.
+- H743 DroneCAN defaults to `EKF_TRIPMS=500`: generic horizontal EKF evidence
+  must remain invalid for at least 500 ms, then DR1 trips on the next bad
+  report. An explicit `GPS_GLITCHING` report is immediate after boot/rejoin
+  inhibition. F401 keeps its released `EKF_TRIPMS=0` generic-loss behavior.
 - South-hemisphere jump: if GPS latitude goes below 0°, DR1 triggers immediately. The filter hard-blocks any south-hemisphere position from reaching the FC in normal operation (all drones operate in the northern hemisphere).
 - Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius (up to 2000 km) triggers DR1.
 - Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.

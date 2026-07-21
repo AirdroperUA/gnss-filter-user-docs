@@ -58,9 +58,9 @@ procedure is in the
 Firmware defaults:
 
 - DroneCAN node ID: `42`
-- FC DroneCAN node filter: `0` (lock to the first valid Targetted transfer
-  addressed to this node, then accept tunnel/status traffic only from that
-  source). Set
+- FC DroneCAN node filter: `0` (bind only after two valid Targetted transfers
+  addressed to this node from the same source; the lease expires after three
+  seconds without another valid transfer). Set
   `FILTER_DRONECAN_FC_NODE_ID` at build time if the bus has multiple nodes and
   you want the onboard screen locked to one FC node.
 - CAN bitrate: `1 Mbps`
@@ -165,9 +165,10 @@ queued data expired after a stalled link.
 - DR1 protection normally blocks live forwarding from GNSS input to FC GPS UART. The FC receives silence during DR1 unless the diagnostic raw-forward override is enabled.
 - In H743 DroneCAN mode, DR1 protection suppresses DroneCAN `Fix2/Auxiliary`
   instead of silencing a GPS UART. `NodeStatus` remains online and reports
-  warning health only for spoof/fault DR1 reasons. Ordinary no-fix, low
-  satellites, boot guard, or GNSS reconfiguration output suppression keeps
-  DroneCAN node health `OK`.
+  warning health for spoof/fault DR1 reasons or an enabled I2C sensor that is
+  missing/stale after its five-second startup grace. Ordinary no-fix, low
+  satellites, boot guard, or GNSS reconfiguration output suppression alone
+  keeps DroneCAN node health `OK`.
 - In H743 DroneCAN mode, the onboard display shows standard DroneCAN node mode
   and ArduPilot `NotifyState` vehicle-state bits. It still does not show exact
   flight-mode names such as Loiter or Auto; the MAVLink tunnel does not change

@@ -6,6 +6,67 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.4.2 - 2026-07-21
+
+### Changed
+
+- Tuned the H743 fixed-wing defaults for aircraft cruising near 120 km/h:
+  `EKF_TRIPMS=500`, `SP_JMP_MPS=200`, `SP_ABS_M=400`, and
+  `RJ_LOIT_V=0`. Existing custom settings are preserved during upgrade, and
+  F401 defaults are unchanged. Mathematical guard tests cover a 65 m/s
+  (234 km/h) design envelope; this is not a substitute for flight-log validation.
+
+### Fixed
+
+- Jump detection now uses GNSS receiver epochs instead of UART arrival time,
+  preventing duplicate or backlogged messages from creating false speed
+  alarms. Generic EKF loss uses the configured debounce, while explicit
+  `GPS_GLITCHING` is immediate after inhibition and startup `UNINITIALIZED`
+  cannot reopen after a healthy FC session.
+- Explicit no-fix reports, receiver handovers, and same-epoch DroneCAN Fix2
+  completion now fail closed without mixing fields or bypassing jump checks.
+  Malformed active-owner coordinates invalidate the fix, and source handover
+  clears old quality/SNR evidence;
+  Fix2 UTC timestamps retain receiver millisecond precision.
+- Boot, DR lock, rejoin, and EKF grace timers remain correct beyond 24.9 days
+  of uptime and across the 32-bit timer rollover.
+
+---
+
+## H743 DroneCAN v0.4.1 - 2026-07-21
+
+### Added
+
+- Added a dual-sector, commit-last H743 parameter journal with stable name keys
+  that preserve unknown values within supported schemas.
+- Replaced F401 runtime sector erase with a transactional append-only journal;
+  a full journal refuses persistence and retains the last committed settings.
+
+### Changed
+
+- Production defaults now fail closed with live FC heartbeat/EKF evidence,
+  EKF-confirmed rejoin, a two-minute DR1 lock, enabled SNR guard, no forced DR1
+  timeout, and location-redacted status text.
+- Parameter writes and resets require fresh, explicitly disarmed FC evidence
+  from the configured or leased DroneCAN peer.
+- Secure H743 app/staging windows are 640 KiB each. The production bootloader
+  verifies RDP1 and retains the v0.4.0 anti-rollback compatibility floor; the
+  server enforces the same floor across customer-visible selection paths.
+
+### Fixed
+
+- Kept all private DR geometry, altitude, confidence, EKF, and fence gates live
+  in pass-through mode and during optional GNSS blending.
+- Made malformed, stale, non-finite, out-of-range, or wrong-source GNSS,
+  MAVLink, and DroneCAN safety evidence fail closed. Fixed 1 Hz heading
+  reversal confirmation, antimeridian residuals, and GetSet DSDL decoding.
+- Lease expiry and FC reboot now purge both directions of both MAVLink tunnels,
+  reset every FC-derived state, and re-request the complete telemetry set.
+- Hardened MS4525 and HMC5983 reads, I2C recovery, nonblocking display/USB work,
+  and the non-overlapping `NodeStatus` vendor layout.
+
+---
+
 ## H743 DroneCAN v0.4.0 - 2026-07-21
 
 ### Added

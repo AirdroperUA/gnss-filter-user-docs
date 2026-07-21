@@ -212,6 +212,11 @@ RDP1 ховає фізичний UID до erase, тому protected USB-C path �
 після підтвердження UID-short. Якщо UID-short неправильний або діалог
 скасовано, app зупиняється до RDP removal і плата не змінюється.
 
+H743 verifier сам не записує option bytes: він відмовляється boot unlocked
+production image. Provisioning/update tooling має застосувати й перевірити
+`RDP=0xBB`. Production bootloader також відхиляє signed H743 applications,
+старіші за anti-rollback floor v0.4.0.
+
 ## ST-Link/SWD
 
 Підключення ST-Link V2:
@@ -235,8 +240,10 @@ H743 secure layout:
 | Region | Address range | Purpose |
 |--------|---------------|---------|
 | Bootloader | `0x08000000 - 0x0801FFFF` | Secure bootloader |
-| Active app | `0x08020000 - 0x080FFFFF` | Signed H743 DroneCAN firmware |
-| Reserved stage | `0x08100000 - 0x081DFFFF` | Reserved for future DroneCAN firmware update |
+| Active app | `0x08020000 - 0x080BFFFF` | Signed H743 DroneCAN firmware |
+| Bank 1 reserve | `0x080C0000 - 0x080FFFFF` | Growth/guard area |
+| Reserved stage | `0x08100000 - 0x0819FFFF` | Reserved for future DroneCAN firmware update |
+| Parameter journals | `0x081A0000 - 0x081DFFFF` | Power-fail-safe parameter storage |
 | Metadata | `0x081E0000 - 0x081FFFFF` | Signed metadata / update state |
 
 Не прошивайте H743 app або metadata у F401 адреси.
@@ -318,6 +325,12 @@ ArduPilot автоматично визначає DroneCAN airspeed і compass p
 до 25 Hz. Ці messages використовують ті самі node ID і CAN transceiver, що GPS
 та обидва MAVLink tunnels.
 
+Це raw sensor transports, а не calibrated airspeed або heading. H743 не вчить
+pitot zero/ratio, не компенсує tube order і не застосовує vehicle compass
+orientation, hard/soft-iron offsets чи motor-current compensation. Ці
+calibrations належать вибраним ArduPilot sensor instances; повторіть їх після
+зміни sensor, tubing, mounting, orientation, wiring або nearby power equipment.
+
 Тримайте FC MAVLink stream rates помірними. У classic CAN кожен multi-frame
 CAN frame переносить лише сім transport payload bytes, тому camera full duplex,
 chatty filter port і 20/25 Hz sensor publications можуть наблизити 1 Mbps bus
@@ -397,6 +410,12 @@ controller, а FC telemetry повертається до фільтра. GCS, �
 selection. DroneCAN node Params лишається найпрямішим способом налаштування на
 літальному апараті.
 
+Читання доступне завжди, але кожна mutation fail-closed без свіжого явного
+підтвердження **FC disarmed**. Це стосується parameter writes, `UBX_RESET`,
+`Commit Params` і factory reset. Тому FC має залишатися powered, підключеним
+через DroneCAN і disarmed навіть при direct USB-C parameter UI. DroneCAN
+mutation також має надходити від configured або поточного bound FC node.
+
 ### Варіант A: DroneCAN через flight controller
 
 Порядок:
@@ -406,22 +425,26 @@ selection. DroneCAN node Params лишається найпрямішим спо
 3. Виберіть активний CAN driver, зазвичай `MAVLinkCAN1`, і натисніть `Connect`.
 4. Дочекайтесь node `42` з назвою `org.airdroper.gnss_filter.h743_dronecan`.
 5. Натисніть `Menu` на node `42` і відкрийте `Parameters`.
-6. Змініть tune value, натисніть `Write Params`, потім `Commit Params`.
-7. Перезавантажте H743 і перевірте, що значення збереглось.
+6. Переконайтеся, що FC disarmed, змініть tune value, натисніть `Write Params`,
+   потім `Commit Params`.
+7. Якщо протягом попередньої хвилини вже була storage operation, зачекайте до
+   65 секунд, потім перезавантажте H743 і перевірте persistence.
 
 ### Варіант B: direct USB-C до H743
 
 Використовуйте це на столі, якщо хочете звичний Mission Planner MAVLink
-parameter screen без жодного FC serial port:
+parameter screen без жодного FC serial port. FC все одно має бути присутнім у
+DroneCAN для fresh disarmed state:
 
 1. Увімкніть H743 у normal app mode, не тримайте `BOOT0`.
 2. Підключіть USB-C H743 до комп'ютера.
 3. У Mission Planner виберіть новий H743 COM port і `115200` baud.
 4. Натисніть `Connect`. Mission Planner має побачити system ID `42`.
 5. Відкрийте `CONFIG -> Full Parameter Tree` або `Full Parameter List`.
-6. Змініть spoofing/tuning values і натисніть `Write Params`.
-7. Зачекайте кілька секунд на save, потім перезавантажте/reconnect і
-   перевірте value за потреби.
+6. Переконайтеся, що FC disarmed, змініть spoofing/tuning values і натисніть
+   `Write Params`.
+7. Якщо діє one-minute storage cooldown, зачекайте до 65 секунд, потім
+   перезавантажте/reconnect і перевірте persistence.
 
 Цей USB-C режим є normal application management port. Це не ROM DFU flashing:
 тримайте `BOOT0` тільки для firmware update, а для редагування parameters
@@ -432,6 +455,28 @@ compatibility rows зі значенням `9`. Реальні tune rows поч�
 У direct USB-C MAVLink parameter screen список починається одразу з tune rows:
 `BOOT_NSATS`, `BOOT_NHDOP`, `RJ_BASE_M`, `SP_JMP_MPS`, `SNR_EN`, `FENCE_RAD`,
 `GNSS_TYPE` тощо.
+
+Серійний H743 DroneCAN fixed-wing profile використовує:
+
+- `RJ_LOIT_V=0` (вимикає спеціальний low-speed rejoin gate floor 2500 м)
+- `SP_JMP_MPS=200`
+- `SP_ABS_M=400`
+- `EKF_TRIPMS=500`
+
+На 120 км/год літак проходить приблизно 33,3 м/с, тобто близько 167 м за повне
+стандартне NAV-validity window 5 с. Абсолютний ліміт 400 м залишає запас для
+відновлення після такої паузи, а implied-speed limit 200 м/с у шість разів
+перевищує cruise speed. Математичні guard-тести охоплюють design envelope до
+65 м/с (234 км/год): за 5 с це 325 м, тому залишається 75 м запасу absolute
+limit; це не є flight або hardware validation. Це серійні fixed-wing values, а не універсальна
+рекомендація: перевірте їх відносно максимальної швидкості та flight logs.
+
+Під час першого fixed-wing-profile update H743 мігрує stored value лише тоді,
+коли він досі точно дорівнює випущеному default (`0.8/500/1000/0`). Custom
+operator value залишається без змін. Після update перечитайте ці чотири rows;
+щоб свідомо замінити custom values, завантажте
+`airdroper_filter_field_safe.param` або виконайте factory reset parameters за
+наявності свіжого явно disarmed стану FC.
 
 `UBX_RESET` є one-shot command, не saved setting:
 
@@ -444,8 +489,17 @@ H743 DroneCAN тримає locked off лише raw FC GPS UART settings:
 - `FCGPS_UART = 0`
 - `FCGPS_FWD = 0`
 
-`RJ_REQEKF` та інші FC-telemetry-dependent guards доступні, бо S2/index `1`
-передає MAVLink2 від flight controller до фільтра.
+`RJ_REQEKF` увімкнено за замовчуванням і він діє також при `PT_ONLY=1`, бо
+S2/index `1` передає свіжий MAVLink2 від flight controller до фільтра. Rejoin
+усе одно вимагає configured EKF-good window, internal reference, altitude,
+quality, stability та spoof-confidence gates. `PT_ONLY=1` вимикає лише
+synthetic output/blending/nudge, а не ці rejoin checks.
+
+Firmware auto-saves accepted values після короткого debounce. Один
+60-секундний wear limiter охоплює auto-save, explicit commit і factory reset;
+values залишаються active і dirty, доки deferred save не зможе виконатися.
+A/B journal спочатку commits новий record, і лише після цього старий sector
+може бути erased, тому interrupted write зберігає останній complete record.
 
 ## Дисплей
 
@@ -533,6 +587,22 @@ pre-arm checks, DroneCAN inspection, sensor calibration або аналіз flig
 доводить правильність compass orientation, pitot plumbing, CAN termination чи
 MAVLink routing.
 
+За замовчуванням `FILTER_DRONECAN_FC_NODE_ID=0`. Tunnel вимагає дві valid
+Targetted transfers до node `42` від одного source, перш ніж bound цей FC.
+Binding спливає через три секунди без valid tunnel transfer; перед прив'язкою
+іншого node всі старі serial queues видаляються. Generic status broadcasts не
+можуть захопити FC identity. На busy multi-node bus задайте
+`FILTER_DRONECAN_FC_NODE_ID` під час build, щоб від старту закріпити tunnel і
+display за одним FC node.
+
+При lease expiry або коли зменшення uptime того самого `NodeStatus` виявляє
+швидкий reboot FC, H743 видаляє обидва напрями обох MAVLink tunnels, скидає
+MAVLink parser і очищує всі отримані від FC heartbeat, arm, EKF, attitude,
+speed, barometer/bias, firmware-version та warning states. Новий binding
+починається fail-closed. Після binding або виявленого reboot фільтр одразу
+запитує повний набір FC telemetry, повторює запит кожні п'ять секунд, доки
+обов'язкові fields stale, і refresh його кожні 30 секунд, коли вони fresh.
+
 ## DR0 / DR1
 
 У DR0:
@@ -561,11 +631,33 @@ suppress `Fix2/Auxiliary`, включно з latched no-fix/low-sat DR1 internal
 comparisons, `STATUSTEXT`/`NAMED_VALUE`, parameters та іншу наявну MAVLink
 logic. Фізичний `FCGPS_FWD` raw UART bypass залишається недоступним.
 
+Safety stream S2/index `1` працює fail-closed. Після startup і boot-guard grace
+node 42 вимагає свіжі decoded FC `HEARTBEAT` та `EKF_STATUS_REPORT`. Якщо хоча б
+один із них stale, фільтр переходить у `DR1/FCLINK` і suppress
+`Fix2/Auxiliary`; порожніх tunnel keepalives недостатньо. Ні DR1 auto-recovery,
+ні normal rejoin не відновлять GPS publication, доки обидва messages знову не
+стануть fresh і configured lock/rejoin gates не пройдуть.
+
+16-bit `NodeStatus.vendor_specific_status_code` має фіксовану layout без
+перекриття:
+
+| Bits | Значення |
+|------|----------|
+| 15 | DR1 latch active |
+| 14 | GNSS output blocked з будь-якої причини |
+| 13:7 | Spoof confidence, ціле число 0-100 |
+| 6 | Enabled I2C sensor missing або stale після startup grace |
+| 5:0 | Код `Dr1Reason` |
+
+Consumers мають застосовувати masks; sensor flag розташований у bit 6, а не 7.
+
 MS4525 `RawAirData` і HMC5983 `MagneticFieldStrength2` також не залежать від
 DR0/DR1. Spoofing decision блокує лише GNSS `Fix2/Auxiliary`; він навмисно не
 вимикає airspeed, compass, NodeStatus, camera MAVLink або MAVLink фільтра.
-Несправний чи від'єднаний I2C sensor припиняє тільки свою валідну sensor
-publication і має розглядатися як окремий pre-arm/maintenance fault.
+Несправний чи від'єднаний I2C sensor припиняє тільки свою valid sensor
+publication. Після п'яти секунд sensor startup grace node 42 також показує
+DroneCAN warning health і встановлює vendor-status bit 6, доки обидва enabled
+sensors не дають fresh samples; це окремий pre-arm/maintenance fault.
 
 GNSS-only guards активні: no fix, low satellites, position jump, altitude
 rate/jump, SNR anomaly, hemisphere/geofence, heading reversal, GPS time sanity,

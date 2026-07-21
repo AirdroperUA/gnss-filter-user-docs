@@ -56,9 +56,10 @@ ports.
 Firmware defaults:
 
 - DroneCAN node ID: `42`
-- FC DroneCAN node filter: `0` — lock до першого valid Targetted transfer,
-  адресованого node `42`. Set `FILTER_DRONECAN_FC_NODE_ID` at build time, щоб
-  зафіксувати конкретний FC node на multi-node CAN bus.
+- FC DroneCAN node filter: `0` — bind лише після двох valid Targetted transfers,
+  адресованих node `42` від одного source; lease спливає через три секунди без
+  наступного valid transfer. Set `FILTER_DRONECAN_FC_NODE_ID` at build time,
+  щоб зафіксувати конкретний FC node на multi-node CAN bus.
 - CAN bitrate: `1 Mbps`
 - OpenIPC camera UART: camera TX -> H743 `PA10` RX, H743 `PA9` TX -> camera RX,
   3.3 V logic, common ground, `115200` baud
@@ -172,9 +173,10 @@ activation/update оберіть **Update transport -> ST-Link (SWD)**. Для �
 - Захист DR1 штатно блокує живе пересилання GNSS із входу приймача на GPS UART FC — FC отримує тишу, якщо діагностичний режим сирого пересилання вимкнений.
 - У H743 DroneCAN mode захист DR1 suppresses DroneCAN `Fix2/Auxiliary`
   замість GPS UART silence. `NodeStatus` лишається online і повідомляє
-  warning health only for spoof/fault DR1 reasons. Ordinary no-fix, low
-  satellites, boot guard, or GNSS reconfiguration output suppression keeps
-  DroneCAN node health `OK`.
+  warning health для spoof/fault DR1 reasons або enabled I2C sensor, який
+  missing/stale після п'яти секунд startup grace. Ordinary no-fix, low
+  satellites, boot guard або GNSS reconfiguration output suppression сам по
+  собі лишає DroneCAN node health `OK`.
 - UART-build параметри фільтра змінюються у Mission Planner:
   - `Config/Tuning` -> `Full Parameter List`
   - виберіть STM32 (`SYSID=42`)

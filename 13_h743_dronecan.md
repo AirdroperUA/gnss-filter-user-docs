@@ -278,6 +278,10 @@ The `.exe` uses two USB-C update paths:
 RDP1 hides the physical UID until after erase, so the protected USB-C path is
 intentionally operator-confirmed. If the typed UID-short is wrong or the dialog
 is cancelled, the app stops before RDP removal and the board is not changed.
+The H743 verifier does not write option bytes itself: it refuses to boot an
+unlocked production image. Provisioning/update tooling must apply and verify
+`RDP=0xBB`. The production bootloader also rejects signed H743 applications
+older than the v0.4.0 anti-rollback floor.
 
 ## 5) ST-Link flashing and provisioning
 
@@ -355,8 +359,10 @@ The H743 secure layout is separate from F401:
 | Region | Address range | Purpose |
 |--------|---------------|---------|
 | Bootloader | `0x08000000 - 0x0801FFFF` | Secure bootloader |
-| Active app | `0x08020000 - 0x080FFFFF` | Signed H743 DroneCAN firmware |
-| Reserved stage | `0x08100000 - 0x081DFFFF` | Reserved for future DroneCAN firmware update |
+| Active app | `0x08020000 - 0x080BFFFF` | Signed H743 DroneCAN firmware |
+| Bank 1 reserve | `0x080C0000 - 0x080FFFFF` | Growth/guard area |
+| Reserved stage | `0x08100000 - 0x0819FFFF` | Reserved for future DroneCAN firmware update |
+| Parameter journals | `0x081A0000 - 0x081DFFFF` | Power-fail-safe parameter storage |
 | Metadata | `0x081E0000 - 0x081FFFFF` | Signed metadata / update state |
 
 Do not flash H743 app or metadata images at F401 addresses.
@@ -442,6 +448,13 @@ A healthy HMC5983 sample is published as
 25 Hz. The sensor messages share the existing node ID and CAN transceiver with
 GPS and both MAVLink tunnels.
 
+These publications are raw sensor transports, not calibrated airspeed or
+heading. The H743 does not learn pitot zero/ratio or compensate tube order, and
+it does not apply vehicle compass orientation, hard/soft-iron offsets, or
+motor-current compensation. Those calibrations belong to the selected
+ArduPilot sensor instances and must be completed again after changing the
+sensor, tubing, mounting, orientation, wiring, or nearby power equipment.
+
 Classic CAN carries only seven payload bytes in each multi-frame transport
 frame. Keep ArduPilot stream rates modest: camera full duplex plus a chatty
 filter port and the 20/25 Hz sensor publications can approach the capacity of a
@@ -524,6 +537,13 @@ FC can select filter system ID `42` where its interface supports MAVLink system
 selection. The DroneCAN node Params window remains the most direct on-aircraft
 configuration path.
 
+Reads are available at any time, but every mutation is fail-closed unless the
+filter has received a fresh, positive **FC disarmed** report. This includes
+parameter writes, `UBX_RESET`, **Commit Params**, and factory reset. The FC must
+therefore remain powered, connected over DroneCAN, and disarmed even when the
+parameter UI itself is connected directly over USB-C. DroneCAN mutations must
+also originate from the configured or currently bound FC node.
+
 ### Option A: DroneCAN through the flight controller
 
 Use this while the board is on the aircraft CAN bus:
@@ -533,23 +553,27 @@ Use this while the board is on the aircraft CAN bus:
 3. Select the active CAN driver, usually `MAVLinkCAN1`, and press **Connect**.
 4. Wait for node `42` named `org.airdroper.gnss_filter.h743_dronecan`.
 5. Press **Menu** on node `42`, then open **Parameters**.
-6. Edit the tune row, press **Write Params**, then press **Commit Params**.
-7. Reboot the H743 and re-open node `42` Params if you want to confirm the
+6. Confirm the FC is disarmed, edit the tune row, press **Write Params**, then
+   press **Commit Params**.
+7. Allow up to 65 seconds if another storage operation was attempted during the
+   preceding minute, then reboot and re-open node `42` Params to confirm the
    value persisted.
 
 ### Option B: Direct USB-C to the H743
 
 Use this on the bench when you want the familiar Mission Planner MAVLink
-parameter screen without using any flight-controller serial port:
+parameter screen without using any flight-controller serial port. The FC must
+still be present on DroneCAN to provide fresh disarmed state:
 
 1. Power the H743 normally, not in `BOOT0` ROM DFU mode.
 2. Connect the H743 USB-C port to the computer.
 3. In Mission Planner, select the new H743 COM port and `115200` baud.
 4. Click **Connect**. Mission Planner should see system ID `42`.
 5. Open **CONFIG -> Full Parameter Tree** or **Full Parameter List**.
-6. Edit the spoofing/tuning values and click **Write Params**.
-7. Wait a few seconds for the firmware to save, then reboot/reconnect and
-   verify the value if needed.
+6. Confirm the FC is disarmed, edit the spoofing/tuning values, and click
+   **Write Params**.
+7. Allow up to 65 seconds when the one-minute storage cooldown is active, then
+   reboot/reconnect and verify persistence.
 
 This USB-C mode is a normal application management port. It is separate from
 USB-C ROM DFU flashing: hold `BOOT0` only when updating firmware, and leave
@@ -563,6 +587,29 @@ spoofing/tuning rows. The tune names match the F401 firmware, such as
 `BOOT_NSATS`, `BOOT_NHDOP`, `RJ_BASE_M`, `SP_JMP_MPS`, `SNR_EN`, `FENCE_RAD`,
 and `GNSS_TYPE`.
 
+The production H743 DroneCAN fixed-wing profile uses:
+
+- `RJ_LOIT_V=0` (disables the special low-speed 2500 m rejoin-gate floor)
+- `SP_JMP_MPS=200`
+- `SP_ABS_M=400`
+- `EKF_TRIPMS=500`
+
+At 120 km/h the aircraft travels about 33.3 m/s, or about 167 m during the
+full default 5 s NAV-validity window. The 400 m absolute limit leaves recovery
+margin across that gap, while the 200 m/s implied-speed limit is six times
+cruise speed. Mathematical guard tests cover a 65 m/s (234 km/h) design
+envelope, which travels 325 m in 5 s and preserves 75 m of absolute-limit
+margin; this is not flight or hardware validation. These
+are fixed-wing production values, not universal airframe
+recommendations: validate them against maximum speed and flight logs.
+
+On the first fixed-wing-profile update, H743 migrates a stored value only when
+it still exactly matches the released default (`0.8/500/1000/0`). A custom
+operator value survives unchanged. Read the four rows back after updating; to
+replace custom values intentionally, load `airdroper_filter_field_safe.param`
+or perform a factory-parameter reset while the FC is freshly and positively
+disarmed.
+
 `UBX_RESET` is a one-shot command, not a saved setting:
 
 - set `UBX_RESET=1` for a u-blox hot start
@@ -574,11 +621,17 @@ H743 DroneCAN keeps only the raw FC GPS UART settings locked off:
 - `FCGPS_UART = 0`
 - `FCGPS_FWD = 0`
 
-`RJ_REQEKF` and the other FC-telemetry-dependent guards remain available
-because S2/index `1` supplies the filter with flight-controller MAVLink2.
+`RJ_REQEKF` defaults to enabled and remains active in `PT_ONLY=1` because
+S2/index `1` supplies fresh flight-controller MAVLink2. Rejoin therefore still
+requires the configured EKF-good window in addition to the internal reference,
+altitude, quality, stability, and spoof-confidence gates. `PT_ONLY=1` disables
+synthetic output/blending/nudge only; it does not bypass those rejoin checks.
 
-The firmware still auto-saves changed values after a short debounce, but
-Mission Planner's **Commit Params** button is the explicit save path.
+The firmware auto-saves accepted values after a short debounce. A single
+60-second wear limiter covers auto-save, explicit commit, and factory reset;
+values remain active and dirty until a deferred save can run. The A/B journal
+commits the new record before an old sector is eligible for erase, so an
+interrupted write retains the last complete settings record.
 
 ## 8) Display behavior
 
@@ -665,11 +718,22 @@ flight-log review. In particular, magnetic-field magnitude is not a calibrated
 heading, and a `FILTER ONLINE` display does not prove correct compass
 orientation, pitot plumbing, CAN termination, or MAVLink routing.
 
-By default `FILTER_DRONECAN_FC_NODE_ID=0`, so the tunnel locks to the first
-valid Targetted transfer addressed to node `42`. After that, tunnel and status
-traffic from other nodes is ignored. On a busy multi-node bus, set
+By default `FILTER_DRONECAN_FC_NODE_ID=0`. The tunnel requires two valid
+Targetted transfers addressed to node `42` from the same source before it binds
+that FC. The binding expires after three seconds without a valid tunnel
+transfer; all old serial queues are discarded before another node can bind.
+Generic status broadcasts cannot claim the FC identity. On a busy multi-node
+bus, set
 `FILTER_DRONECAN_FC_NODE_ID` at build time to lock the tunnel and display to one
 FC node from boot.
+
+At lease expiry, or when a same-node `NodeStatus` uptime rollback reveals a
+quick FC reboot, the H743 discards both directions of both MAVLink tunnels,
+resets the MAVLink parser, and clears all FC-derived heartbeat, arm, EKF,
+attitude, speed, barometer/bias, firmware-version, and warning state. A new
+binding starts fail-closed. The filter immediately requests the complete FC
+telemetry set after binding or detected reboot, retries every five seconds
+while required fields are stale, and refreshes it every 30 seconds when fresh.
 
 ## 9) DR0 and DR1 behavior on DroneCAN
 
@@ -704,12 +768,34 @@ EKF-status and barometer comparisons, filter `STATUSTEXT`/`NAMED_VALUE`
 logging, parameter traffic, and the other existing MAVLink behavior. The
 physical `FCGPS_FWD` raw UART bypass remains unavailable.
 
+The filter-owned S2/index `1` safety stream is fail-closed. After startup and
+boot-guard grace, node 42 requires fresh decoded FC `HEARTBEAT` and
+`EKF_STATUS_REPORT` messages. If either ages out, it enters `DR1/FCLINK` and
+suppresses `Fix2/Auxiliary`; empty tunnel keepalives alone are not sufficient.
+No DR1 auto-recovery or normal rejoin can restore GPS publication until both
+messages are fresh again and the configured lock/rejoin gates pass.
+
+The 16-bit `NodeStatus.vendor_specific_status_code` has a fixed, non-overlapping
+layout:
+
+| Bits | Meaning |
+|------|---------|
+| 15 | DR1 latch active |
+| 14 | GNSS output blocked for any reason |
+| 13:7 | Spoof confidence, integer 0-100 |
+| 6 | Enabled I2C sensor missing or stale after startup grace |
+| 5:0 | `Dr1Reason` code |
+
+Consumers should mask these fields; bit 6 is the sensor flag, not bit 7.
+
 The MS4525 `RawAirData` and HMC5983 `MagneticFieldStrength2` publications are
 also independent of DR0/DR1. A spoofing decision suppresses only GNSS
 `Fix2/Auxiliary`; it does not intentionally remove airspeed, compass,
 NodeStatus, camera MAVLink, or filter MAVLink. A failed or disconnected I2C
-sensor stops producing its own valid sensor publication and must be treated as
-a separate pre-arm/maintenance fault.
+sensor stops producing its own valid sensor publication. After the five-second
+sensor startup grace, node 42 also reports DroneCAN warning health and sets
+vendor-status bit 6 until both enabled sensors are producing fresh samples,
+making it a separate pre-arm/maintenance fault.
 
 GNSS-only guards remain active: no-fix, low satellites, position jumps,
 altitude rate/jump, SNR, hemisphere, geofence, heading reversal, GPS time

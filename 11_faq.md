@@ -152,7 +152,9 @@ See the [Device Overview](#device-overview) for more details.
 Depends on the trigger type:
 - **No fix / low satellites**: immediate
 - **Position jump**: immediate on detection
-- **EKF trip**: configurable delay via `EKF_TRIPMS` (default 0 = immediate)
+- **EKF trip**: generic horizontal-validity loss uses `EKF_TRIPMS` (H743
+  DroneCAN default 500 ms; released F401 default 0); explicit
+  `GPS_GLITCHING` is immediate after the safety inhibition window
 - **SNR anomaly**: after `SNR_HOLDMS` hold time
 
 See [Tuning](#tuning) to adjust these thresholds.

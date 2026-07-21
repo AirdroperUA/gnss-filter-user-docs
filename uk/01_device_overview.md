@@ -163,6 +163,8 @@ report warning health; no-fix і low-satellite cases keep DroneCAN node health
 ### Приклад E: EKF flags trip
 
 - EKF на FC довго показує невалідний горизонтальний стан (не менше `EKF_TRIPMS`).
+- Явний прапорець `GPS_GLITCHING` спрацьовує негайно після boot/rejoin
+  inhibition і не очікує `EKF_TRIPMS`.
 
 ### Приклад F: розворот курсу (v1.5.5+)
 

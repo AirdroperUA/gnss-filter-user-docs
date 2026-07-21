@@ -18,14 +18,16 @@
 
 Будь-який FC на базі ArduPilot з версією **ArduPilot 4.6.1 або новішою** (Copter, Plane,
 Rover). F401 і H743 UART-збірки комунікують через стандартну MAVLink2-телеметрію
-та FC GPS UART. H743 DroneCAN-збірка публікує нативний DroneCAN GPS і не
-використовує два FC serial ports.
+та FC GPS UART. H743 DroneCAN-збірка публікує native DroneCAN GPS і не має
+фізичних FC serial ports. Натомість `v0.2.0+` передає OpenIPC camera MAVLink2
+через S1/index `0`, а MAVLink2 фільтра та зворотну FC telemetry — через
+S2/index `1`.
 
 ### Які GNSS-приймачі працюють?
 
 - **u-blox**: сімейства M8, M9, M10, F9, F10 (`GNSS_TYPE=0`)
 - **Unicore**: UM980, UM981, UM982 (`GNSS_TYPE=1`) — потребує одноразового налаштування, див. [Конфігурація приймача](#receiver-config)
-- **Septentrio**: Mosaic X5 (`GNSS_TYPE=2`) — режим NMEA, потребує одноразового налаштування, див. [Конфігурація приймача](#receiver-config)
+- **Septentrio**: Mosaic X5 (`GNSS_TYPE=2`) — H743 DroneCAN може використовувати SBF; UART-збірки використовують NMEA, див. [Конфігурація приймача](#receiver-config)
 
 ### Чи можна використовувати з PX4 або iNav?
 
@@ -78,6 +80,8 @@ transceiver не працюватиме.
 | GNSS ↔ STM32 | 460800 (за замовчуванням, автовизначення) |
 | FC MAVLink ↔ STM32 | 115200 |
 | FC GPS ← STM32 | 460800 |
+| OpenIPC camera ↔ H743 | 115200 (3.3 V MAVLink2 UART) |
+| H743 DroneCAN S1/S2 virtual ports | 115200 metadata (`BD=115`) |
 | H743 DroneCAN CAN bus | 1000000 |
 
 ### Чи потрібно окреме живлення для STM32?
@@ -100,7 +104,10 @@ F401 отримує живлення від FC/SWD; не підключайте 
 
 Для H743 DroneCAN замість UART bypass перевірте, що node ID `42` видно у
 DroneCAN/SLCAN tooling, FC CAN port має `CAN_Dx_PROTOCOL=1`, bitrate
-`1000000`, а GPS instance має `GPS1_TYPE=9`.
+`1000000`, а GPS instance має `GPS1_TYPE=9`. Якщо GPS працює, але camera або
+filter MAVLink відсутній, також перевірте `CAN_Dx_UC_SER_EN=1`, S1 node
+`42`/index `0`/baud `115`/protocol `2` і S2 node `42`/index `1`/baud
+`115`/protocol `2`.
 
 Якщо проблема залишається, див. [Діагностика підключення](#wiring-debug) для покрокового усунення несправностей.
 
@@ -108,7 +115,7 @@ DroneCAN/SLCAN tooling, FC CAN port має `CAN_Dx_PROTOCOL=1`, bitrate
 
 - Якщо ваш приймач u-blox (NEO-M8, NEO-M9, ZED-F9P тощо): `GNSS_TYPE=0`
 - Якщо ваш приймач Unicore UM980, UM981 або UM982: `GNSS_TYPE=1`
-- Якщо ваш приймач Septentrio Mosaic X5 видає NMEA: `GNSS_TYPE=2`
+- Якщо ваш приймач Septentrio Mosaic X5: `GNSS_TYPE=2`. Використовуйте SBF profile на H743 DroneCAN; використовуйте NMEA на UART-збірках.
 
 Див. [Налаштування та прошивка](#setup-flash) для зміни цього параметра.
 
@@ -121,8 +128,11 @@ DroneCAN/SLCAN tooling, FC CAN port має `CAN_Dx_PROTOCOL=1`, bitrate
 ### Чи потрібно налаштовувати приймач Mosaic X5?
 
 Так. STM32 **не** виконує автоконфігурацію Mosaic X5. Налаштуйте приймач через
-Septentrio RxTools/Web UI, щоб він видавав NMEA `GGA`, `RMC`, `GSA`, `GSV` і
-`VTG` на послідовний потік, підключений до STM32, потім збережіть профіль у boot.
+Septentrio RxTools/Web UI. Для H743 DroneCAN увімкніть SBF profile
+(`PVTGeodetic`, `DOP`, `ReceiverTime`, `MeasEpoch`, `PosCovGeodetic`,
+`VelCovGeodetic`) на послідовному потоці, підключеному до STM32. Для
+UART-збірок увімкніть NMEA `GGA`, `RMC`, `GSA`, `GSV` і `VTG`. Потім збережіть
+профіль у boot.
 
 ### Чи потрібно налаштовувати приймач u-blox?
 
@@ -174,9 +184,11 @@ FC використовує dead-reckoning (IMU + компас + датчик ш
 - Зведення GNSS: `data=... fix=... nav=... SATS=... SNR=...`
 - Режим/стан: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 
-На H743 DroneCAN v1 MAVLink status text/logging вимкнені. Стан видно на
-onboard screen (`PUB`, `WHY`, CAN counters, arm/safety bits) і через DroneCAN
-node status.
+На H743 DroneCAN `v0.2.0+` status і logging ідуть через S2/index `1`.
+Налаштуйте цей virtual port для `STATUSTEXT`/`NAMED_VALUE` і зворотної FC
+telemetry. Onboard screen (`PUB`, `WHY`, CAN counters, arm/safety bits) та
+DroneCAN node status лишаються додатковими засобами перевірки. Camera S1/index
+`0` і filter S2/index `1` працюють також у DR1.
 
 Див. [Швидка довідка](#cheat-sheet) для швидкого пояснення цих повідомлень.
 
@@ -197,17 +209,22 @@ node status.
 як `DR_CONF` у телеметрії MAVLink і записується в кожен лог подій.
 
 u-blox використовує всі 8 сигналів. Passive NMEA-приймачі, такі як UM980 і
-Mosaic X5, використовують доступні через NMEA сигнали (~5 з 8). Бал автоматично адаптується — недоступні сигнали
-виключаються зі зваженого середнього.
+Mosaic X5, використовують доступні через NMEA сигнали (~5 з 8). H743 DroneCAN
+Mosaic SBF додає C/N0 temporal і clock-bias inputs, але все ще виключає
+pseudorange residual і GDOP-jump scoring. Бал автоматично адаптується —
+недоступні сигнали виключаються зі зваженого середнього.
 
 ### Чи всі функції виявлення працюють з NMEA-приймачами?
 
 Більшість функцій працює з u-blox і приймачами з пасивним NMEA, такими як UM980/UM981/UM982
-і Mosaic X5. Три сигнали **тільки для u-blox**:
+і Mosaic X5. У UART/NMEA-збірках три сигнали **тільки для u-blox**:
 
 - **Аналіз pseudorange residual** (з NAV-SAT)
 - **Виявлення різкої зміни GDOP** (з NAV-DOP)
 - **Виявлення стрибку тактового зсуву** (з NAV-CLOCK)
+
+H743 DroneCAN Mosaic SBF повертає binary C/N0 temporal і clock-bias coverage,
+але не pseudorange residual або GDOP-jump confidence scoring.
 
 Основний захист (стрибок позиції, висота, SNR, курс, час, гео-огорожа)
 працює з обома класами приймачів.
@@ -277,7 +294,7 @@ SD-карти FC (або завантажте через MAVFTP), відкрий
 
 ### Як завантажити логи спуфінгу?
 
-Логи спуфінгу більше не вивантажуються з плати фільтра. Для UART-збірок кожна подія виявлення надсилається як MAVLink-повідомлення **STATUSTEXT** і **NAMED_VALUE_INT**, які ArduPilot записує на SD-карту контролера польоту як стандартні dataflash-записи `MSG` і `NVLI`. H743 DroneCAN v1 не надсилає ці MAVLink logs; використовуйте onboard screen, DroneCAN node status і FC dataflash GPS/CAN evidence. Дістаньте `.bin`-лог із SD-карти (або завантажте його через MAVFTP / Mission Planner) і перегляньте у Mission Planner чи [UAV Log Viewer](https://plot.ardupilot.org). Див. розділ логів у [Самостійній установці](#self-install).
+Логи спуфінгу більше не вивантажуються з плати фільтра. Кожна подія виявлення надсилається як MAVLink-повідомлення **STATUSTEXT** і **NAMED_VALUE_INT**, які ArduPilot записує на SD-карту контролера польоту як стандартні dataflash-записи `MSG` і `NVLI`. H743 DroneCAN `v0.2.0+` передає ці повідомлення через S2/index `1`. Дістаньте `.bin`-лог із SD-карти (або завантажте його через MAVFTP / Mission Planner) і перегляньте у Mission Planner чи [UAV Log Viewer](https://plot.ardupilot.org). Див. розділ логів у [Самостійній установці](#self-install).
 
 ### Що робити, якщо плата вийшла з ладу?
 

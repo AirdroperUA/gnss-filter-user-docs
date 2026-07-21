@@ -4,6 +4,11 @@
 
 Використовуйте цей документ, якщо GNSS не визначається, DR1 постійно активний, або не працює MAVLink-тюнінг.
 
+У WeAct H743 DroneCAN немає фізичних FC GPS або FC MAVLink UART. Діагностика
+GNSS починається з `A2/A3`; camera MAVLink2 використовує `PA10` RX / `PA9` TX,
+а два FC-facing MAVLink virtual ports і native GPS працюють через CAN. Повний
+опис див. у [H743 DroneCAN Guide](13_h743_dronecan.md).
+
 ## 1) Шлях GNSS (STM32 <-> GNSS)
 
 Симптоми:
@@ -17,9 +22,10 @@
 3. **Режим приймача**:
    - для u-blox: `GNSS_TYPE=0`;
    - для UM980/UM981/UM982 NMEA: `GNSS_TYPE=1`.
-   - для Septentrio Mosaic X5 NMEA: `GNSS_TYPE=2`.
-   - Для UM980/UM981/UM982 або Mosaic X5 використовуйте лише один фізичний NMEA-потік приймача -> STM32 `A2/A3`.
-     Фільтр читає spoofing/SNR-дані з цього потоку і пересилає той самий потік на FC GPS UART.
+   - для Septentrio Mosaic X5: `GNSS_TYPE=2` (H743 DroneCAN може використовувати SBF; UART-збірки використовують NMEA).
+   - Для UM980/UM981/UM982 або Mosaic X5 використовуйте лише один фізичний потік приймача -> STM32 `A2/A3`.
+     UART-збірки пересилають його на FC GPS UART; H743 DroneCAN перетворює
+     розібраний fix на native `Fix2/Auxiliary` повідомлення.
 4. **Випадок кастомного u-blox**:
    - Якщо ваш u-blox не приймає автоконфіг фільтра, задайте `UBX_BAUD` відповідно до baud приймача.
    - `UBX_BAUD=0` залишає автоконфіг увімкненим (за замовчуванням).
@@ -58,12 +64,17 @@ DroneCAN і не керує FC GPS UART. Для H743 standalone UART-збіро�
 
 ## 3) Шлях MAVLink (STM32 <-> FC telemetry)
 
-Пропустіть цей розділ для H743 DroneCAN-прошивки. У v1 ця збірка не має FC
-MAVLink serial link і не має Mission Planner MAVLink parameter interface.
+Наведені нижче перевірки фізичного UART стосуються F401 та H743 UART-збірок.
+У H743 DroneCAN `v0.2.0+` немає фізичного FC MAVLink UART: virtual port
+S2/index `1` передає MAVLink2 фільтра до FC і повертає FC telemetry до фільтра.
+Параметри доступні через цей MAVLink2 шлях, Mission Planner
+`SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params` або H743
+USB-C COM port на `115200`.
 
 Симптоми:
 - Mission Planner не читає/не записує параметри STM32.
 - Немає статус-повідомлень фільтра у GCS.
+- На H743 DroneCAN телеметрія FC не доходить до фільтра.
 
 Перевірки:
 1. **UART-піни**: STM32 `A9/A10` до телеметрійного UART FC, TX/RX перехресно.
@@ -86,6 +97,36 @@ MAVLink serial link і не має Mission Planner MAVLink parameter interface.
 - Змінено `GNSS_TYPE`, але STM32 не перезавантажено.
 - Змінено `UBX_BAUD`, але STM32 не перезавантажено.
 - Перевірка відновлення DR одразу після старту, поки активна затримка `BOOT_DLYMS`.
+
+## 4b) Шлях H743 DroneCAN
+
+Симптоми:
+- DroneCAN node не з'являється.
+- ArduPilot не отримує DroneCAN GPS.
+- Відсутній OpenIPC camera MAVLink або status/FC telemetry фільтра.
+- Екран H743 показує `PUB BLK`, `WHY GPS`, `WHY DR1` або `WHY CAN ERR`.
+
+Перевірки:
+1. **CAN transceiver обов'язковий**: H743 `PB8/PB9` є logic-level FDCAN
+   пінами. Підключіть їх через 3.3 V transceiver, наприклад SN65HVD230.
+2. **Піни CAN до transceiver**: `PB9 -> TXD`, `PB8 <- RXD`.
+3. **Шина**: `CANH/CANL/GND` transceiver до CAN-порту FC зі спільною землею.
+4. **Bitrate**: H743 і CAN-порт FC мають використовувати `1000000`.
+5. **ArduPilot**: увімкніть потрібний CAN driver, DroneCAN protocol і
+   `GPS1_TYPE=9`.
+6. **Termination**: 120 ohm тільки на фізичних кінцях CAN-шини.
+7. **Camera UART**: camera TX -> H743 `PA10` RX; H743 `PA9` TX -> camera RX.
+   Використовуйте 3.3 V logic, common ground і MAVLink2 на `115200`.
+8. **DroneCAN serial ports**: на активному CAN driver встановіть
+   `CAN_Dx_UC_SER_EN=1`. Налаштуйте S1: node `42`, index `0`, baud `115`,
+   protocol `2`; S2: node `42`, index `1`, baud `115`, protocol `2`.
+9. **USB-C**: не підключайте зовнішню проводку до `PA11/PA12`.
+
+Швидка перевірка:
+- Екран має показати `GNSS FILTER`, а з валідним fix — `PUB ON DR0`.
+- У DroneCAN/SLCAN tooling має бути node ID `42`.
+- У DR1 `Fix2/Auxiliary` зупиняються, але `NodeStatus` лишається online.
+- Camera S1/index `0` і filter S2/index `1` активні у DR0 та DR1.
 
 ## 5) Проблеми запису параметрів у Mission Planner
 

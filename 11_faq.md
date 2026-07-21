@@ -19,13 +19,15 @@ See the [Device Overview](#device-overview) for a detailed explanation.
 Any ArduPilot-based FC running **ArduPilot 4.6.1 or later** (Copter, Plane,
 Rover). The F401 and H743 UART builds communicate via standard MAVLink2
 telemetry plus an FC GPS UART. The H743 DroneCAN build publishes native
-DroneCAN GPS and does not use the FC serial ports.
+DroneCAN GPS and has no physical FC serial ports. Instead, `v0.2.0+` carries
+OpenIPC camera MAVLink2 on DroneCAN S1/index `0` and the filter's MAVLink2 plus
+returning FC telemetry on S2/index `1`.
 
 ### Which GNSS receivers work?
 
 - **u-blox**: M8, M9, M10, F9, F10 families (`GNSS_TYPE=0`)
 - **Unicore**: UM980, UM981, UM982 (`GNSS_TYPE=1`) — requires one-time setup, see [Receiver Config](#receiver-config)
-- **Septentrio**: Mosaic X5 (`GNSS_TYPE=2`) — NMEA mode, requires one-time setup, see [Receiver Config](#receiver-config)
+- **Septentrio**: Mosaic X5 (`GNSS_TYPE=2`) — H743 DroneCAN can use SBF; UART builds use NMEA, see [Receiver Config](#receiver-config)
 
 ### Can I use it with PX4 or iNav?
 
@@ -79,6 +81,8 @@ that module's `CANH/CANL/GND` to the flight controller CAN port. Do not connect
 | GNSS ↔ STM32 | 460800 (default, auto-detected) |
 | FC MAVLink ↔ STM32 | 115200 |
 | FC GPS ← STM32 | 460800 |
+| OpenIPC camera ↔ H743 | 115200 (3.3 V MAVLink2 UART) |
+| H743 DroneCAN S1/S2 virtual ports | 115200 metadata (`BD=115`) |
 
 H743 DroneCAN uses `1 Mbps` CAN on `PB8/PB9` through the transceiver.
 
@@ -106,13 +110,15 @@ If still stuck, see the [Wiring Debug](#wiring-debug) guide for step-by-step tro
 For H743 DroneCAN, `FCGPS_FWD` and FC serial checks do not apply. Check CAN
 bitrate `1000000`, DroneCAN protocol on the correct FC CAN driver,
 `GPS1_TYPE=9`, `PB9 -> TXD`, `PB8 <- RXD`, CANH/CANL/GND, bus termination, and
-the H743 screen `WHY`/`PUB` rows.
+the H743 screen `WHY`/`PUB` rows. If GPS works but camera or filter MAVLink does
+not, also check `CAN_Dx_UC_SER_EN=1`, S1 node `42`/index `0`/baud `115`/protocol
+`2`, and S2 node `42`/index `1`/baud `115`/protocol `2`.
 
 ### How do I know which GNSS_TYPE to use?
 
 - If your receiver is u-blox (NEO-M8, NEO-M9, ZED-F9P, etc.): `GNSS_TYPE=0`
 - If your receiver is Unicore UM980, UM981, or UM982: `GNSS_TYPE=1`
-- If your receiver is Septentrio Mosaic X5 outputting NMEA: `GNSS_TYPE=2`
+- If your receiver is Septentrio Mosaic X5: `GNSS_TYPE=2`. Use the SBF profile on H743 DroneCAN `v0.1.9+`; use NMEA on UART builds.
 
 See [Setup & Flash](#setup-flash) for how to change this parameter.
 
@@ -178,12 +184,13 @@ Yes. The filter sends status messages via MAVLink every 10 seconds
 
 See the [Cheat Sheet](#cheat-sheet) for a quick reference on reading these messages.
 
-On H743 DroneCAN v1, the filter does not send MAVLink status text because it
-does not use an FC MAVLink serial link. Use the onboard screen and DroneCAN node
-status instead. The screen shows filter OK/warn/no-OK, a `WHY` reason, FC node
-health/mode, arm/safety state when broadcast, `STATE` from ArduPilot
-NotifyState when available, GPS fix, publish gate, CAN counters, and firmware
-version.
+On H743 DroneCAN `v0.2.0+`, filter status uses S2/index `1`. Configure that
+virtual port to receive `STATUSTEXT`/`NAMED_VALUE` and return FC telemetry. The
+onboard screen and DroneCAN node status remain useful supplementary checks: the
+screen shows filter OK/warn/no-OK, a `WHY` reason, FC node health/mode,
+arm/safety state when broadcast, `STATE` from ArduPilot NotifyState when
+available, GPS fix, publish gate, CAN counters, and firmware version. Camera
+S1/index `0` and filter S2/index `1` remain active in DR1.
 
 ### Where do I download the Mission Planner parameter patch?
 
@@ -203,18 +210,23 @@ is sent as `DR_CONF` in MAVLink telemetry and logged in each spoofing event.
 
 u-blox receivers use all 8 signals (SNR, pseudorange residual, SNR temporal
 correlation, heading, GDOP, time, velocity-position, clock bias). Passive
-NMEA receivers such as UM980 and Mosaic X5 use the signals available via NMEA (~5 of 8). The score adapts
+NMEA receivers such as UM980 and Mosaic X5 use the signals available via NMEA
+(~5 of 8). H743 DroneCAN Mosaic SBF adds C/N0 temporal and clock-bias inputs,
+but still excludes pseudorange residual and GDOP-jump scoring. The score adapts
 automatically — unavailable signals are excluded from the weighted average.
 
 ### Do all detection features work with NMEA receivers?
 
 Most features work with u-blox and passive NMEA receivers such as
-UM980/UM981/UM982 and Mosaic X5. Three advanced signals are **u-blox only**
-because they require UBX binary protocol data:
+UM980/UM981/UM982 and Mosaic X5. In UART/NMEA builds, three advanced signals
+are **u-blox only** because they require UBX binary protocol data:
 
 - **Pseudorange residual analysis** (from NAV-SAT)
 - **GDOP sudden change detection** (from NAV-DOP)
 - **Clock bias jump detection** (from NAV-CLOCK)
+
+H743 DroneCAN Mosaic SBF restores binary C/N0 temporal and clock-bias coverage,
+but not pseudorange residual or GDOP-jump confidence scoring.
 
 The core protections (position jump, altitude, SNR, heading, time, geo-fence)
 work with both receiver classes.
@@ -299,7 +311,7 @@ If the board already has RDP1 (readout protection), you need to remove it first 
 
 ### How do I download spoofing logs?
 
-Spoofing logs are no longer extracted from the filter board. As of firmware v1.6.0, every detection event is emitted as MAVLink **STATUSTEXT** and **NAMED_VALUE_INT** messages, which ArduPilot writes to the flight controller's SD card as standard `MSG` and `NVLI` dataflash records. Pull the `.bin` log from the SD card (or download it via MAVFTP / Mission Planner) and review it in Mission Planner or [UAV Log Viewer](https://plot.ardupilot.org). See the logs section in the [Self-Install Guide](#self-install).
+Spoofing logs are no longer extracted from the filter board. As of firmware v1.6.0, every detection event is emitted as MAVLink **STATUSTEXT** and **NAMED_VALUE_INT** messages, which ArduPilot writes to the flight controller's SD card as standard `MSG` and `NVLI` dataflash records. H743 DroneCAN `v0.2.0+` carries these messages on S2/index `1`. Pull the `.bin` log from the SD card (or download it via MAVFTP / Mission Planner) and review it in Mission Planner or [UAV Log Viewer](https://plot.ardupilot.org). See the logs section in the [Self-Install Guide](#self-install).
 
 ### What if my board dies?
 

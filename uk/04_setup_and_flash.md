@@ -49,20 +49,22 @@ UART іде через `C6/C7`.
 
 Використовуйте цей розділ тільки зі збірками
 `weact_mini_h743vitx_dronecan` або `weact_mini_h743vitx_dronecan_usb`. Цей
-режим публікує native DroneCAN GNSS messages і не використовує FC MAVLink або
-FC GPS serial ports.
+режим публікує native DroneCAN GNSS messages, не використовує physical FC
+MAVLink або FC GPS UART і переносить MAVLink2 через два DroneCAN virtual serial
+ports.
 
 Firmware defaults:
 
 - DroneCAN node ID: `42`
-- FC DroneCAN node filter: `0` auto-detect/identify the FC from
-  arm/safety/NotifyState broadcasts, not from arbitrary NodeStatus frames. Set
-  `FILTER_DRONECAN_FC_NODE_ID` at build time to lock the onboard screen to one
-  FC node on a multi-node CAN bus.
+- FC DroneCAN node filter: `0` — lock до першого valid Targetted transfer,
+  адресованого node `42`. Set `FILTER_DRONECAN_FC_NODE_ID` at build time, щоб
+  зафіксувати конкретний FC node на multi-node CAN bus.
 - CAN bitrate: `1 Mbps`
+- OpenIPC camera UART: camera TX -> H743 `PA10` RX, H743 `PA9` TX -> camera RX,
+  3.3 V logic, common ground, `115200` baud
 - Published messages: `uavcan.protocol.NodeStatus`,
   `uavcan.protocol.GetNodeInfo`, `uavcan.equipment.gnss.Fix2`,
-  `uavcan.equipment.gnss.Auxiliary`
+  `uavcan.equipment.gnss.Auxiliary`, `uavcan.tunnel.Targetted`
 - Onboard screen: filter OK/warn/no-OK with a `WHY` reason line, GNSS publish
   state, CAN counters, FC DroneCAN node health/mode, arm/safety state, and an
   ArduPilot vehicle-state row from `ardupilot.indication.NotifyState` when that
@@ -70,7 +72,7 @@ Firmware defaults:
 
 Параметри польотного контролера для CAN-порту, до якого підключений H743 node:
 
-- `CAN_P1_DRIVER = 1` для CAN1, або `CAN_P2_DRIVER = 1` для CAN2
+- `CAN_P1_DRIVER = 1` для CAN1, або `CAN_P2_DRIVER = 2` для CAN2
 - `CAN_D1_PROTOCOL = 1` для CAN1, або `CAN_D2_PROTOCOL = 1` для CAN2
 - `CAN_P1_BITRATE = 1000000` або `CAN_P2_BITRATE = 1000000`
 - `GPS1_TYPE = 9` для DroneCAN GPS
@@ -78,9 +80,31 @@ Firmware defaults:
 - optional: `GPS1_CAN_OVRIDE = 42` if the bus has more than one DroneCAN
   GPS-like node
 
-Після зміни CAN driver parameters перезавантажте FC. Якщо H743 node стоїть
+Значення `CAN_Px_DRIVER` вибирає virtual driver. Ці приклади навмисно
+прив'язують physical CAN1 до driver 1, а physical CAN2 до driver 2; використовуйте
+`CAN_Dn_*`, що відповідають призначеному номеру driver. Після зміни CAN driver
+parameters перезавантажте FC. Якщо H743 node стоїть
 на фізичному кінці CAN-шини, увімкніть 120 ohm termination на CAN-модулі;
 інакше залиште termination вимкненим.
+
+### H743 DroneCAN MAVLink2 virtual ports
+
+Увімкніть DroneCAN serial transport і створіть два окремі порти для node `42`:
+
+| Функція | Node/index | ArduPilot driver 1 parameters |
+|---------|------------|-------------------------------|
+| Enable transport | - | `CAN_D1_UC_SER_EN = 1` |
+| OpenIPC camera, bidirectional | node `42`, index `0` | `CAN_D1_UC_S1_NOD = 42`, `CAN_D1_UC_S1_IDX = 0`, `CAN_D1_UC_S1_BD = 115`, `CAN_D1_UC_S1_PRO = 2` |
+| H743 filter MAVLink + FC telemetry | node `42`, index `1` | `CAN_D1_UC_S2_NOD = 42`, `CAN_D1_UC_S2_IDX = 1`, `CAN_D1_UC_S2_BD = 115`, `CAN_D1_UC_S2_PRO = 2` |
+
+Для virtual driver 2 використовуйте відповідні `CAN_D2_UC_*` parameters.
+Index `0` прозоро з'єднує OpenIPC UART з ArduPilot. Index `1` несе MAVLink2
+самого фільтра до FC і повертає FC telemetry для EKF/barometer/status logic.
+Native GPS лишається `Fix2/Auxiliary`; raw NMEA/UBX/SBF не тунелюється.
+
+Якщо UART traffic заважає camera boot, встановіть `MAV_TELEM_DELAY = 5` (у
+старих ArduPilot — `TELEM_DELAY`). Живіть camera від відповідного окремого
+camera/LTE supply; `PA9/PA10` — 3.3 V signals, а не power output.
 
 Development USB-C ROM DFU flash:
 

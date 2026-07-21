@@ -8,8 +8,10 @@ UART-прошивка використовує три UART-лінії на пі�
 2. FC MAVLink <-> STM32 (керування, статус, тюнінг)
 3. FC GPS <-> STM32 (пересилання «сирого» GNSS-потоку на GPS UART FC)
 
-Окрема H743 DroneCAN-прошивка використовує GNSS UART-вхід і один CAN
-трансивер замість двох послідовних портів польотного контролера.
+Окрема H743 DroneCAN-прошивка використовує GNSS UART-вхід, OpenIPC MAVLink2
+UART на `PA10` RX / `PA9` TX, shared sensor I2C2 (`SENSOR_I2C`) на
+`PB10/PB11` та один CAN-трансивер. Фізичних FC MAVLink і FC GPS UART немає;
+FC-facing MAVLink, native GPS, airspeed і compass передаються через CAN.
 
 Відеоурок: [загальний огляд підключення](12_video_tutorials.md#wiring).
 
@@ -63,13 +65,18 @@ DroneCAN production-збірки.
 
 Використовуйте цю таблицю тільки зі збірками
 `weact_mini_h743vitx_dronecan` або `weact_mini_h743vitx_dronecan_usb` і
-3.3 V CAN-трансивером, наприклад SN65HVD230. Ця збірка не використовує FC
-MAVLink UART або FC GPS UART.
+3.3 V CAN-трансивером, наприклад SN65HVD230. Ця збірка не використовує
+фізичні FC MAVLink або FC GPS UART. Firmware `v0.2.0+` використовує `PA10/PA9`
+для OpenIPC camera UART і два окремі `uavcan.tunnel.Targetted` порти через CAN.
 
 | Пін STM32 / модуля | Напрям | Підключити цей пін до |
 |---|---|---|
 | STM32 `A3` | **RX** (вхід GNSS UART) | GNSS module **TX** |
 | STM32 `A2` | **TX** (вихід GNSS UART) | GNSS module **RX** |
+| STM32 `PA10` | **RX** (camera MAVLink2 input) | OpenIPC camera **TX** |
+| STM32 `PA9` | **TX** (camera MAVLink2 output) | OpenIPC camera **RX** |
+| STM32 `PB10` | **I2C2 SCL** | MS4525DO і HMC5983 **SCL** |
+| STM32 `PB11` | **I2C2 SDA** | MS4525DO і HMC5983 **SDA** |
 | STM32 `PB9` | **FDCAN1_TX** | CAN module `TXD` |
 | STM32 `PB8` | **FDCAN1_RX** | CAN module `RXD` |
 | STM32 `3V3` | Живлення | CAN module `VCC` |
@@ -78,10 +85,26 @@ MAVLink UART або FC GPS UART.
 | CAN module `CANL` | CAN low | Flight controller CAN `CANL` |
 | CAN module `GND` | Bus ground | Flight controller CAN `GND` |
 
+Підключіть обидва I2C sensors паралельно через окремий keyed 4-pin connector:
+`3V3`, `GND`, `PB10/SCL`, `PB11/SDA`. HD-15 уже повністю зайнятий — не
+перепризначайте його pins. Використовуйте один effective set pull-ups SCL/SDA
+до 3.3 V, **ніколи не до 5 V**, і тримайте harness коротким та подалі від
+motor/ESC і LTE power wiring. Breakout boards часто вже мають pull-ups, тому
+перевірте assembled resistance перед додаванням інших.
+
+Default pressure conversion призначений тільки для повного part number
+`4525DO-DS3AI001DP`: 3.3 V, address `0x28`, bidirectional +/-1 psi, transfer
+function A (10-90%) і configured negative pitot polarity. Перевірте повний
+ordering code; 5 V, інші range/address/transfer variants потребують build
+changes. Magnetometer має відповідати на `0x1E` з ID `H43`; багато дешевих
+modules із назвою HMC5983 є clones. Connector, placement, ArduPilot setup і
+bench checks описані у [H743 DroneCAN Guide](13_h743_dronecan.md#sensor-i2c-connector).
+
 H743 DroneCAN display note: the WeAct onboard 0.96 inch ST7735 screen is used
 by this firmware. Do not wire anything external to `PE12` (SPI4 SCK), `PE14`
-(SPI4 MOSI), `PE11` (CS), `PE13` (DC), `PF0` (reset), or `PE10` (backlight).
-These pins do not intersect with USB-C `PA11/PA12`, CAN `PB8/PB9`, GNSS
+(SPI4 MOSI), `PE11` (CS), `PE13` (DC), or `PE10` (backlight). На офіційних
+WeAct V10-V12 LCD reset підключений до board `NRST`/`SYS_RESET`, а не до `PF0`.
+These display pins do not intersect with USB-C `PA11/PA12`, CAN `PB8/PB9`, GNSS
 `PA2/PA3`, LED `PE3`, or DR1 `PB5`; compile-time checks enforce this.
 
 Вмикайте 120 ohm termination на CAN-модулі тільки якщо H743-вузол стоїть на
@@ -92,9 +115,9 @@ These pins do not intersect with USB-C `PA11/PA12`, CAN `PB8/PB9`, GNSS
 Якщо H743, CAN transceiver і display встановлені всередині одного бокса,
 використовуйте user-facing HD-15 D-sub pinout з
 [H743 DroneCAN Guide](13_h743_dronecan.md#optional-hd-15-d-sub-box-connector).
-Там описані зовнішні піни для FC CAN, живлення бокса, GNSS UART/power і
-optional DR1 status; raw H743 `PB8/PB9` лишаються всередині бокса між MCU і
-CAN transceiver.
+Там описані зовнішні піни для FC CAN, живлення бокса, GNSS UART/power, OpenIPC
+camera UART і optional DR1 status; raw H743 `PB8/PB9` лишаються всередині бокса
+між MCU і CAN transceiver.
 
 ## Чекліст підключення «провід за проводом»
 
@@ -114,6 +137,12 @@ CAN transceiver.
 - [ ] STM32 `3V3` -> CAN transceiver `VCC`
 - [ ] STM32 `GND` -> CAN transceiver `GND`
 - [ ] CAN transceiver `CANH/CANL/GND` -> CAN-порт польотного контролера
+- [ ] OpenIPC camera `TX` -> STM32 `PA10` (**RX**)
+- [ ] STM32 `PA9` (**TX**) -> OpenIPC camera `RX`
+- [ ] SCL обох sensors -> STM32 `PB10`; SDA обох sensors -> `PB11`
+- [ ] I2C pull-ups тільки до 3.3 V; sensor power/GND відповідають перевіреним
+      parts, усі grounds common
+- [ ] Camera, H743 і CAN transceiver мають common ground; camera UART — 3.3 V
 
 ## Типові помилки підключення
 
@@ -142,13 +171,15 @@ CAN transceiver.
 - `A11/A12` на BlackPill фізично є USB D-/D+; у цьому проєкті вони **назавжди перепризначені як USART6** для GPS UART польотного контролера. Плата **не має робочого USB-шляху** — завантажувач не реєструється у системі як USB-пристрій, а застосунок вимикає USB OTG_FS при кожному завантаженні.
 - **НЕ підключайте жоден кабель до USB-C роз'єму BlackPill — ніколи.** Навіть USB-кабель живлення подає сигнали хоста на D-/D+, тобто на ті ж фізичні лінії, що й `A11/A12`, і це конфліктує з драйвером USART6. Польотний контролер показуватиме «GPS: No GPS», а EKF3 не зможе вирівнятися, навіть якщо фільтр повідомляє про fix. Живлення має йти з +5V/+3V3 GPS-роз'єму FC або з SWD-роз'єму під час першої прошивки — ніколи з USB-кабелю.
 - На WeAct H743 USB-C дозволений. H743-прошивки резервують `A11/A12` для USB OTG FS CDC/DFU і не призначають їх на GNSS, MAVLink, FC GPS, LED або DR1 event output.
-- У H743 DroneCAN-прошивці USB-C дозволений і залишається на `A11/A12`; CAN використовує тільки `PB8/PB9`.
+- У H743 DroneCAN-прошивці USB-C дозволений і залишається на `A11/A12`; CAN
+  використовує `PB8/PB9`, OpenIPC UART — `PA10/PA9`, а shared MS4525DO/HMC5983
+  sensor I2C2 — `PB10/PB11`.
 - Щоб звільнити FC GPS UART-піни у UART-збірках (наприклад, для діагностики), встановіть `FCGPS_UART=0` у Mission Planner. Це вимкне FC GPS UART і переведе board-specific піни у режим входу. Встановіть `FCGPS_UART=1`, щоб повернути нормальну роботу FC GPS UART. `FCGPS_FWD=1` перекриває це і примусово вмикає FC GPS UART для стендової перевірки.
 - Runtime-обмін GNSS TX/RX не підтримується у цих прошивках; виправляйте підключення фізично.
 - Режим протоколу приймача задається параметром `GNSS_TYPE`:
   - `0`: u-blox/UBX
   - `1`: UM980/UM981/UM982 NMEA
-  - `2`: Septentrio Mosaic X5 NMEA
+  - `2`: Septentrio Mosaic X5; H743 DroneCAN приймає SBF або NMEA, UART-збірки використовують NMEA
 - Для `GNSS_TYPE=1` або `GNSS_TYPE=2` фільтр очікує лише один фізичний NMEA-канал:
   - вихід потоку приймача (`COM1`, `COM2` або вибраний потік Mosaic) -> STM32 `A2/A3`
   - STM32 читає spoofing/SNR-дані з цього самого потоку

@@ -11,25 +11,30 @@
 - GNSS і STM32: `A2/A3`
 - FC MAVLink і STM32: `A9/A10` (MAVLink2 @ 115200)
 - FC GPS і STM32: `A11/A12` на F401 або `C6/C7` на H743 UART-збірці (зазвичай 460800)
-- H743 DroneCAN: GNSS `A2/A3`, CAN transceiver `PB8/PB9`, USB-C лишається на `A11/A12`
+- H743 DroneCAN: GNSS `A2/A3`, OpenIPC camera `PA10` RX / `PA9` TX, CAN
+  transceiver `PB8/PB9`; USB-C лишається на `A11/A12`
 
-H743 DroneCAN-прошивка не використовує FC MAVLink UART або FC GPS UART.
-ArduPilot має бачити DroneCAN GPS (`GPS1_TYPE=9`) на CAN-порті.
+H743 DroneCAN-прошивка не має фізичних FC MAVLink або FC GPS UART. ArduPilot
+має бачити native DroneCAN GPS (`GPS1_TYPE=9`), camera MAVLink2 на S1/index
+`0`, а MAVLink2 фільтра та зворотну FC telemetry — на S2/index `1`.
 
 ## 2) Режим приймача (`GNSS_TYPE`)
 
 - `GNSS_TYPE=0`: режим u-blox/UBX.
 - `GNSS_TYPE=1`: режим UM980/UM981/UM982 NMEA. Потребує одноразового налаштування — див. [Конфігурація приймача](#receiver-config).
-- `GNSS_TYPE=2`: режим Septentrio Mosaic X5 NMEA. Потребує одноразового налаштування — див. [Конфігурація приймача](#receiver-config).
+- `GNSS_TYPE=2`: режим Septentrio Mosaic X5. H743 DroneCAN може використовувати SBF; UART-збірки використовують NMEA. Потребує одноразового налаштування — див. [Конфігурація приймача](#receiver-config).
 - `FCGPS_UART=1`: FC GPS UART-піни активні (F401 `A11/A12`, H743 UART `C6/C7`; нормальна робота, за замовчуванням).
 - `FCGPS_UART=0`: FC GPS UART-піни переведені у вхідний режим. Не використовуйте під час польоту.
 - У H743 DroneCAN `v0.1.4+` tuning відкривається в Mission Planner:
   `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`.
 - У H743 DroneCAN `v0.1.5+` tuning також доступний напряму через USB-C:
   Mission Planner -> H743 COM port -> `115200`.
+- У H743 DroneCAN `v0.2.0+` MAVLink parameters також доступні через
+  налаштований virtual port S2/index `1`.
 - Для `GNSS_TYPE=1` або `GNSS_TYPE=2` використовуйте лише один фізичний NMEA-потік:
   - потік приймача -> STM32 `A2/A3`
-  - STM32 пересилає цей самий потік на FC GPS UART
+  - UART-збірки пересилають цей потік на FC GPS UART; H743 DroneCAN публікує
+    розібраний fix як native `Fix2/Auxiliary`
 - Після зміни `GNSS_TYPE` перезавантажте STM32 (`NRST` або повне вимкнення/увімкнення).
 - Для кастомного u-blox без автоконфігу:
   - задайте `UBX_BAUD` як baud приймача (`0` означає автоконфіг ON),
@@ -60,6 +65,13 @@ ArduPilot має бачити DroneCAN GPS (`GPS1_TYPE=9`) на CAN-порті.
 1. Перевірте CAN bitrate `1000000` і `GPS1_TYPE=9`
 2. Перевірте `PB9 -> TXD`, `PB8 -> RXD`, `CANH/CANL/GND`
 3. Перевірте termination тільки на фізичних кінцях CAN-шини
+
+**H743 camera або filter MAVLink відсутній:**
+
+1. Встановіть `CAN_Dx_UC_SER_EN=1` на активному CAN driver
+2. Налаштуйте S1: node `42` / index `0` / baud `115` / protocol `2`
+3. Налаштуйте S2: node `42` / index `1` / baud `115` / protocol `2`
+4. Перевірте camera TX -> `PA10`, `PA9` -> camera RX, 3.3 V logic і common ground
 
 **DR1 не вимикається:**
 
@@ -110,7 +122,7 @@ ArduPilot має бачити DroneCAN GPS (`GPS1_TYPE=9`) на CAN-порті.
 
 ## 7b) Оцінка достовірності спуфінгу (v1.5.5+)
 
-Фільтр обчислює `DR_CONF` (0–100), комбінуючи 8 сигналів виявлення. Видно в Mission Planner та в логах подій. Вищий бал = більше ознак спуфінгу. Приймачі u-blox використовують всі 8 сигналів; приймачі з пасивним NMEA, такі як UM980 і Mosaic X5, використовують доступну через NMEA підмножину.
+Фільтр обчислює `DR_CONF` (0–100), комбінуючи 8 сигналів виявлення. Видно в Mission Planner та в логах подій. Вищий бал = більше ознак спуфінгу. Приймачі u-blox використовують всі 8 сигналів; приймачі з пасивним NMEA, такі як UM980 і Mosaic X5, використовують доступну через NMEA підмножину. H743 DroneCAN Mosaic SBF додає binary C/N0 temporal, velocity, covariance і clock inputs, але pseudorange residual та GDOP-jump scoring залишаються недоступними.
 
 ## 8) Частота логів у Mission Planner
 
@@ -118,5 +130,8 @@ ArduPilot має бачити DroneCAN GPS (`GPS1_TYPE=9`) на CAN-порті.
 - Зазвичай поруч ідуть дві строки:
   - `data=... fix=... nav=... SATS=... SNR=...`
   - `ARM=... DR=... BLEND=... LAT=... LONG=...`
+
+H743 DroneCAN `v0.2.0+` передає ці повідомлення через S2/index `1`. S1 та S2
+лишаються активними в DR1, навіть коли GPS `Fix2/Auxiliary` заблоковано.
 
 Див. [Робота](#operation) для пояснення цих повідомлень.

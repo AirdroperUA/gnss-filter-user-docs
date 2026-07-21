@@ -9,15 +9,16 @@
 |---|---|---|
 | `0` | u-blox M8 / M9 / M10 / F9 / F10, а також u-blox-сумісні gateway-модулі | `1` (AUTO) або `2` (u-blox) |
 | `1` | Unicore UM980 / UM981 / UM982 | `24` (UnicoreNMEA) |
-| `2` | Septentrio Mosaic X5 | тип GPS NMEA |
+| `2` | Septentrio Mosaic X5 | H743 DroneCAN: `9`; UART-збірки: тип GPS NMEA |
 
 ---
 
 ## Septentrio Mosaic X5
 
-**Потрібна ручна попередня конфігурація.** STM32-фільтр підтримує Mosaic X5
-через стандартний NMEA-вихід. У цьому релізі він не парсить Septentrio SBF і
-**не** надсилає до приймача Septentrio-команди конфігурації або reset.
+**Потрібна ручна попередня конфігурація.** H743 DroneCAN firmware `v0.1.9+`
+підтримує Mosaic X5 через нативний SBF-вхід і публікує розібраний fix як
+DroneCAN GPS. UART/F401-збірки мають використовувати стандартний NMEA-вихід.
+Фільтр **не** надсилає до приймача Septentrio-команди конфігурації або reset.
 Налаштуйте приймач через Septentrio RxTools/Web UI перед першим польотом.
 
 ### Крок 1 — Налаштування Mosaic X5 через RxTools/Web UI
@@ -28,11 +29,22 @@
 |---|---|
 | Baud | `460800` |
 | Формат послідовного порту | 8 data bits, no parity, 1 stop bit |
-| Режим входу/виходу | NMEA-вивід на вибраному stream |
+| Режим входу/виходу | H743 DroneCAN: SBF-вивід на вибраному stream; UART-збірки: NMEA-вивід |
 | Версія NMEA | 4.10 або новіша, якщо доступна |
 | Збереження | Зберегти поточну конфігурацію у boot/nonvolatile configuration |
 
-Увімкніть такі NMEA-речення на вибраному вихідному stream:
+Для H743 DroneCAN увімкніть такі SBF-блоки на вибраному вихідному stream:
+
+| SBF-блок | Частота | Для чого використовується |
+|---|---|---|
+| `PVTGeodetic` | 5-10 Гц | fix, позиція, висота, швидкість, супутники, clock bias |
+| `DOP` | 1-5 Гц | HDOP/VDOP/PDOP/TDOP для DroneCAN і guard-логіки |
+| `ReceiverTime` | 1 Гц | UTC-час у DroneCAN `Fix2` |
+| `MeasEpoch` | 1-5 Гц | C/N0/SNR guard і temporal-correlation частина `DR_CONF` |
+| `PosCovGeodetic` | 1-5 Гц | position covariance у DroneCAN `Fix2` |
+| `VelCovGeodetic` | 1-5 Гц | velocity covariance у DroneCAN `Fix2` |
+
+Для UART/F401-збірок увімкніть такі NMEA-речення на вибраному вихідному stream:
 
 | Речення | Частота | Для чого використовується |
 |---|---|---|
@@ -43,7 +55,8 @@
 | `VTG` | бажано 5 Гц | резервна швидкість/курс |
 
 Еквівалентні сімейства команд Septentrio: `setCOMSettings`,
-`setDataInOut`, `setNMEAVersion`, `setNMEAOutput`, `exeCopyConfigFile`.
+`setDataInOut`, `setSBFOutput`, `setNMEAVersion`, `setNMEAOutput`,
+`exeCopyConfigFile`.
 Назва stream залежить від конкретного порту, тому краще використовувати
 RxTools/Web UI, якщо у вас ще немає перевіреного скрипта команд.
 
@@ -51,22 +64,29 @@ RxTools/Web UI, якщо у вас ще немає перевіреного ск
 
 | Параметр | Значення | Примітки |
 |---|---|---|
-| `GNSS_TYPE` | `2` | Вибирає пасивний NMEA-шлях Mosaic X5, потрібне перезавантаження |
+| `GNSS_TYPE` | `2` | Вибирає Mosaic X5 path; H743 DroneCAN приймає SBF або NMEA, потрібне перезавантаження |
 
 ### Крок 3 — Налаштування ArduPilot FC
 
-Встановіть GPS-драйвер FC у режим NMEA та узгодьте baud GPS-порту FC з потоком
-приймача, зазвичай `SERIAL3_BAUD=460`. Вимкніть auto-config з боку FC, якщо
-ваша конфігурація ArduPilot намагається переписувати порти або NMEA-вихід
-приймача.
+Для H743 DroneCAN встановіть GPS instance польотного контролера у DroneCAN GPS
+(`GPS1_TYPE=9`) і підключіть H743 до FC через CAN. FC не спілкується з Mosaic
+serial-портом напряму. Для UART/F401-збірок встановіть GPS-драйвер FC у режим
+NMEA та узгодьте baud GPS-порту FC з потоком приймача, зазвичай
+`SERIAL3_BAUD=460`. Вимкніть auto-config з боку FC, якщо ваша конфігурація
+ArduPilot намагається переписувати порти або NMEA-вихід приймача.
 
 ### Покриття функцій виявлення
 
-Mosaic X5 використовує те саме покриття пасивного NMEA, що й шлях UM980/UM981/UM982:
-стрибок позиції, висота, SNR, розворот курсу, geo-fence, GPS-час і
-узгодженість швидкості та позиції працюють з NMEA-потоку. Сигнали, доступні
-лише через UBX (pseudorange residual, clock bias і UBX GDOP jump), недоступні
-до появи нативного парсера Septentrio SBF.
+На H743 DroneCAN `v0.1.9+` Mosaic SBF feeding покриває стрибок позиції,
+висоту, SNR, розворот курсу, geo-fence, GPS-час, узгодженість
+швидкості/позиції, DOP, DroneCAN covariance і clock-bias jump. `MeasEpoch`
+дає C/N0 temporal-correlation сигнал для `DR_CONF`. Pseudorange-residual
+analytics залишаються тільки для u-blox, бо parsed Mosaic SBF path не має
+UBX `NAV-SAT`-style поля `prRes`.
+
+На UART/F401 NMEA-збірках Mosaic X5 має те саме покриття пасивного NMEA, що й
+UM980/UM981/UM982: стрибок позиції, висота, SNR, розворот курсу, geo-fence,
+GPS-час і узгодженість швидкості/позиції працюють з NMEA-потоку.
 
 ---
 

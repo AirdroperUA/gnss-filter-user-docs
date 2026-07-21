@@ -82,11 +82,11 @@ synthetic або blended GPS coordinates.
 
 ### Оцінка достовірності спуфінгу
 
-Прошивка обчислює зважену оцінку (0–100) з до 8 сигналів виявлення. Бал видно в Mission Planner як `DR_CONF` і записується в кожен лог подій. Вищі значення означають більше ознак спуфінгу. Для приймачів із пасивним NMEA, таких як UM980 і Mosaic X5, недоступні UBX-сигнали пропускаються.
+Прошивка обчислює зважену оцінку (0–100) з до 8 сигналів виявлення. Бал видно в Mission Planner як `DR_CONF` і записується в кожен лог подій. Вищі значення означають більше ознак спуфінгу. Недоступні protocol-specific сигнали пропускаються. H743 DroneCAN Mosaic SBF додає C/N0 temporal і clock-bias coverage порівняно з пасивним NMEA, але pseudorange-residual scoring залишається тільки для u-blox.
 
 ### Тільки UBX vs універсальне виявлення
 
-Більшість сигналів працюють з u-blox і приймачами з пасивним NMEA. Наступні сигнали **тільки для u-blox**:
+Більшість сигналів працюють з u-blox і приймачами з пасивним NMEA. У UART/NMEA-збірках наступні сигнали **тільки для u-blox**:
 
 | Сигнал | Потрібне UBX повідомлення |
 |--------|--------------------------|
@@ -95,6 +95,7 @@ synthetic або blended GPS coordinates.
 | Стрибок тактового зсуву | NAV-CLOCK (поле clkB) |
 
 Перевірка узгодженості швидкості та позиції працює з обома класами приймачів, але для u-blox вона точніша, бо використовує NED-швидкість з NAV-PVT. Для приймачів із пасивним NMEA вона розраховується зі швидкості та курсу RMC.
+На H743 DroneCAN Mosaic SBF дає PDOP/HDOP/VDOP/TDOP і clock-bias inputs, але GDOP-jump confidence signal і pseudorange-residual signal залишаються недоступними в Mosaic mode.
 
 ## Стартова затримка
 
@@ -131,6 +132,9 @@ STM32 запускає незалежний апаратний watchdog, так�
 
 ### Staleness MAVLink від FC (fail-safe при втраті лінку)
 
+Ця логіка працює через фізичний FC telemetry UART у UART-збірках і через
+virtual port S2/index `1` у H743 DroneCAN.
+
 Фільтр відстежує окремий timestamp свіжості для полів `ATTITUDE`, `VFR_HUD`, `ALTITUDE` та `HEARTBEAT`. Якщо будь-яке з цих полів припиняє оновлюватися понад **2 секунди**, фільтр трактує це як позитивний доказ погіршення MAVLink-лінку — а не як «тиша = все нормально». Конкретно:
 
 - Інтеграція синтетичної позиції зупиняється (жодного IMU-коасту), якщо `ATTITUDE`/`VFR_HUD` застарілі.
@@ -140,12 +144,11 @@ STM32 запускає незалежний апаратний watchdog, так�
 
 Симптоми в логах: явного повідомлення немає, але «застряглий» `DR` під час MAVLink-дропу в поєднанні із замороженою синтетичною позицією — це очікувана поведінка.
 
-H743 DroneCAN v1 не має FC MAVLink UART. MAVLink-dependent поведінка вимкнена
-для цієї збірки: немає Mission Planner params, EKF-status trip,
-baro-altitude comparison або MAVLink `STATUSTEXT`/`NAMED_VALUE` логів.
-GNSS-only guards залишаються активними: no-fix, low sats, position/altitude
-jumps, SNR, hemisphere/geofence, heading reversal, time sanity, velocity-position
-і clock jump.
+H743 DroneCAN `v0.2.0+` не має фізичного FC MAVLink UART, але S2/index `1`
+передає MAVLink2 фільтра й повертає FC telemetry. Тому EKF-status trip,
+baro-altitude comparison, arm-state logic і MAVLink `STATUSTEXT`/`NAMED_VALUE`
+логи працюють, якщо S2 налаштовано. Camera S1/index `0` також активний у DR0 і
+DR1; у DR1 зупиняється лише публікація native GPS `Fix2/Auxiliary`.
 
 ### Максимальна тривалість DR1 (`DR1_MAXMS`)
 
@@ -167,9 +170,10 @@ jumps, SNR, hemisphere/geofence, heading reversal, time sanity, velocity-positio
 
 - `GNSS_TYPE=0`: режим u-blox/UBX.
 - `GNSS_TYPE=1`: режим UM980/UM981/UM982 NMEA.
-- `GNSS_TYPE=2`: режим Septentrio Mosaic X5 NMEA.
+- `GNSS_TYPE=2`: режим Septentrio Mosaic X5. H743 DroneCAN приймає SBF або NMEA; UART-збірки використовують NMEA.
 - Зміна `GNSS_TYPE` застосовується після перезавантаження STM32.
-- У `GNSS_TYPE=1` або `GNSS_TYPE=2` STM32 очікує один фізичний NMEA-потік на `A2/A3` і пересилає цей самий потік на GPS UART FC.
+- У `GNSS_TYPE=1` або UART/F401 `GNSS_TYPE=2` STM32 очікує один фізичний NMEA-потік на `A2/A3` і пересилає цей самий потік на GPS UART FC.
+- У H743 DroneCAN `GNSS_TYPE=2` STM32 може парсити Mosaic SBF на `A2/A3` і публікувати GPS через CAN.
 
 ## Приклад логів (GCS)
 
@@ -179,9 +183,11 @@ jumps, SNR, hemisphere/geofence, heading reversal, time sanity, velocity-positio
 - Зазвичай ви бачите два сусідні рядки:
   - рядок зведення GNSS: `data=... fix=... nav=... SATS=... SNR=...`
   - рядок режиму/стану: `ARM=... DR=... BLEND=... LAT=... LONG=...`
+- У H743 DroneCAN `v0.2.0+` ці повідомлення йдуть через S2/index `1`;
+  налаштуйте цей virtual port, перш ніж вважати відсутність логів несправністю.
 - Якщо під час тюнінгу логів або SNR Mission Planner показує лише сирі назви параметрів, встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) і оновіть список параметрів.
 - `fix` — це вік останнього валідного позиційного/висотного фіксу; `nav` — вік останнього валідного GNSS nav-data кадру, який бачить фільтр.
-- `SNR=NA` означає, що фільтр зараз не отримує придатні SNR-дані від приймача. Для u-blox це зазвичай означає, що приймач не видає `NAV-SAT`. Для NMEA-приймачів, таких як UM980 або Mosaic X5, це означає, що не надходять речення `GSV`.
+- `SNR=NA` означає, що фільтр зараз не отримує придатні SNR-дані від приймача. Для u-blox це зазвичай означає, що приймач не видає `NAV-SAT`. Для NMEA-приймачів, таких як UM980 або Mosaic X5, це означає, що не надходять речення `GSV`. Для H743 DroneCAN Mosaic SBF це означає, що `MeasEpoch` відсутній, застарілий або не має придатного C/N0.
 - На u-blox у прошивці v1.6.12+ тривалий `SNR=NA` також виводить рядок `snrdbg n... a... l... s... g... o... b...`: кількість NAV-SAT кадрів, вік кадру, останню довжину, кількість супутників за приймачем, супутники з придатним C/N0, oversize-дропи та malformed/checksum-дропи.
 - На u-blox у прошивці v1.6.15+ команда відновлення заново вмикає NAV-SAT через legacy `CFG-MSG` і `CFG-VALSET` на UART1/UART2 лише коли NAV-SAT кадри відсутні або застарілі. Рядок на кшталт `NAV-SAT cfg ack legacy=1 u1=1 u2=1` показує, які шляхи приймач підтвердив.
 - На u-blox у прошивці v1.6.16+ таймер відновлення запускається, коли SNR уперше стає застарілим, але переписування конфігурації все одно чекає, поки застаріє сам NAV-SAT. Це скорочує відновлення після періодичного `SNR=NA`, спричиненого зміною NAV-SAT на боці приймача, приблизно з двох вікон застарівання до одного.

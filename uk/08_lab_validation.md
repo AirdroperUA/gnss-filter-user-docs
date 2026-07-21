@@ -66,6 +66,12 @@ warning health only for spoof/fault DR1 reasons. Перевіряйте onboard 
 - Повідомлення про rejoin під час повернення в DR0.
 - Відсутність небезпечних навігаційних стрибків FC під час DR1.
 
+H743 DroneCAN `v0.2.0+` надсилає MAVLink `STATUSTEXT` і `NAMED_VALUE` через
+S2/index `1`, якщо цей virtual port налаштовано. Перевіряйте ці записи разом з
+екраном, node ID `42`, `NodeStatus` і GPS `Fix2/Auxiliary`. Camera S1/index `0`
+та filter S2/index `1` мають лишатися активними в DR1, коли `Fix2/Auxiliary`
+заблоковано.
+
 ## 7) Типові збої валідації
 
 - **DR1 не вмикається під час аномалії**

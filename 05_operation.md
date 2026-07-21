@@ -1,4 +1,4 @@
-﻿# Runtime Operation
+# Runtime Operation
 
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
@@ -80,17 +80,20 @@ The onboard status LED follows the same state shown in logs:
 - GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
 - DR1 max duration (`DR1_MAXMS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered, but only after `DR_LOCK_MS` has elapsed. Use for missions that cannot tolerate indefinite GPS blocking.
 
-H743 DroneCAN v1 has no FC MAVLink link, so MAVLink-dependent triggers are
-disabled there: EKF-status trip, barometer altitude comparison, and MAVLink
-status logging do not run. GNSS-only guards still run.
+H743 DroneCAN `v0.2.0+` has no physical FC MAVLink UART, but S2/index `1`
+carries the filter's MAVLink2 and returns FC telemetry. EKF-status trip,
+barometer altitude comparison, arm-state handling, and MAVLink
+`STATUSTEXT`/`NAMED_VALUE` logging therefore continue when S2 is configured.
+Camera S1/index `0` also remains active in DR0 and DR1; only native GPS
+`Fix2/Auxiliary` publishing is suppressed by DR1.
 
 ### Spoofing confidence score
 
-The firmware computes a weighted confidence score (0–100) from up to 8 detection signals. The score is visible in Mission Planner as `DR_CONF` in the named-value telemetry and is recorded in each spoofing event log entry. Higher values indicate more evidence of spoofing. The score adapts to available data — signals that require UBX-specific messages (NAV-SAT, NAV-CLOCK, NAV-DOP) are skipped for NMEA receivers such as UM980 and Mosaic X5.
+The firmware computes a weighted confidence score (0–100) from up to 8 detection signals. The score is visible in Mission Planner as `DR_CONF` in the named-value telemetry and is recorded in each spoofing event log entry. Higher values indicate more evidence of spoofing. The score adapts to available data — signals that require UBX-specific messages are skipped when that protocol data is not present. H743 DroneCAN Mosaic SBF adds C/N0 temporal and clock-bias coverage compared with passive NMEA, but pseudorange-residual scoring remains u-blox-only.
 
 ### UBX-only vs universal detection
 
-Most detection signals work with u-blox and passive NMEA receivers. The following advanced signals are **u-blox only** because they require UBX binary messages not available in NMEA:
+Most detection signals work with u-blox and passive NMEA receivers. The following advanced signals are **u-blox only** in UART/NMEA builds because they require UBX binary messages not available in NMEA:
 
 | Signal | Required UBX message |
 |--------|---------------------|
@@ -99,6 +102,7 @@ Most detection signals work with u-blox and passive NMEA receivers. The followin
 | Clock bias jump | NAV-CLOCK (clkB field) |
 
 Velocity-position consistency works with both receiver classes but is more precise with u-blox (uses NED velocity from NAV-PVT) than passive NMEA receivers (derived from RMC speed/course).
+On H743 DroneCAN, Mosaic SBF provides PDOP/HDOP/VDOP/TDOP and clock-bias inputs directly. The GDOP-jump confidence signal and pseudorange-residual signal remain unavailable in Mosaic mode.
 
 ## Startup guard
 
@@ -135,6 +139,9 @@ If the FC is **disarmed** at the moment of reboot (pre-flight bench test), the f
 
 ### FC MAVLink staleness (link loss fail-safe)
 
+This applies to the physical FC telemetry UART on UART builds and to the H743
+DroneCAN S2/index `1` virtual port.
+
 The filter tracks a per-field freshness timestamp for `ATTITUDE`, `VFR_HUD`, `ALTITUDE`, and `HEARTBEAT`. If any of these fields stops refreshing for more than **2 seconds**, the filter treats it as positive evidence that the MAVLink link is impaired — not as "no news is good news." Concretely:
 
 - Synthetic position integration freezes (no more IMU-blended coasting) if `ATTITUDE`/`VFR_HUD` are stale.
@@ -165,9 +172,10 @@ online, and GPS publishing should change between `PUB ON DR0` and `PUB BLK DR1`.
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode.
-- `GNSS_TYPE=2`: Septentrio Mosaic X5 NMEA mode.
+- `GNSS_TYPE=2`: Septentrio Mosaic X5 mode. H743 DroneCAN `v0.1.9+` accepts SBF or NMEA; UART pass-through builds use NMEA.
 - `GNSS_TYPE` changes require STM32 reboot.
-- In `GNSS_TYPE=1` or `GNSS_TYPE=2`, the STM32 expects one physical NMEA receiver stream on `A2/A3` and forwards that same stream to the FC GPS UART.
+- In `GNSS_TYPE=1` or UART `GNSS_TYPE=2`, the STM32 expects one physical NMEA receiver stream on `A2/A3` and forwards that same stream to the FC GPS UART.
+- In H743 DroneCAN `GNSS_TYPE=2`, the STM32 can parse Mosaic SBF on `A2/A3` and publish the resulting GPS over CAN.
 
 ## Log example (GCS)
 
@@ -177,9 +185,11 @@ The following screenshot shows expected status-text format in GCS messages.
 - You typically see two back-to-back lines in the same moment:
   - GNSS summary line: `data=... fix=... nav=... SATS=... SNR=...`
   - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
+- On H743 DroneCAN `v0.2.0+`, these messages use S2/index `1`; configure that
+  virtual port before treating missing GCS logs as a filter fault.
 - If Mission Planner shows raw parameter names while you are tuning log or SNR settings, install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) and refresh the parameter list.
 - `fix` is the age of the last valid position/altitude fix; `nav` is the age of the last valid GNSS nav-data frame seen by the filter.
-- `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With NMEA receivers such as UM980 or Mosaic X5, it means no `GSV` sentences are arriving.
+- `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With NMEA receivers such as UM980 or Mosaic X5, it means no `GSV` sentences are arriving. With H743 DroneCAN Mosaic SBF, it means `MeasEpoch` is missing, stale, or has no usable C/N0.
 - On u-blox firmware v1.6.12+, persistent `SNR=NA` also emits `snrdbg n... a... l... s... g... o... b...`: NAV-SAT frames seen, frame age, last length, reported satellites, usable C/N0 satellites, oversize drops, malformed/checksum drops.
 - On u-blox firmware v1.6.15+, the stale-SNR recovery command re-enables NAV-SAT through legacy `CFG-MSG` and `CFG-VALSET` on UART1/UART2 only when NAV-SAT frames are missing or stale. A recovery line such as `NAV-SAT cfg ack legacy=1 u1=1 u2=1` shows which paths the receiver ACKed.
 - On u-blox firmware v1.6.16+, the recovery timer starts when SNR first goes stale, while the config rewrite still waits for NAV-SAT itself to go stale. This shortens intermittent `SNR=NA` recovery after a receiver-side NAV-SAT output change from roughly two stale windows to about one stale window.

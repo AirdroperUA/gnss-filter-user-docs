@@ -9,16 +9,18 @@ Install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mi
 |---|---|---|
 | `0` | u-blox M8 / M9 / M10 / F9 / F10, plus u-blox-compatible gateway modules | `1` (AUTO) or `2` (u-blox) |
 | `1` | Unicore UM980 / UM981 / UM982 | `24` (UnicoreNMEA) |
-| `2` | Septentrio Mosaic X5 | NMEA GPS type |
+| `2` | Septentrio Mosaic X5 | H743 DroneCAN: `9`; UART builds: NMEA GPS type |
 
 ---
 
 ## Septentrio Mosaic X5
 
-**Manual pre-configuration required.** The STM32 filter supports Mosaic X5
-through standard NMEA output. It does not parse Septentrio SBF in this release
-and does **not** send Septentrio configuration or reset commands to the receiver.
-Use Septentrio RxTools/Web UI before first flight.
+**Manual pre-configuration required.** H743 DroneCAN firmware `v0.1.9+`
+supports Mosaic X5 native SBF input and publishes the parsed fix as DroneCAN
+GPS. UART/F401 serial pass-through builds should still use the NMEA profile
+below unless you intentionally build a custom SBF-enabled firmware. The filter
+does **not** send Septentrio configuration or reset commands to the receiver;
+use Septentrio RxTools/Web UI before first flight.
 
 ### Step 1 — Configure Mosaic X5 via RxTools/Web UI
 
@@ -28,11 +30,22 @@ Configure the serial stream connected to STM32 `A2/A3`:
 |---|---|
 | Baud | `460800` |
 | Serial format | 8 data bits, no parity, 1 stop bit |
-| Input/output mode | NMEA output on the selected stream |
-| NMEA version | 4.10 or newer where available |
+| Input/output mode | H743 DroneCAN: SBF output on the selected stream; UART builds: NMEA output |
+| NMEA version | UART builds only: 4.10 or newer where available |
 | Save profile | Save current configuration to boot/nonvolatile configuration |
 
-Enable these NMEA sentences on the selected output stream:
+For H743 DroneCAN, enable these SBF blocks on the selected output stream:
+
+| SBF block | Rate | Used for |
+|---|---|---|
+| `PVTGeodetic` | 5-10 Hz | fix mode, position, MSL/ellipsoid height, velocity, satellites, clock |
+| `DOP` | 1-5 Hz | HDOP/VDOP/PDOP/TDOP |
+| `ReceiverTime` | 1 Hz | UTC timestamp for DroneCAN `Fix2` |
+| `MeasEpoch` | 1-5 Hz | per-satellite C/N0 for the SNR guard |
+| `PosCovGeodetic` | 1-5 Hz | position covariance in DroneCAN `Fix2` |
+| `VelCovGeodetic` | 1-5 Hz | velocity covariance in DroneCAN `Fix2` |
+
+For UART/F401 serial pass-through builds, enable these NMEA sentences instead:
 
 | Sentence | Rate | Used for |
 |---|---|---|
@@ -43,29 +56,41 @@ Enable these NMEA sentences on the selected output stream:
 | `VTG` | 5 Hz preferred | speed/course backup |
 
 The Septentrio command-line equivalents are the `setCOMSettings`,
-`setDataInOut`, `setNMEAVersion`, `setNMEAOutput`, and `exeCopyConfigFile`
-commands. The exact stream name depends on the port you use, so prefer the
-RxTools/Web UI profile editor unless you already have a tested command script.
+`setDataInOut`, `setSBFOutput`, `setNMEAVersion`, `setNMEAOutput`, and
+`exeCopyConfigFile` commands. The exact stream name depends on the port you
+use, so prefer the RxTools/Web UI profile editor unless you already have a
+tested command script.
 
 ### Step 2 — STM32 filter settings
 
 | Parameter | Value | Notes |
 |---|---|---|
-| `GNSS_TYPE` | `2` | Selects Mosaic X5 passive NMEA path, reboot to apply |
+| `GNSS_TYPE` | `2` | Selects Mosaic X5 path; H743 DroneCAN accepts SBF or NMEA, reboot to apply |
 
 ### Step 3 — ArduPilot FC settings
 
-Set the FC GPS driver to NMEA and match the FC GPS serial baud to the receiver
-stream, normally `SERIAL3_BAUD=460`. Disable FC-side receiver auto-configuration
-if your ArduPilot setup attempts to rewrite NMEA receiver settings.
+For H743 DroneCAN, set the FC GPS instance to DroneCAN GPS (`GPS1_TYPE=9`) and
+connect the H743 to the FC over CAN. The FC does not talk to the Mosaic receiver
+directly.
+
+For UART/F401 serial pass-through builds, set the FC GPS driver to NMEA and
+match the FC GPS serial baud to the receiver stream, normally
+`SERIAL3_BAUD=460`. Disable FC-side receiver auto-configuration if your
+ArduPilot setup attempts to rewrite NMEA receiver settings.
 
 ### Detection feature coverage
 
-Mosaic X5 uses the same passive NMEA coverage as the UM980/UM981/UM982 NMEA path:
-position jump, altitude, SNR, heading reversal, geo-fence, GPS time, and
-velocity-position consistency work from the NMEA stream. UBX-only signals
-(pseudorange residual, GNSS clock bias, and UBX GDOP jump) are not available
-until a native Septentrio SBF parser is added.
+On H743 DroneCAN `v0.1.9+`, the Mosaic SBF path feeds position jump, altitude,
+SNR, heading reversal, geo-fence, GPS time, velocity-position consistency,
+DOP, DroneCAN covariance, and receiver clock-jump checks from SBF.
+`MeasEpoch` feeds the C/N0 temporal-correlation part of `DR_CONF`.
+Pseudorange-residual analytics remain u-blox-only because the parsed Mosaic SBF
+path does not provide a UBX `NAV-SAT`-style `prRes` field.
+
+On UART/F401 NMEA builds, Mosaic X5 uses the same passive NMEA coverage as the
+UM980/UM981/UM982 path: position jump, altitude, SNR, heading reversal,
+geo-fence, GPS time, and velocity-position consistency work from NMEA; native
+SBF-only diagnostics are not parsed there by default.
 
 ---
 
@@ -164,7 +189,9 @@ geo-fence, GPS time). However, three advanced signals are u-blox only because
 NMEA does not provide the underlying data:
 
 - **Pseudorange residual analysis** — requires UBX NAV-SAT `prRes` field
-- **GDOP sudden change** — requires UBX NAV-DOP `gDOP` field (NMEA GSA only has PDOP/HDOP/VDOP)
+- **GDOP sudden change** — requires UBX NAV-DOP `gDOP` field. NMEA GSA and
+  Mosaic SBF `DOP` only provide PDOP/HDOP/VDOP, so this specific guard remains
+  u-blox-only.
 - **Clock bias jump** — requires UBX NAV-CLOCK
 
 The spoofing confidence score (`DR_CONF`) adapts automatically — unavailable

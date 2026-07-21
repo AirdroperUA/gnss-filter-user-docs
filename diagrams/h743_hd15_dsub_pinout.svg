@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" role="img" aria-labelledby="title desc">
+  <title id="title">H743 DroneCAN box HD-15 D-sub pinout</title>
+  <desc id="desc">HD-15 D-sub soldering diagram for the H743 DroneCAN box, including GNSS, CAN, power, DR1, and OpenIPC camera MAVLink UART signals.</desc>
+  <!--
+    Rear solder-cup view row order:
+    Top row: 5, 4, 3, 2, 1
+    Middle row: 10, 9, 8, 7, 6
+    Bottom row: 15, 14, 13, 12, 11
+    Front mating face row order:
+    Top row: 1, 2, 3, 4, 5
+    Middle row: 6, 7, 8, 9, 10
+    Bottom row: 11, 12, 13, 14, 15
+    PB8/PB9 FDCAN logic stays inside the box between the H743 and transceiver.
+    Pin 13 CAM_MAV_TX_FROM_BOX is H743 PA9 TX to camera RX.
+    Pin 14 CAM_MAV_RX_TO_BOX is camera TX to H743 PA10 RX.
+  -->
+  <defs>
+    <style>
+      .title { font: 800 54px Arial, sans-serif; fill: #050505; letter-spacing: 0; }
+      .subtitle { font: 800 30px Arial, sans-serif; fill: #050505; letter-spacing: 0; }
+      .small { font: 17px Arial, sans-serif; fill: #333333; }
+      .pinNumber { font: 800 26px Arial, sans-serif; fill: #ffffff; stroke: #111111; stroke-width: 4px; paint-order: stroke fill; text-anchor: middle; dominant-baseline: middle; }
+      .frontPinNumber { font: 800 20px Arial, sans-serif; fill: #ffffff; stroke: #111111; stroke-width: 3px; paint-order: stroke fill; text-anchor: middle; dominant-baseline: middle; }
+      .callout { font: 800 27px Arial, sans-serif; letter-spacing: 0; }
+      .subcallout { font: 700 20px Arial, sans-serif; fill: #111111; letter-spacing: 0; }
+      .bottomLabel { font: 800 22px Arial, sans-serif; letter-spacing: 0; }
+      .note { font: 800 24px Arial, sans-serif; fill: #050505; letter-spacing: 0; }
+      .noteText { font: 800 25px Arial, sans-serif; fill: #050505; letter-spacing: 0; }
+      .shell { fill: url(#metal); stroke: #777777; stroke-width: 3; }
+      .insert { fill: url(#blackInsert); stroke: #101010; stroke-width: 4; }
+      .innerBorder { fill: none; stroke: #d9d9d9; stroke-width: 3; opacity: .85; }
+      .holeOuter { fill: url(#holeMetal); stroke: #222222; stroke-width: 2.2; }
+      .holeInner { fill: #050505; stroke: #dadada; stroke-width: 2; }
+      .leader { fill: none; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+      .warnIcon { fill: #ffffff; stroke: #050505; stroke-width: 4; }
+    </style>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f2f2f2"/>
+      <stop offset="0.18" stop-color="#c7c7c7"/>
+      <stop offset="0.42" stop-color="#f9f9f9"/>
+      <stop offset="0.68" stop-color="#a5a5a5"/>
+      <stop offset="1" stop-color="#e8e8e8"/>
+    </linearGradient>
+    <linearGradient id="blackInsert" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2a2a"/>
+      <stop offset="0.45" stop-color="#070707"/>
+      <stop offset="1" stop-color="#252525"/>
+    </linearGradient>
+    <radialGradient id="holeMetal" cx="50%" cy="48%" r="58%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.42" stop-color="#d7d7d7"/>
+      <stop offset="0.70" stop-color="#8a8a8a"/>
+      <stop offset="1" stop-color="#eeeeee"/>
+    </radialGradient>
+    <filter id="softShadow" x="-15%" y="-20%" width="130%" height="150%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#000000" flood-opacity=".22"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1800" height="1000" fill="#ffffff"/>
+  <text x="900" y="70" class="title" text-anchor="middle">H743 DroneCAN Box - HD-15 D-sub Pinout</text>
+  <text x="900" y="125" class="subtitle" text-anchor="middle">REAR SOLDER-CUP VIEW (inside the box)</text>
+  <text x="900" y="154" class="small" text-anchor="middle">Soldering side is mirrored. Top row: 5, 4, 3, 2, 1. Middle row: 10, 9, 8, 7, 6. Bottom row: 15, 14, 13, 12, 11.</text>
+
+  <!-- Large rear solder-cup connector body. -->
+  <g id="rear-connector" filter="url(#softShadow)">
+    <path class="shell" d="M420 260 H1220 Q1268 260 1283 310 L1326 455 Q1340 505 1289 520 H350 Q300 506 316 455 L363 310 Q377 260 420 260 Z"/>
+    <circle cx="400" cy="390" r="58" fill="url(#metal)" stroke="#777777" stroke-width="3"/>
+    <circle cx="400" cy="390" r="34" fill="#ffffff" stroke="#999999" stroke-width="2"/>
+    <circle cx="1275" cy="390" r="58" fill="url(#metal)" stroke="#777777" stroke-width="3"/>
+    <circle cx="1275" cy="390" r="34" fill="#ffffff" stroke="#999999" stroke-width="2"/>
+    <path class="insert" d="M525 285 H1148 Q1190 285 1202 327 L1227 455 Q1236 505 1188 512 H487 Q438 505 448 455 L473 327 Q482 285 525 285 Z"/>
+    <path class="innerBorder" d="M540 302 H1134 Q1172 302 1182 337 L1201 448 Q1208 485 1172 491 H504 Q466 485 474 448 L492 337 Q502 302 540 302 Z"/>
+  </g>
+
+  <!-- Rear solder-cup holes: top row 5 4 3 2 1, middle row 10 9 8 7 6, bottom row 15 14 13 12 11. -->
+  <g id="rear-pins">
+    <g id="pin5"><circle cx="625" cy="345" r="22" class="holeOuter"/><circle cx="625" cy="345" r="12" class="holeInner"/><text x="625" y="307" class="pinNumber">5</text></g>
+    <g id="pin4"><circle cx="725" cy="345" r="22" class="holeOuter"/><circle cx="725" cy="345" r="12" class="holeInner"/><text x="725" y="307" class="pinNumber">4</text></g>
+    <g id="pin3"><circle cx="825" cy="345" r="22" class="holeOuter"/><circle cx="825" cy="345" r="12" class="holeInner"/><text x="825" y="307" class="pinNumber">3</text></g>
+    <g id="pin2"><circle cx="925" cy="345" r="22" class="holeOuter"/><circle cx="925" cy="345" r="12" class="holeInner"/><text x="925" y="307" class="pinNumber">2</text></g>
+    <g id="pin1"><circle cx="1025" cy="345" r="22" class="holeOuter"/><circle cx="1025" cy="345" r="12" class="holeInner"/><text x="1025" y="307" class="pinNumber">1</text></g>
+
+    <g id="pin10"><circle cx="620" cy="430" r="22" class="holeOuter"/><circle cx="620" cy="430" r="12" class="holeInner"/><text x="620" y="392" class="pinNumber">10</text></g>
+    <g id="pin9"><circle cx="720" cy="430" r="22" class="holeOuter"/><circle cx="720" cy="430" r="12" class="holeInner"/><text x="720" y="392" class="pinNumber">9</text></g>
+    <g id="pin8"><circle cx="820" cy="430" r="22" class="holeOuter"/><circle cx="820" cy="430" r="12" class="holeInner"/><text x="820" y="392" class="pinNumber">8</text></g>
+    <g id="pin7"><circle cx="920" cy="430" r="22" class="holeOuter"/><circle cx="920" cy="430" r="12" class="holeInner"/><text x="920" y="392" class="pinNumber">7</text></g>
+    <g id="pin6"><circle cx="1020" cy="430" r="22" class="holeOuter"/><circle cx="1020" cy="430" r="12" class="holeInner"/><text x="1020" y="392" class="pinNumber">6</text></g>
+
+    <g id="pin15"><circle cx="620" cy="515" r="22" class="holeOuter"/><circle cx="620" cy="515" r="12" class="holeInner"/><text x="620" y="477" class="pinNumber">15</text></g>
+    <g id="pin14"><circle cx="720" cy="515" r="22" class="holeOuter"/><circle cx="720" cy="515" r="12" class="holeInner"/><text x="720" y="477" class="pinNumber">14</text></g>
+    <g id="pin13"><circle cx="820" cy="515" r="22" class="holeOuter"/><circle cx="820" cy="515" r="12" class="holeInner"/><text x="820" y="477" class="pinNumber">13</text></g>
+    <g id="pin12"><circle cx="920" cy="515" r="22" class="holeOuter"/><circle cx="920" cy="515" r="12" class="holeInner"/><text x="920" y="477" class="pinNumber">12</text></g>
+    <g id="pin11"><circle cx="1020" cy="515" r="22" class="holeOuter"/><circle cx="1020" cy="515" r="12" class="holeInner"/><text x="1020" y="477" class="pinNumber">11</text></g>
+  </g>
+
+  <!-- Colored signal callouts. -->
+  <g id="leaders">
+    <path class="leader" stroke="#ef0000" d="M625 345 L555 172 H300"/>
+    <path class="leader" stroke="#ef0000" d="M725 345 L590 248 H300"/>
+    <path class="leader" stroke="#111111" d="M825 345 L825 202"/>
+    <path class="leader" stroke="#eab308" d="M925 345 L1160 250 H1378"/>
+    <path class="leader" stroke="#14951f" d="M1025 345 L1165 175 H1378"/>
+    <path class="leader" stroke="#111111" d="M620 430 L465 335 H300"/>
+    <path class="leader" stroke="#f97316" d="M720 430 L650 462 H300"/>
+    <path class="leader" stroke="#2563eb" d="M920 430 L965 405 H1378"/>
+    <path class="leader" stroke="#8b5cf6" d="M820 430 L1190 525 H1378"/>
+    <path class="leader" stroke="#111111" d="M1020 430 L1190 335 H1378"/>
+    <path class="leader" stroke="#111111" d="M620 515 L465 615 H300"/>
+    <path class="leader" stroke="#0ea5e9" d="M720 515 L665 690"/>
+    <path class="leader" stroke="#db2777" d="M820 515 L820 690"/>
+    <path class="leader" stroke="#06b6d4" d="M920 515 L950 690"/>
+    <path class="leader" stroke="#7a7a7a" d="M1020 515 L1090 690"/>
+  </g>
+
+  <g id="callout-text">
+    <text x="82" y="177" class="callout" fill="#ef0000">5  BOX_5V_IN_B</text>
+    <text x="82" y="253" class="callout" fill="#ef0000">4  BOX_5V_IN_A</text>
+    <text x="744" y="198" class="callout" fill="#111111">3  CAN_GND</text>
+    <text x="1378" y="177" class="callout" fill="#14951f">1  CANH</text>
+    <text x="1378" y="253" class="callout" fill="#eab308">2  CANL</text>
+    <text x="90" y="340" class="callout" fill="#111111">10  GNSS_GND</text>
+    <text x="40" y="445" class="callout" fill="#f97316">9  GNSS_VOUT_FUSED</text>
+    <text x="96" y="478" class="subcallout">protected power out to GNSS</text>
+    <text x="1378" y="340" class="callout" fill="#111111">6  BOX_GND_A</text>
+    <text x="1378" y="445" class="callout" fill="#2563eb">7  GNSS_TX_TO_BOX</text>
+    <text x="1415" y="478" class="subcallout">from GNSS TX to box</text>
+    <text x="1378" y="548" class="callout" fill="#8b5cf6">8  GNSS_RX_FROM_BOX</text>
+    <text x="1415" y="581" class="subcallout">from box to GNSS RX</text>
+    <text x="88" y="620" class="callout" fill="#111111">15  BOX_GND_B</text>
+    <text x="560" y="732" class="bottomLabel" fill="#0ea5e9">14  CAM_TX</text>
+    <text x="750" y="732" class="bottomLabel" fill="#db2777">13  CAM_RX</text>
+    <text x="890" y="732" class="bottomLabel" fill="#06b6d4">12  DR1_EVENT</text>
+    <text x="1130" y="732" class="bottomLabel" fill="#777777">11  SHIELD</text>
+  </g>
+
+  <!-- Notes. -->
+  <g id="notes">
+    <path class="warnIcon" d="M65 804 L94 754 L123 804 Z"/><text x="94" y="794" font-family="Arial, sans-serif" font-size="31" font-weight="800" text-anchor="middle">!</text>
+    <text x="145" y="778" class="noteText">Connector carries CAN, GNSS, camera UART, and box/GNSS power.</text>
+    <text x="145" y="808" class="noteText">13: PA9 TX to camera RX. 14: camera TX to PA10 RX. 3.3 V, common GND.</text>
+    <path class="warnIcon" d="M65 887 L94 837 L123 887 Z"/><text x="94" y="877" font-family="Arial, sans-serif" font-size="31" font-weight="800" text-anchor="middle">!</text>
+    <text x="145" y="858" class="noteText">Do not power from USB-C and HD-15 5V at the same time unless</text>
+    <text x="145" y="888" class="noteText">the box has power ORing/protection.</text>
+    <path class="warnIcon" d="M65 965 L94 915 L123 965 Z"/><text x="94" y="955" font-family="Arial, sans-serif" font-size="31" font-weight="800" text-anchor="middle">!</text>
+    <text x="145" y="947" class="noteText">Pins 13/14 do not power the camera. This is not a VGA interface.</text>
+  </g>
+
+  <!-- Front user-facing reference view. -->
+  <g id="front-view" filter="url(#softShadow)">
+    <rect x="1280" y="663" width="470" height="250" fill="#ffffff" stroke="#111111" stroke-width="4" rx="12"/>
+    <text x="1515" y="703" font-family="Arial, sans-serif" font-size="27" font-weight="800" fill="#050505" text-anchor="middle">FRONT MATING FACE</text>
+    <path class="shell" d="M1340 730 H1700 Q1725 730 1733 755 L1752 838 Q1758 863 1730 872 H1312 Q1284 863 1290 838 L1309 755 Q1316 730 1340 730 Z"/>
+    <circle cx="1338" cy="802" r="37" fill="url(#metal)" stroke="#777777" stroke-width="2"/>
+    <circle cx="1338" cy="802" r="21" fill="#050505" stroke="#999999" stroke-width="2"/>
+    <circle cx="1702" cy="802" r="37" fill="url(#metal)" stroke="#777777" stroke-width="2"/>
+    <circle cx="1702" cy="802" r="21" fill="#050505" stroke="#999999" stroke-width="2"/>
+    <path class="insert" d="M1410 746 H1632 Q1653 746 1661 769 L1674 835 Q1680 858 1653 864 H1388 Q1360 858 1366 835 L1379 769 Q1387 746 1410 746 Z"/>
+    <text x="1430" y="777" class="frontPinNumber">1</text>
+    <text x="1480" y="777" class="frontPinNumber">2</text>
+    <text x="1530" y="777" class="frontPinNumber">3</text>
+    <text x="1580" y="777" class="frontPinNumber">4</text>
+    <text x="1630" y="777" class="frontPinNumber">5</text>
+    <text x="1430" y="823" class="frontPinNumber">6</text>
+    <text x="1480" y="823" class="frontPinNumber">7</text>
+    <text x="1530" y="823" class="frontPinNumber">8</text>
+    <text x="1580" y="823" class="frontPinNumber">9</text>
+    <text x="1630" y="823" class="frontPinNumber">10</text>
+    <text x="1430" y="854" class="frontPinNumber">11</text>
+    <text x="1480" y="854" class="frontPinNumber">12</text>
+    <text x="1530" y="854" class="frontPinNumber">13</text>
+    <text x="1580" y="854" class="frontPinNumber">14</text>
+    <text x="1630" y="854" class="frontPinNumber">15</text>
+  </g>
+</svg>

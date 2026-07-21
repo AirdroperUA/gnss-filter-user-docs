@@ -39,7 +39,7 @@ Set ArduPilot GPS parameters for u-blox workflows:
 - `GPS_AUTO_CONFIG = 0`
 
 If you use a different receiver family (for example UM980/UM981/UM982 or Mosaic X5), FC GPS protocol settings must match the receiver output used in your installation.
-For `GNSS_TYPE=1` or `GNSS_TYPE=2`, the STM32 expects one physical NMEA receiver stream only:
+For `GNSS_TYPE=1` or UART-build `GNSS_TYPE=2`, the STM32 expects one physical NMEA receiver stream only:
 
 - UM980 `COM1` -> STM32 `A2/A3`
 - STM32 parses spoofing/SNR from that stream
@@ -50,21 +50,25 @@ For `GNSS_TYPE=1` or `GNSS_TYPE=2`, the STM32 expects one physical NMEA receiver
 
 Use this section only with the `weact_mini_h743vitx_dronecan` or
 `weact_mini_h743vitx_dronecan_usb` firmware. This mode publishes native
-DroneCAN GNSS messages and does not use the FC MAVLink or FC GPS serial ports.
-The complete board-specific procedure is in the
+DroneCAN GNSS messages and uses two DroneCAN MAVLink2 virtual serial ports. It
+does not use physical FC MAVLink or FC GPS UARTs. The complete board-specific
+procedure is in the
 [H743 DroneCAN Guide](13_h743_dronecan.md).
 
 Firmware defaults:
 
 - DroneCAN node ID: `42`
-- FC DroneCAN node filter: `0` (auto-detect/identify the FC from
-  arm/safety/NotifyState broadcasts, not from arbitrary NodeStatus frames). Set
+- FC DroneCAN node filter: `0` (lock to the first valid Targetted transfer
+  addressed to this node, then accept tunnel/status traffic only from that
+  source). Set
   `FILTER_DRONECAN_FC_NODE_ID` at build time if the bus has multiple nodes and
   you want the onboard screen locked to one FC node.
 - CAN bitrate: `1 Mbps`
+- OpenIPC camera UART: camera TX -> H743 `PA10` RX, H743 `PA9` TX -> camera RX,
+  3.3 V logic, common ground, `115200` baud
 - Published messages: `uavcan.protocol.NodeStatus`,
   `uavcan.protocol.GetNodeInfo`, `uavcan.equipment.gnss.Fix2`,
-  `uavcan.equipment.gnss.Auxiliary`
+  `uavcan.equipment.gnss.Auxiliary`, and `uavcan.tunnel.Targetted`
 - Onboard screen: filter OK/warn/no-OK with a `WHY` reason line, GNSS publish
   state, CAN counters, FC DroneCAN node health/mode, arm/safety state, and an
   ArduPilot vehicle-state row from `ardupilot.indication.NotifyState` when that
@@ -72,7 +76,7 @@ Firmware defaults:
 
 Flight controller parameters for the CAN port used by the H743 node:
 
-- `CAN_P1_DRIVER = 1` for CAN1, or `CAN_P2_DRIVER = 1` for CAN2
+- `CAN_P1_DRIVER = 1` for CAN1, or `CAN_P2_DRIVER = 2` for CAN2
 - `CAN_D1_PROTOCOL = 1` for CAN1, or `CAN_D2_PROTOCOL = 1` for CAN2
 - `CAN_P1_BITRATE = 1000000` or `CAN_P2_BITRATE = 1000000`
 - `GPS1_TYPE = 9` for DroneCAN GPS
@@ -80,7 +84,10 @@ Flight controller parameters for the CAN port used by the H743 node:
 - optional: `GPS1_CAN_OVRIDE = 42` if the bus has more than one DroneCAN
   GPS-like node
 
-Reboot the flight controller after changing CAN driver parameters. If the H743
+The `CAN_Px_DRIVER` value selects a virtual driver. These examples deliberately
+map physical CAN1 to driver 1 and physical CAN2 to driver 2; use the `CAN_Dn_*`
+parameters matching the driver number you assign. Reboot the flight controller
+after changing CAN driver parameters. If the H743
 node is at a physical end of the CAN bus, enable the CAN module's 120 ohm
 termination; otherwise leave it off.
 
@@ -125,24 +132,32 @@ enter ROM DFU with `BOOT0` + reset/power-cycle over USB-C, then click
 **Update**. If the board is protected, keep `BOOT0` held during the required
 power-cycle prompt so it returns to ROM DFU after RDP removal.
 
-## 4) CAN node mode (UCAN serial transport)
+## 4) H743 DroneCAN MAVLink2 virtual ports
 
-If STM32 is connected through a CAN node, apply these parameters.
+Enable DroneCAN serial transport on the flight controller and map two separate
+ports to H743 node `42`:
 
-CAN node parameters:
+| Function | Node/index | ArduPilot CAN1 parameters |
+|----------|------------|----------------------------|
+| Enable transport | - | `CAN_D1_UC_SER_EN = 1` |
+| OpenIPC camera, bidirectional | node `42`, index `0` | `CAN_D1_UC_S1_NOD = 42`, `CAN_D1_UC_S1_IDX = 0`, `CAN_D1_UC_S1_BD = 115`, `CAN_D1_UC_S1_PRO = 2` |
+| H743 filter MAVLink + FC telemetry | node `42`, index `1` | `CAN_D1_UC_S2_NOD = 42`, `CAN_D1_UC_S2_IDX = 1`, `CAN_D1_UC_S2_BD = 115`, `CAN_D1_UC_S2_PRO = 2` |
 
-- `GPS_AUTO_CONFIG = 0`
-- `GPS_SAVE_CFG = 1`
-- `GPS_PORT = 2`
+For virtual CAN driver 2, use the matching `CAN_D2_UC_*` parameters instead.
+Both
+ports use MAVLink2 at 115200 baud, but their bytes remain separate. Native GPS
+continues as DroneCAN `Fix2/Auxiliary`; raw NMEA/UBX/SBF and the FC GPS UART are
+not part of either virtual port.
 
-Flight controller parameters:
+If UART traffic during boot prevents the OpenIPC camera from starting, set
+`MAV_TELEM_DELAY = 5` (older ArduPilot versions may use `TELEM_DELAY`). Power
+the camera from an appropriate camera/LTE supply; `PA9/PA10` and optional HD-15
+pins 13/14 are 3.3 V UART signals, not camera power.
 
-- `GPS1_TYPE = 9`
-- `CAN_D1_UC_SER_EN = 1`
-- `CAN_D1_UC_S1_BD = 115`
-- `CAN_D1_UC_S1_IDX = 1`
-- `CAN_D1_UC_S1_NOD = *` (set your actual CAN node ID)
-- `CAN_D1_UC_S1_PRO = 2`
+Keep FC MAVLink stream rates modest. A continuous full-duplex 115200 stream is
+expensive on classic CAN. A red H743 `MAV` row or nonzero `ERR` row indicates
+loss/overload and means stream rates should be reduced; yellow `MAV` means old
+queued data expired after a stalled link.
 
 ## 5) Filter control expectations
 
@@ -155,8 +170,10 @@ Flight controller parameters:
   DroneCAN node health `OK`.
 - In H743 DroneCAN mode, the onboard display shows standard DroneCAN node mode
   and ArduPilot `NotifyState` vehicle-state bits. It still does not show exact
-  flight-mode names such as Loiter or Auto; those require a later custom
-  DroneCAN message or MAVLink tunnel.
+  flight-mode names such as Loiter or Auto; the MAVLink tunnel does not change
+  the current display UI.
+- In H743 DroneCAN mode, the camera tunnel and filter-owned MAVLink remain
+  active during DR1. Only GPS `Fix2/Auxiliary` publishing is suppressed.
 - H743 DroneCAN `v0.1.4+` params are changed from Mission Planner:
   `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`, then
   `Write Params` and `Commit Params`.
@@ -175,7 +192,7 @@ Receiver mode selection on STM32:
 
 - `GNSS_TYPE=0`: u-blox/UBX mode.
 - `GNSS_TYPE=1`: UM980/UM981/UM982 NMEA mode.
-- `GNSS_TYPE=2`: Septentrio Mosaic X5 NMEA mode.
+- `GNSS_TYPE=2`: Septentrio Mosaic X5 mode. H743 DroneCAN `v0.1.9+` can use SBF; UART builds use NMEA.
 - `GNSS_TYPE` changes require reboot to apply.
 - For u-blox only, `UBX_BAUD` controls autoconfig/manual baud:
   - `UBX_BAUD=0`: autoconfig enabled (default).
@@ -199,7 +216,9 @@ If FC shows **No GPS config data**:
 - verify common ground.
 
 For H743 DroneCAN mode, confirm the node appears in DroneCAN/SLCAN tooling with
-node ID `42`, then confirm ArduPilot reports a DroneCAN GPS instance.
+node ID `42`, then confirm ArduPilot reports a DroneCAN GPS instance, camera
+MAVLink reaches the FC through index `0`, and filter system ID `42` reaches the
+FC through index `1`.
 
 ## 7) Required commissioning step (before flight tuning)
 

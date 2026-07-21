@@ -64,14 +64,16 @@ Use controlled, authorized anomaly sources and verify expected filter behavior:
 - Rejoin messages when returning to DR0.
 - No unexpected FC navigation jumps during DR1.
 
-H743 DroneCAN v1 does not emit filter MAVLink `STATUSTEXT` or `NAMED_VALUE`
-logs. For that build, verify:
+H743 DroneCAN `v0.2.0+` emits filter MAVLink `STATUSTEXT` and `NAMED_VALUE`
+through S2/index `1` when that virtual port is configured. Verify those records
+along with:
 
 - screen state changes (`FILTER OK/WARN/NO OK`, `WHY`, `PUB`)
 - DroneCAN node ID `42` remains visible
 - `NodeStatus` health changes to warning only for spoof/fault DR1 reasons
 - `Fix2/Auxiliary` stop during DR1 and resume after rejoin
 - ArduPilot GPS instance reports loss/recovery without accepting suspect fixes
+- camera S1/index `0` and filter S2/index `1` remain active in DR1
 
 ## 7) Common Validation Failures
 

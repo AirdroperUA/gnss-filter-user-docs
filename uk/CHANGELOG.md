@@ -6,6 +6,129 @@
 
 ---
 
+## H743 DroneCAN v0.4.0 - 2026-07-21
+
+### Додано
+
+- Замість row-only status screen додано професійний темний dashboard для
+  вбудованого кольорового TFT ST7735 80 x 160. Він використовує кастомні
+  штриховані hero glyphs `OK` / `!!` / `XX`, proportional body typography,
+  rounded metric tiles, gradient health rails і segmented activity rails.
+- Додано узгоджену animated startup scene, page dots та footer underline, а
+  також eased five-frame transitions між Overview, Sensors, Links і System.
+- Додано dependency-free pixel-exact browser preview, який генерується тим самим
+  portable C++ RGB565 renderer, що й firmware, а також native renderer safety і
+  state-transition tests.
+
+### Змінено
+
+- Постійний footer показує GPS publication, DR0/DR1 і DroneCAN node ID. Armed
+  state, filter block або FC alert фіксують UI на відповідній safety view, а
+  sensor/link warning — на сторінці, що пояснює проблему. Dashboard показує
+  `FILTER CHECK / GUARD` до завершення реального startup spoof-guard timer;
+  filter/FC faults використовують dedicated alert takeover; page
+  sliding вимагає fresh, явно disarmed FC state. `PUB+`, `PUB?` і `PUB-`
+  відрізняють recent Fix2, прийнятий у локальну transmit queue,
+  allowed-but-idle та blocked/unavailable output; `PUB+` не є FC acknowledgement;
+  одночасні filter/FC alerts залишаються видимими.
+- Normal USB indication перейменовано на `USB CONFIG`; ROM DFU і надалі вимагає
+  `BOOT0` разом із reset або power-up.
+- Display transfers виконуються частинами та поступаються GNSS/CAN processing.
+  Дані екрана є допоміжною діагностикою і не замінюють FC pre-arm checks,
+  sensor calibration чи аналіз flight log.
+- Redesign змінює лише presentation. Spoofing gates, DR0/DR1 behavior,
+  DroneCAN GPS/sensor publication та обидва MAVLink2 virtual ports не змінені.
+
+---
+
+## H743 DroneCAN v0.3.0 - 2026-07-21
+
+### Додано
+
+- Додано shared 400 kHz I2C2 sensor bus на H743 `PB10` SCL / `PB11` SDA для
+  default `4525DO-DS3AI001DP` differential-pressure sensor і genuine HMC5983
+  magnetometer.
+- Додано native DroneCAN `RawAirData` до 20 Hz і
+  `MagneticFieldStrength2` до 25 Hz через наявний CAN transceiver та node ID
+  `42`.
+- Задокументовано окремий keyed 4-pin 3.3 V sensor connector, бо HD-15 уже
+  повністю зайнятий, а також full-part-code, clone, placement, calibration,
+  pull-up і bench-test requirements.
+
+### Змінено
+
+- Airspeed і compass publications не залежать від GNSS DR0/DR1 gate та
+  залишаються активними разом із NodeStatus і двома MAVLink2 tunnel ports.
+- Optional I2C operations виконуються почергово після обробки pending GNSS із
+  2 ms core timeout; H743 GNSS RX ring збільшено до 1024 bytes, щоб відсутній
+  або stuck sensor не витісняв spoof-filter input processing.
+
+---
+
+## H743 DroneCAN v0.2.0 - 2026-07-21
+
+### Додано
+
+- Додано двонапрямний MAVLink2 OpenIPC camera на H743 `PA10` RX / `PA9` TX
+  через стандартний `uavcan.tunnel.Targetted`, port index `0`.
+- Додано окремий DroneCAN virtual serial port index `1` для власного MAVLink2
+  фільтра та FC telemetry у зворотному напрямку. Збережено heartbeat, status,
+  tuning, EKF, barometer, arm-state та rejoin logic.
+
+### Змінено
+
+- Збільшено UART/FDCAN buffers, додано bounded queues і резерв libcanard pool;
+  CAN обслуговується між GNSS/display operations, тому camera traffic не
+  витісняє native GPS `Fix2/Auxiliary`.
+- Обидва MAVLink ports залишаються активними у DR1, а GPS publishing і надалі
+  контролюється всіма spoofing-filter gates.
+
+---
+
+## H743 DroneCAN v0.1.11 - 2026-06-24
+
+### Fixed
+
+- Розділено freshness tracking для pseudorange residual і C/N0 temporal
+  correlation у `DR_CONF`. Mosaic X5 SBF `MeasEpoch` тепер дає тільки C/N0
+  temporal signal, а u-blox-only pseudorange residual score залишається
+  вимкненим у Mosaic mode замість використання stale/default value.
+
+---
+
+## H743 DroneCAN v0.1.10 - 2026-06-24
+
+### Added
+
+- Published TDOP from u-blox `NAV-DOP` and Mosaic X5 SBF `DOP` into DroneCAN
+  `uavcan.equipment.gnss.Auxiliary` when fresh.
+- Added compact Mosaic-only `SBF good/bad` line to the H743 onboard screen.
+
+---
+
+## H743 DroneCAN v0.1.9 - 2026-06-24
+
+### Fixed
+
+- Corrected Mosaic X5 SBF `DOP` mapping: Septentrio block `4001` reports
+  PDOP/HDOP/VDOP/TDOP but not GDOP, so H743 DroneCAN no longer reports PDOP as
+  GDOP.
+- Aligned Mosaic PVT mode mapping with the Septentrio reference; reserved mode
+  `9` is no longer reported as PPP.
+
+---
+
+## H743 DroneCAN v0.1.8 - 2026-06-23
+
+### Added
+
+- Added native Septentrio Mosaic X5 SBF parsing to H743 DroneCAN for
+  `GNSS_TYPE=2`: `PVTGeodetic`, `DOP`, `ReceiverTime`, `MeasEpoch`,
+  `PosCovGeodetic`, and `VelCovGeodetic`.
+- Passive GNSS baud scan now counts valid SBF frames as well as NMEA sentences.
+
+---
+
 ## Docs/Tools - 2026-06-23
 
 ### Changed

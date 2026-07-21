@@ -30,7 +30,7 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 - Supported GPS receivers:
   - **u-blox** (M8, M9, M10, F9, F10) — set `GNSS_TYPE=0`
   - **UM980 / UM981 / UM982** — set `GNSS_TYPE=1` (requires one-time setup, see [Receiver Config](#receiver-config))
-  - **Septentrio Mosaic X5** — set `GNSS_TYPE=2` (NMEA mode, requires one-time setup, see [Receiver Config](#receiver-config))
+  - **Septentrio Mosaic X5** — set `GNSS_TYPE=2` (H743 DroneCAN supports SBF; UART builds use NMEA, see [Receiver Config](#receiver-config))
 - **Important:** Test on a low-cost, easy-to-recover drone first (e.g., a small FPV quad or fixed wing). Validate behavior before installing on an expensive aircraft.
 
 ### Supported board families
@@ -188,18 +188,18 @@ See [Operation](#operation) for the full state machine and [Tuning](#tuning) to 
 
 The filter computes a confidence score (0–100) combining up to 8 independent detection signals. A higher score means more signals indicate spoofing. The score is sent as `DR_CONF` in MAVLink telemetry and recorded in each spoofing event log.
 
-| Signal | Weight | u-blox | NMEA receivers (UM980 / Mosaic X5) |
-|--------|--------|--------|------------------------------------|
-| SNR span anomaly | 20 | Yes | Yes |
-| Pseudorange residual stddev | 15 | Yes | No |
-| SNR temporal correlation | 12 | Yes | Partial |
-| Heading reversal | 12 | Yes | Yes |
-| GDOP sudden change | 8 | Yes | No |
-| GPS time sanity | 12 | Yes | Yes |
-| Velocity-position consistency | 10 | Yes | Partial |
-| Clock bias jump | 11 | Yes | No |
+| Signal | Weight | u-blox | UM980 / Mosaic NMEA | Mosaic SBF on H743 |
+|--------|--------|--------|---------------------|--------------------|
+| SNR span anomaly | 20 | Yes | Yes | Yes |
+| Pseudorange residual stddev | 15 | Yes | No | No |
+| SNR temporal correlation | 12 | Yes | Partial | Yes, from `MeasEpoch` C/N0 |
+| Heading reversal | 12 | Yes | Yes | Yes |
+| GDOP sudden change | 8 | Yes | No | No |
+| GPS time sanity | 12 | Yes | Yes | Yes |
+| Velocity-position consistency | 10 | Yes | Partial | Yes |
+| Clock bias jump | 11 | Yes | No | Yes |
 
-Signals marked "No" or "Partial" for passive NMEA receivers are skipped in the weighted average — the score adapts to available data. u-blox receivers get a more comprehensive confidence score due to richer protocol data.
+Signals marked "No" or "Partial" are skipped in the weighted average — the score adapts to available data. u-blox receivers get the pseudorange-residual signal from UBX `NAV-SAT`; Mosaic SBF does not carry that field in the parsed `MeasEpoch` data, so H743 DroneCAN keeps that score disabled in Mosaic mode.
 
 ## 6) Returning from DR1 (rejoin)
 

@@ -11,14 +11,17 @@ Important: STM32 filter parameters are changed in Mission Planner:
 - on a busy MAVLink link, a write may need 1-2 attempts; always `Refresh Params` to confirm
 - Optional but recommended: install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows parameter descriptions, ranges, units, and option labels.
 
-H743 DroneCAN note: the H743 DroneCAN firmware does not expose F401-style
-Mission Planner MAVLink parameters through the flight controller serial link.
-On firmware `v0.1.4+`, edit its parameters from Mission Planner
-`DroneCAN/UAVCAN -> node 42 -> Params`; on firmware `v0.1.5+`, you can also
-connect Mission Planner directly to the H743 USB-C COM port at `115200`. GPS
-output is published as native DroneCAN messages. Start with
+H743 DroneCAN note: this build has no physical flight-controller MAVLink or GPS
+UART. Firmware `v0.2.0+` instead carries the OpenIPC camera on DroneCAN virtual
+port index `0` and the filter's MAVLink2 plus incoming FC telemetry on index
+`1`; GPS remains native DroneCAN `Fix2/Auxiliary`. Edit parameters from Mission
+Planner `DroneCAN/UAVCAN -> node 42 -> Params`, through the index `1` MAVLink2
+path, or directly through the H743 USB-C COM port at `115200`. Start with
 `13_h743_dronecan.md` for that board, including the HD-15 D-sub box connector
-pinout for FC CAN, box power, GNSS UART/power, and optional DR1 status.
+pinout for FC CAN, box power, GNSS UART/power, and optional DR1 status. The H743
+also accepts MS4525DO airspeed and HMC5983 compass sensors on shared I2C2
+`PB10/PB11`; because HD-15 is full, they use a separate keyed 4-pin connector
+and are published to the FC as native DroneCAN sensor messages.
 
 Boards for normal flight use are expected to ship with a normal build already installed.
 

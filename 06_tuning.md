@@ -76,7 +76,7 @@ sets `DR_LOCK_MS=120000`.
 | `NAV_STALLMS` | NAV stall warning threshold (ms) | 7000 | 500 | 120000 |
 | `UBX_BAUD` | u-blox baud control: 0=autoconfig ON, >0=manual baud (reboot to apply) | 0 | 0 | 2000000 |
 | `UBX_RESET` | One-shot u-blox recovery command: 0=idle, 1=hot, 2=cold, 3=clear saved config | 0 | 0 | 3 |
-| `GNSS_TYPE` | Receiver mode: 0=u-blox/UBX, 1=UM980/UM981/UM982 NMEA, 2=Septentrio Mosaic X5 NMEA (reboot to apply) | 0 | 0 | 2 |
+| `GNSS_TYPE` | Receiver mode: 0=u-blox/UBX, 1=UM980/UM981/UM982 NMEA, 2=Septentrio Mosaic X5 (H743 DroneCAN SBF/NMEA, UART NMEA; reboot to apply) | 0 | 0 | 2 |
 | `UM980_HIGHDYN` | UM980/UM981/UM982 rover mode: 0=MODE ROVER UAV, 1=MODE ROVER UAV HIGHDYN (reboot to apply) | 0 | 0 | 1 |
 | `SNR_EN` | Enable SNR-spread spoof guard (0/1) | 0 | 0 | 1 |
 | `SNR_MSATS` | SNR guard minimum satellites | 8 | 4 | 30 |
@@ -135,11 +135,13 @@ sets `DR_LOCK_MS=120000`.
 ### DR behavior
 
 H743 DroneCAN `v0.1.4+` exposes these guard/tune parameters through Mission
-Planner `DroneCAN/UAVCAN -> node 42 -> Params`. H743 DroneCAN `v0.1.5+` also
-exposes the same tune values through the H743 USB-C COM port as a direct
-MAVLink management link at `115200`. The H743 DroneCAN build still has no
-flight-controller serial MAVLink parameter path, no FC GPS UART bypass, and
-DR1 suppresses DroneCAN `Fix2/Auxiliary` instead of silencing an FC GPS UART.
+Planner `DroneCAN/UAVCAN -> node 42 -> Params`, and `v0.1.5+` also exposes them
+through the H743 USB-C COM port at `115200`. In `v0.2.0+`, S2/index `1` adds a
+CAN-backed filter MAVLink2/FC-telemetry path, so MAVLink parameter requests and
+telemetry-dependent EKF/barometer logic work through the FC. There is still no
+physical FC MAVLink UART or FC GPS raw-UART bypass. DR1 suppresses only native
+DroneCAN `Fix2/Auxiliary`; the camera and filter MAVLink virtual ports remain
+active.
 
 - **PT_ONLY**: Pass-through-only mode. The filter acts as a clean DR0/DR1 switch — raw GNSS bytes or silence. No synthetic position or blending is used.
 - **FCGPS_UART**: Controls the FC GPS UART on `A11/A12` for F401 or `C6/C7` for H743 UART builds. `1` = normal operation (GPS forwarding active). `0` = releases those pins into input mode. Do not set `0` during flight — this disables GPS forwarding to the FC.
@@ -175,7 +177,7 @@ DR1 suppresses DroneCAN `Fix2/Auxiliary` instead of silencing an FC GPS UART.
 - **SNR=NA with SNR_EN=1**: If `SNR_EN=1` and `SNR=NA` persists beyond 30 seconds after boot, the filter logs `WARNING: SNR_EN=1 but SNR=NA/stale (no fresh GSV/NAV-SAT?)`. This means the receiver is not providing fresh SNR data. The SNR guard will not trip in this state — either fix receiver configuration or set `SNR_EN=0`. On u-blox firmware v1.6.12+, a `snrdbg` line decodes the NAV-SAT stream: `n` frames seen, `a` frame age, `l` last length, `s` reported satellites, `g` usable C/N0 satellites, `o` oversize drops, `b` malformed/checksum drops.
 - **u-blox NAV-SAT recovery**: v1.6.15+ re-enables NAV-SAT using legacy `CFG-MSG` plus `CFG-VALSET` on UART1/UART2 only when NAV-SAT frames are missing or stale. If `snrdbg` shows fresh NAV-SAT with `g0`, the receiver is alive but currently has no usable C/N0, so the firmware does not keep rewriting configuration. v1.6.16+ starts the recovery timer as soon as SNR goes stale, so intermittent NAV-SAT loss typically recovers after about one stale window instead of two. v1.6.18+ also prevents the normal FC GPS back-channel from changing the u-blox receiver profile, which avoids ArduPilot auto-config writes followed by stale NAV-SAT. v1.6.21+ uses a faster first re-enable, about 8 seconds, when a healthy fix already exists and NAV-SAT disappears; startup and no-fix cases keep the slower 30-second path.
 - **u-blox no-fix diagnostics and assist**: v1.6.15+ polls `UBX-MON-RF`, `UBX-SEC-SIG`, and `UBX-CFG-GNSS` while a u-blox receiver has no valid position fix or `SATS=0`. Mission Planner then shows `ubxpvt ...` for NAV-PVT fix flags, `ubxrf ...` for antenna/RF state, `ubxsig ...` for explicit jamming/spoofing state when supported, and `ubxgnss ...` for enabled GNSS constellation blocks. `ubxgnss en00` points to disabled constellations; high `ubxrf c` or `n`, abnormal antenna status, or `ubxsig j2`/`j3` point to RF/antenna/interference problems. v1.6.19+ also sends an automatic u-blox cold start plus STM32 reinit after about 2 minutes at `SATS=0`. v1.6.22+ direct autoconfig also starts from receiver defaults at boot; use `UBX_BAUD>0` to preserve custom/gateway receiver profiles.
-- **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981/UM982 NMEA, `2` = Septentrio Mosaic X5 NMEA. Change is saved immediately but applied after STM32 reboot. Mosaic X5 uses passive NMEA parsing and the STM32 does not send Septentrio reset or auto-configuration commands.
+- **GNSS_TYPE**: Receiver mode selector. `0` = u-blox/UBX, `1` = UM980/UM981/UM982 NMEA, `2` = Septentrio Mosaic X5. Change is saved immediately but applied after STM32 reboot. H743 DroneCAN firmware `v0.1.9+` accepts Mosaic SBF or NMEA and publishes GPS over DroneCAN; UART/F401 deployments should keep using the Mosaic NMEA profile. The STM32 does not send Septentrio reset or auto-configuration commands.
 - **UM980_HIGHDYN**: UM980/UM981/UM982 rover dynamics mode. `0` = `MODE ROVER UAV` (standard, default). `1` = `MODE ROVER UAV HIGHDYN` (use for aggressive airframes with rapid attitude changes). Reserved for future use — currently has no runtime effect. The STM32 does **not** send any `MODE` command to the UM980.
 
 ### Geo-fence

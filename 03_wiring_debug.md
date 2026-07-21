@@ -4,9 +4,9 @@
 
 Use this guide when GNSS is not detected, DR1 stays active, or MAVLink tuning does not work.
 
-For WeAct H743 DroneCAN, there is no FC GPS UART and no FC MAVLink UART. GNSS
-debugging still starts at `A2/A3`, but FC-side debugging moves to CAN wiring,
-CAN bitrate, ArduPilot DroneCAN setup, and the onboard screen. See the full
+For WeAct H743 DroneCAN, there is no physical FC GPS or FC MAVLink UART. GNSS
+debugging still starts at `A2/A3`; camera MAVLink2 uses `PA10` RX / `PA9` TX,
+and both FC-facing MAVLink virtual ports plus native GPS use CAN. See the full
 [H743 DroneCAN Guide](13_h743_dronecan.md).
 
 ## 1) GNSS path (STM32 <-> GNSS)
@@ -22,9 +22,10 @@ Checks:
 3. **Receiver mode**:
    - u-blox receiver: set `GNSS_TYPE=0`.
    - UM980/UM981/UM982 NMEA receiver: set `GNSS_TYPE=1`.
-   - Septentrio Mosaic X5 NMEA receiver: set `GNSS_TYPE=2`.
+   - Septentrio Mosaic X5 receiver: set `GNSS_TYPE=2` (H743 DroneCAN can use SBF; UART builds use NMEA).
    - In UM980/UM981/UM982 or Mosaic mode, use one physical receiver stream only -> STM32 `A2/A3`.
-     The filter reads spoofing/SNR data from that stream and forwards the same stream to the FC GPS UART.
+     UART builds forward that stream to the FC GPS UART; H743 DroneCAN converts
+     the parsed fix to native `Fix2/Auxiliary` messages.
 4. **u-blox custom firmware case**:
    - If your u-blox unit does not accept filter autoconfig, set `UBX_BAUD` to your receiver baud.
    - `UBX_BAUD=0` keeps autoconfig enabled (default).
@@ -63,15 +64,17 @@ Quick verification:
 
 ## 3) MAVLink path (STM32 <-> FC telemetry)
 
-Skip this section for H743 DroneCAN firmware. That build has no FC MAVLink
-serial link; H743 `v0.1.4+` parameters are edited from Mission Planner
-`SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`. H743
-`v0.1.5+` can also be tuned by connecting Mission Planner directly to the H743
-USB-C COM port at `115200`.
+The physical-UART checks below apply to F401 and H743 UART builds. H743
+DroneCAN `v0.2.0+` has no physical FC MAVLink UART: virtual port S2/index `1`
+carries the filter's MAVLink2 to the FC and returns FC telemetry to the filter.
+Its parameters are available through that MAVLink2 path, Mission Planner
+`SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`, or the
+H743 USB-C COM port at `115200`.
 
 Symptoms:
 - Mission Planner cannot reliably read/write STM32 params.
 - No filter status text in GCS.
+- On H743 DroneCAN, FC telemetry does not reach the filter.
 
 Checks:
 1. **UART pins**: STM32 `A9/A10` to FC telemetry UART with TX/RX crossed.
@@ -100,6 +103,7 @@ Quick verification:
 Symptoms:
 - DroneCAN node does not appear.
 - ArduPilot does not receive DroneCAN GPS.
+- OpenIPC camera MAVLink or filter status/FC telemetry is missing.
 - The H743 screen shows `PUB BLK`, `WHY GPS`, `WHY DR1`, or `WHY CAN ERR`.
 
 Checks:
@@ -115,11 +119,17 @@ Checks:
    node is at a physical bus end.
 7. **USB-C pins**: leave `PA11/PA12` unused by external wiring. They belong to
    USB-C on H743.
+8. **Camera UART**: camera TX -> H743 `PA10` RX; H743 `PA9` TX -> camera RX.
+   Use 3.3 V UART logic, common ground, and MAVLink2 at `115200`.
+9. **DroneCAN serial ports**: on the active CAN driver, set
+   `CAN_Dx_UC_SER_EN=1`. Configure S1 as node `42`, index `0`, baud `115`,
+   protocol `2`; configure S2 as node `42`, index `1`, baud `115`, protocol `2`.
 
 Quick verification:
 - The screen should show `GNSS FILTER` and eventually `PUB ON DR0`.
 - DroneCAN/SLCAN tooling should show node ID `42`.
 - During DR1, `Fix2/Auxiliary` stop but `NodeStatus` remains online.
+- Camera S1/index `0` and filter S2/index `1` remain active in both DR0 and DR1.
 
 ## 5) Mission Planner parameter write issues
 

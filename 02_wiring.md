@@ -11,7 +11,9 @@ The UART firmware uses three UART links on supported STM32 boards:
 The separate H743 DroneCAN firmware uses GNSS UART input, an OpenIPC MAVLink2
 UART on `PA10` RX / `PA9` TX, a shared sensor I2C2 bus on `PB10/PB11`, and one
 CAN transceiver. It has no physical FC MAVLink or FC GPS UART; FC-facing
-MAVLink, native GPS, airspeed, and compass data use CAN.
+MAVLink, native GPS, and airspeed data use CAN. Compass publication exists
+only in the optional direct-flash HMC5983 firmware variant, not the
+production/default build.
 
 For a complete H743 bring-up sequence, including USB-C ROM DFU flashing,
 ArduPilot CAN parameters, screen behavior, and validation, see the
@@ -79,8 +81,8 @@ two separate `uavcan.tunnel.Targetted` ports over CAN.
 | STM32 `A2` | **TX** (GNSS UART out) | GNSS module **RX** |
 | STM32 `PA10` | **RX** (camera MAVLink2 in) | OpenIPC camera **TX** |
 | STM32 `PA9` | **TX** (camera MAVLink2 out) | OpenIPC camera **RX** |
-| STM32 `PB10` | **I2C2 SCL** | MS4525DO and HMC5983 **SCL** |
-| STM32 `PB11` | **I2C2 SDA** | MS4525DO and HMC5983 **SDA** |
+| STM32 `PB10` | **I2C2 SCL** | MS4525DO **SCL**; optional HMC5983 only with `*_dronecan_mag` firmware |
+| STM32 `PB11` | **I2C2 SDA** | MS4525DO **SDA**; optional HMC5983 only with `*_dronecan_mag` firmware |
 | STM32 `PB9` | **FDCAN1_TX** | CAN module `TXD` |
 | STM32 `PB8` | **FDCAN1_RX** | CAN module `RXD` |
 | STM32 `3V3` | Power | CAN module `VCC` |
@@ -100,9 +102,11 @@ The default pressure conversion is only for the complete part number
 `4525DO-DS3AI001DP`: 3.3 V, address `0x28`, bidirectional +/-1 psi and transfer
 function A (10-90%), with the configured negative pitot polarity. Confirm the
 full ordering code; similarly named 5 V, different-range/address/transfer
-variants require firmware build changes. The magnetometer must answer at
-`0x1E` with identity `H43`; many inexpensive modules advertised as HMC5983 are
-clones. See the [H743 DroneCAN Guide](13_h743_dronecan.md#sensor-i2c-connector)
+variants require firmware build changes. If the optional direct-flash
+`*_dronecan_mag` firmware is deliberately selected, its magnetometer must
+answer at `0x1E` with identity `H43`; many inexpensive modules advertised as
+HMC5983 are clones. The production/default and signed phase-B builds do not
+publish a compass. See the [H743 DroneCAN Guide](13_h743_dronecan.md#sensor-i2c-connector)
 for connector, placement, ArduPilot setup and bench-validation details.
 
 The WeAct onboard 0.96 inch ST7735 screen is used by the H743 DroneCAN build;
@@ -179,8 +183,9 @@ If GNSS or MAVLink does not work after wiring, see `03_wiring_debug.md`.
 - **DO NOT plug any cable into the BlackPill's USB-C connector at any time.** Even just connecting a USB power cable applies host signaling to D-/D+ — the same physical wires as `A11/A12` — and that fights the USART6 line driver. The flight controller will report "GPS: No GPS" and EKF3 will refuse to align even though the filter logs show a healthy fix being forwarded. Power must come from the FC GPS-port +5V/+3V3 pin, or from the SWD header during initial flashing — never from a USB cable.
 - On WeAct H743, USB-C is allowed. The H743 firmware reserves `A11/A12` for USB OTG FS CDC/DFU and does not assign them to GNSS, MAVLink, FC GPS, LED, or DR1 event output.
 - On WeAct H743 DroneCAN firmware, USB-C is allowed and remains on `A11/A12`;
-  CAN uses `PB8/PB9`, OpenIPC UART uses `PA10/PA9`, and the shared MS4525DO/
-  HMC5983 I2C2 sensor bus uses `PB10/PB11`.
+  CAN uses `PB8/PB9`, OpenIPC UART uses `PA10/PA9`, and the MS4525DO I2C2
+  sensor bus uses `PB10/PB11`. HMC5983 support on that bus requires the
+  optional direct-flash `*_dronecan_mag` build.
 - On WeAct H743, the FC GPS UART uses `C6/C7`; those pins are also routed to the board's DCMI camera connector, so do not use the camera connector at the same time.
 - To release the FC GPS UART pins (e.g. for diagnostics), set `FCGPS_UART=0` in Mission Planner. That disables the FC GPS UART and puts the board-specific pins into input mode. Set `FCGPS_UART=1` to restore normal FC GPS UART operation. `FCGPS_FWD=1` overrides this and forces the FC GPS UART on for bench validation.
 - Runtime GNSS TX/RX swap is not supported in these firmware builds; fix wiring physically if reversed.

@@ -2,12 +2,22 @@
 
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
+> **Provisioning identity gate:** before Activate, Update, or Recover can read
+> UID/option bytes or erase/write flash, inspect the physical PCB and MCU
+> marking. Enter `F401CC BLACKPILL` for the 256 KiB BlackPill target or
+> `WEACT H743VI` for the 2 MiB WeAct target exactly as prompted. The tool asks
+> again after every physical reconnect or SWD/DFU transport change, and
+> `--yes` cannot bypass this check. An explicit 128 KiB F401 or 1 MiB H743
+> identity is rejected because the production layout does not fit.
+
 ## 1) Prerequisites
 
 - STM32F401 filter board is installed and preflashed, or a WeAct H743 board is
   flashed with the matching standalone/H743 DroneCAN development firmware.
 - The board should be running the firmware family that matches the wiring mode.
-- FC firmware is ArduPilot 4.6.1 or later.
+- FC firmware is ArduPilot 4.6.1 or later and must answer the filter's
+  `AUTOPILOT_VERSION` request. Firmware v0.5.30 suppresses GNSS immediately
+  while that identity is unknown or unsupported.
 - The airframe already has baseline calibration done with a known-good GPS path:
   - accelerometer calibrated,
   - compass calibrated.
@@ -100,22 +110,25 @@ pio run -e weact_mini_h743vitx_dronecan_usb -t upload
 To enter DFU: hold `BOOT0`, reset or power-cycle the WeAct H743, then connect
 USB-C.
 
-The signed H743 secure-app image can also be uploaded over the same USB-C ROM
-DFU path. This env sets the DFU write address to the app slot at `0x08020000`,
-behind the H743 bootloader:
+The H743 phase-B environment is a **build-only production template** linked at
+`0x08020000` behind the secure bootloader:
 
 ```powershell
-pio run -e weact_mini_h743vitx_dronecan_phaseb_app_usb -t upload
+pio run -e weact_mini_h743vitx_dronecan_phaseb_app_usb
 ```
 
-This is the board-only USB-C update path for an unlocked WeAct H743. Production
-H743 DroneCAN boards can use the signed H743 bootloader layout instead:
+Direct `-t upload` is intentionally refused for phase-B environments because a
+template is not UID-bound and has no matching signed metadata. Use the
+AirDroper provisioning app for a licensed ST-Link or USB-C ROM DFU update.
+Production H743 DroneCAN boards use the signed H743 bootloader layout:
 bootloader at `0x08000000`, app at `0x08020000`, metadata at `0x081E0000`.
-The desktop app can also update already activated H743 boards over USB-C ROM
-DFU. Readable/unlocked boards get app+metadata updates only. RDP1-protected
-boards require UID-short confirmation, then the app removes RDP over USB DFU,
-power-cycles back into ROM DFU with `BOOT0` held, mass-erases, rewrites
-app + metadata + bootloader, and restores H743 RDP Level 1.
+Desktop app `2026.08.02.1+` can update already activated H743 boards over USB-C
+ROM DFU. It reads the RDP option byte first, then always mass-erases and writes
+the complete validated app + metadata + bootloader bundle, even when the board
+starts readable at RDP0. RDP1 boards additionally require UID-short confirmation,
+verified RDP0 after unlock, and a physical UID re-read before writing. The app
+reports success only after a separate option-byte read verifies final RDP1; an
+unreadable/unparseable RDP value or failed lock check stops the update.
 
 For licensed H743 DroneCAN provisioning over ST-Link/SWD:
 
@@ -131,6 +144,12 @@ For an already activated H743, set **Update transport -> USB-C ROM DFU**,
 enter ROM DFU with `BOOT0` + reset/power-cycle over USB-C, then click
 **Update**. If the board is protected, keep `BOOT0` held during the required
 power-cycle prompt so it returns to ROM DFU after RDP removal.
+
+After the first H743 DroneCAN `v0.5.30+` promotion, the update service
+permanently refuses to promote or deliver any pre-`v0.5.30` H743 firmware.
+Older fuel readers cannot safely preserve the new lost/known fuel provenance,
+so this global boundary also applies to owner-authorized rollback. Use a
+forward-versioned recovery build instead.
 
 ## 4) H743 DroneCAN MAVLink2 virtual ports
 
@@ -185,7 +204,7 @@ queued data expired after a stalled link.
   - `Config/Tuning` -> `Full Parameter List`
   - select STM32 (`SYSID=42`)
   - `Refresh Params` -> edit value -> `Write Params`
-- Before tuning UART builds, install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows STM32 parameter descriptions, ranges, units, and option labels instead of raw names only.
+- Before tuning UART builds, install [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows STM32 parameter descriptions, ranges, units, and option labels instead of raw names only.
 - Reboot is not required after every parameter write.
 - On a busy MAVLink link, `Write Params` may need 1-2 attempts. More than 2 attempts indicates high telemetry load.
 
@@ -235,6 +254,74 @@ Before normal operation, validate FC GPS path end-to-end once:
 This commissioning step does not apply to H743 DroneCAN mode because that
 firmware has no raw GPS UART bypass.
 
-## 8) Build-state note
+## 8) Bench-testing DR1 recovery (no vehicle, no airspeed)
+
+Leaving DR1 requires at least one **independent witness**: a non-GNSS observation
+that actually carried information. All three sources need the airframe to be
+doing something:
+
+| Row | Becomes an independent witness when |
+|-----|-------------------------------------|
+| Barometric vertical rate | a real climb or descent of at least 3 m/s |
+| Ground speed vs airspeed | a live pitot reading at or above 12 m/s |
+| GNSS course vs FC yaw | the airframe genuinely turns |
+
+A board on a desk supplies none of them, so the **airborne quorum** correctly
+refuses to clear on a stationary bench. H743 DroneCAN v0.5.30 has a separate,
+strictly parked/disarmed ground-release path for that case. It does not use the
+generic three-row pass count. In addition to the existing disarmed, FC-motion,
+position-agreement, receiver-verdict, dwell, and budget gates, it requires:
+
+- zero contradicting evidence rows;
+- the GNSS-time row positively PASS;
+- a fresh, finite, non-negative receiver speed at or below 4 m/s;
+- that speed to belong to the current location epoch, with no more than
+  1500 ms age/skew. For passive NMEA this is the RMC speed paired with the
+  GGA/RMC fix epoch.
+
+Optional evidence such as GSV/SNR may veto the release when it reports FAIL,
+but it is not required to exist. The deployed UM980 GGA/RMC/AGRICA profile can
+therefore complete a stationary ground release with `SNR=NA`. In the recovery
+line, `EVM` means named ground evidence is missing, `EVF` means a contradiction,
+and a rising `gnd=` counter means the parked release is progressing. The
+`ev...W...` fields continue to describe only the airborne quorum.
+
+To exercise the **airborne** recovery path you still have three options.
+
+**Drive it.** A car with the receiver on the roof and the FC powered gives GNSS
+speed above 6 m/s and real course changes, so the course-vs-yaw row supplies the
+witness. This is the only option that tests the real code path end to end, and it
+is what should be done before a first flight.
+
+**Power-cycle.** Fastest way to get a bench unit back to DR0 without waiting
+for the parked dwell. It tests nothing about recovery.
+
+**Build a bench image with the operator waiver compiled in.** The waiver is
+`MAV_CMD_USER_1` with `param1 = 20437`, addressed to system 42; it waives *only*
+the independent-witness requirement, leaving the pass count, the
+zero-contradiction rule and the full hold window in force.
+
+It is compiled **out** of every flight build and is deliberately absent from
+`platformio.ini`, so no environment can produce it by accident - `MAV_CMD_USER_1`
+has no cryptographic authentication, so any node on the telemetry link could send
+it. Build it explicitly and only for the bench:
+
+```powershell
+$env:PLATFORMIO_BUILD_FLAGS="-DFILTER_REMOTE_OPERATOR_WAIVER_ENABLE=1"
+pio run -e weact_mini_h743vitx_dronecan -t upload
+Remove-Item Env:\PLATFORMIO_BUILD_FLAGS
+```
+
+The resulting image is about 4 kB larger than the flight build. **Never fly it**,
+and reflash a normal build before the aircraft goes anywhere.
+
+If instead you want a guaranteed time-bounded exit from DR1 in flight regardless
+of evidence, that is what the `DR1_MAXMS` parameter is for. It ships at 0
+(infinite latch) on purpose: a timeout hands the aircraft back to a possibly
+still-active spoofer on a clock rather than on evidence, so releasing on a timer
+is the less safe failure and staying in dead reckoning is the safer one. Set it
+knowingly.
+
+## 9) Build-state note
 
 Normal operation uses the normal board firmware already installed by the supplier or service process.

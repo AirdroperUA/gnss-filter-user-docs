@@ -9,7 +9,7 @@ Important: STM32 filter parameters are changed in Mission Planner:
 - choose STM32 system (`SYSID 42`)
 - `Refresh Params` -> edit value -> `Write Params`
 - on a busy MAVLink link, a write may need 1-2 attempts; always `Refresh Params` to confirm
-- Optional but recommended: install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) so Mission Planner shows parameter descriptions, ranges, units, and option labels.
+- Optional but recommended: install [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod) for the spoofing-telemetry map plugin plus parameter descriptions, ranges, units, option labels, and presets.
 
 H743 DroneCAN note: this build has no physical flight-controller MAVLink or GPS
 UART. Firmware `v0.2.0+` instead carries the OpenIPC camera on DroneCAN virtual
@@ -19,9 +19,10 @@ Planner `DroneCAN/UAVCAN -> node 42 -> Params`, through the index `1` MAVLink2
 path, or directly through the H743 USB-C COM port at `115200`. Start with
 `13_h743_dronecan.md` for that board, including the HD-15 D-sub box connector
 pinout for FC CAN, box power, GNSS UART/power, and optional DR1 status. The H743
-also accepts MS4525DO airspeed and HMC5983 compass sensors on shared I2C2
-`PB10/PB11`; because HD-15 is full, they use a separate keyed 4-pin connector
-and are published to the FC as native DroneCAN sensor messages.
+publishes MS4525DO airspeed from shared I2C2 `PB10/PB11`. The production/default
+build compiles the HMC5983 driver out; only the optional direct-flash
+`weact_mini_h743vitx_dronecan_mag` variants accept and publish that compass.
+Because HD-15 is full, fitted I2C sensors use a separate keyed 4-pin connector.
 
 Boards for normal flight use are expected to ship with a normal build already installed.
 
@@ -69,13 +70,13 @@ Reboot is not required after every parameter write.
 3. `03_wiring_debug.md` - diagnose GNSS/GPS/MAVLink wiring issues.
 4. `04_setup_and_flash.md` - setup and FC serial configuration.
 5. `04_recovery.md` - recovery page and support escalation notes.
-6. `05_operation.md` - runtime behavior (DR0/DR1, GNSS forwarding, event pulse).
-7. `06_tuning.md` - live tuning parameters and Mission Planner workflow.
+6. `05_operation.md` - runtime behavior (DR0/DR1, GNSS forwarding, event pulse, fuel total across a reboot, and live/post-flight interference direction estimation).
+7. `06_tuning.md` - live tuning parameters, Mission Planner workflow, and the fuel-estimate calibration procedure.
 8. `07_cheat_sheet.md` - one-page quick reference for field checks and actions.
 9. `08_lab_validation.md` - safe lab validation workflow before real flights.
 10. `09_receiver_config.md` - GNSS receiver configuration for u-blox, UM980, and Mosaic X5 (profiles, ArduPilot GPS type settings).
 11. `10_self_install.md` - self-install guide for flashing firmware onto a blank board using a license key.
 12. `11_faq.md` - frequently asked questions (hardware, setup, operation, receiver modes, licensing).
 13. `12_video_tutorials.md` - YouTube tutorial library with previews, embedded players, and related written guides.
-14. `13_h743_dronecan.md` - complete WeAct H743 DroneCAN wiring, HD-15 D-sub box pinout, flashing, FC setup, display, and validation guide.
+14. `13_h743_dronecan.md` - complete WeAct H743 DroneCAN wiring, HD-15 D-sub box pinout, flashing, FC setup (including EFI fuel reporting), display, and validation guide.
 15. `CHANGELOG.md` - full firmware version history and release notes.

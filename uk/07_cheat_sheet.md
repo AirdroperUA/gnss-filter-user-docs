@@ -94,7 +94,7 @@ H743 DroneCAN-прошивка не має фізичних FC MAVLink або FC
 6. Натисніть `Refresh Params` для перевірки
 
 Необов'язково, але рекомендовано: спочатку встановіть
-[AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod),
+[AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod),
 щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів,
 а не лише сирі назви параметрів.
 
@@ -108,21 +108,39 @@ H743 DroneCAN-прошивка не має фізичних FC MAVLink або FC
 
 ## 7) Типові тригери DR1
 
-- no-fix / мало супутників (`sats < 5`),
-- стрибок позиції (`SP_ABS_M`, `SP_JMP_MPS`),
-- аномалія SNR (`SNR_*`, якщо увімкнено),
-- аномалія висоти (`ALT_*`),
-- невалідний EKF (`EKF_TRIPMS`),
-- стрибок у південну півкулю — миттєвий DR1 + блокування,
-- порушення гео-огорожі (`FENCE_RAD`, до 2000 км, v1.5.5+),
-- розворот курсу (v1.5.5+),
-- аномалія часу GPS (v1.5.5+),
-- стрибок тактового зсуву — тільки u-blox (v1.5.5+),
-- невідповідність швидкості та позиції (v1.5.5+).
+| Тригер | Параметри | Поведінка |
+|--------|-----------|-----------|
+| No-fix / мало супутників | — | No-fix: 3 різні епохи за >=600 мс. Low sats: rolling ~3 с peak і 3 low епохи з інтервалом >=200 мс |
+| Стрибок позиції | `SP_ABS_M`, `SP_JMP_MPS` | Різкий великий стрибок координат |
+| Аномалія SNR | `SNR_EN`, `SNR_HOLDMS` | Аномальний розподіл рівня сигналів |
+| Receiver spoof verdict | — | `SEC-SIG`, лише H743 з підтримуваним u-blox |
+| Розходження vertical rate баро та GNSS | — | Свіже FC barometer проти GNSS vertical velocity, лише DroneCAN build |
+| Аномалія висоти | `ALT_*` | Великий стрибок або аномальна швидкість висоти |
+| Невалідний EKF | `EKF_TRIPMS` | FC повідомляє проблему навігації |
+| Південна півкуля | — | Latitude <0°: миттєвий DR1 і hard block |
+| Гео-огорожа | `FENCE_RAD` | Позиція поза радіусом до 2000 км від першого fix |
+| Розворот курсу | — | 3 reversed епохи: gaps <=2,5 с, усі за 5 с; потім 1,5 с score hold |
+| Аномалія часу GPS | — | Різниця понад 2 с між GPS та internal clock |
+| Стрибок clock bias | — | u-blox або Mosaic SBF |
+| Velocity-position mismatch | — | Швидкість не відповідає зміні позиції |
 
 ## 7b) Оцінка достовірності спуфінгу (v1.5.5+)
 
-Фільтр обчислює `DR_CONF` (0–100), комбінуючи 8 сигналів виявлення. Видно в Mission Planner та в логах подій. Вищий бал = більше ознак спуфінгу. Приймачі u-blox використовують всі 8 сигналів; приймачі з пасивним NMEA, такі як UM980 і Mosaic X5, використовують доступну через NMEA підмножину. H743 DroneCAN Mosaic SBF додає binary C/N0 temporal, velocity, covariance і clock inputs, але pseudorange residual та GDOP-jump scoring залишаються недоступними.
+Фільтр обчислює `DR_CONF` (0–100) з до 10 сигналів. Бал видно в Mission
+Planner та event logs. Недоступні рядки не входять до зваженого знаменника.
+
+| Сигнал | Вага | Примітка про доступність |
+|--------|------|--------------------------|
+| Vertical rate баро проти GNSS | 20 | DroneCAN build + свіже FC barometer/GNSS velocity |
+| SNR span | 20 | Усі підтримувані режими зі свіжим SNR/C/N0 |
+| Receiver spoof verdict | 25 | Лише H743 + підтримуваний u-blox `SEC-SIG` |
+| Pseudorange residual | 15 | Лише u-blox `NAV-SAT` |
+| SNR temporal correlation | 12 | u-blox, partial NMEA, Mosaic SBF |
+| Розворот курсу | 12 | Усі підтримувані режими |
+| GDOP jump | 8 | Лише u-blox `NAV-DOP` |
+| GPS time sanity | 12 | Усі підтримувані режими |
+| Velocity-position consistency | 10 | Усі; partial на passive NMEA |
+| Clock bias jump | 11 | u-blox і Mosaic SBF |
 
 ## 8) Частота логів у Mission Planner
 
@@ -135,3 +153,48 @@ H743 DroneCAN `v0.2.0+` передає ці повідомлення через 
 лишаються активними в DR1, навіть коли GPS `Fix2/Auxiliary` заблоковано.
 
 Див. [Робота](#operation) для пояснення цих повідомлень.
+
+## 9) Повідомлення про паливо і що з ними робити
+
+Оцінка витрати палива — це H743 DroneCAN `v0.5.28+`. Це оцінка за моделлю
+гвинта, і на літаку без датчика рівня палива вона є єдиним покажчиком палива —
+тож кожне повідомлення нижче варто прочитати, а не відмахнутися від нього.
+
+| Повідомлення | Що це означає | Що робити |
+|--------------|---------------|-----------|
+| `RPM sensor lost - fuel charged at max burn` | Показань обертів немає; витрата нараховується за НОМІНАЛЬНОЮ потужністю. Свідоме значне завищення. | Сідайте за годинником, а не за покажчиком. Перевірте проводку датчика. |
+| `Fuel held up by throttle - check RPM_SCALING` | Газ показує більшу потужність, ніж випливає з обертів, тому оцінку підпирає «підлога». Звична причина — хибна кількість імпульсів на оберт. | **Звірте `RPM1_SCALING` з ручним тахометром, перш ніж летіти знову.** |
+| `Main loop stalled - fuel charged at max burn` | Пауза планувальника понад 10 с була нарахована за номіналом, а не відкинута. | Занотуйте. Повторювані випадки варто повідомити. |
+| `Reset in flight - fuel total kept: N g` | Плата перезавантажилась, і підсумок відновлено з резервної пам'яті. | Нічого. Механізм працює як задумано. |
+| `Fuel total LOST - write FUEL_CAPG to restart it` | При будь-якому boot, включно зі звичайним вмиканням, не було надійного V2 backup record або H743 tune journal не мав valid record. ICE Status припиняється, тому EFI backend FC стає stale/unhealthy; warning ladder мовчить. Повторюється кожні 60 с. | Сідайте або лишайтеся на землі, перевірте fuel configuration, дочекайтеся fresh stopped-engine quorum (disarmed + valid zero RPM + closed throttle), тоді повторно запишіть `FUEL_CAPG` для фактичного палива, навіть якщо його числове значення не змінилося. Змінене значення відновить EFI лише після `Tune saved`; disarmed alone відхиляється. |
+| `Fuel total kept: N g - re-set FUEL_CAPG if refuelled` | Запис пережив те, що виглядало як вимкнення живлення. | Якщо ви заправлялись — запишіть `FUEL_CAPG`. Якщо ні — ігноруйте. |
+| `FUEL_CAPG blocked: engine not confirmed stopped` | Один або кілька stopped-engine inputs відсутні, stale чи суперечливі; disarmed alone не доводить, що поршневий двигун зупинився. | Зупиніть двигун і тримайте FC telemetry підключеною, доки disarmed, valid zero RPM і closed throttle не стануть fresh, тоді запишіть знову. |
+| `FUEL_CAPG blocked: wait for FUEL_DENS save` | Фактична зміна густини ще чекає verified persistence tune journal. Fuel лишається TOTAL LOST. | Не повторюйте запис місткості без кінця. Дочекайтеся `Tune saved`; після `Tune save failed` стан лишається blocked. Після успіху запишіть `FUEL_CAPG` за fresh stopped-engine quorum. |
+| `FUEL_DENS blocked: engine not confirmed stopped` | Зміна густини використовує той самий stopped-engine safety gate. | Отримайте той самий fresh quorum disarmed + zero RPM + closed throttle, тоді запишіть знову. |
+| `FUEL_CAPG written - fuel total zeroed` | Підтвердження, що запис прийнято й running counter обнулено. Це не доводить durability зміненої місткості. | Якщо числове значення змінилося, лишайтеся на землі до `Tune saved`; `Tune save failed` означає, що EFI далі мовчить. |
+| `FUEL est NN% usable left` | Драбина попереджень: 30% корисного — WARNING, 10% — CRITICAL. | Корисне — це `FUEL_CAPG` мінус 20% резерву, а не весь бак. |
+
+**Запис `FUEL_CAPG` — єдине, що обнуляє накопичений підсумок.** Робіть це після
+кожної заправки та після звичайного вмикання, яке повідомляє TOTAL LOST, навіть
+якщо число не змінилося. Запис приймається лише коли disarmed, valid zero RPM і
+closed throttle усі fresh. Змінене значення лишається TOTAL LOST і EFI-silent,
+доки asynchronous save tune journal не завершиться успішно.
+
+Будь-яка спроба factory reset позначає fuel total як LOST до початку flash work;
+навіть failed attempt може консервативно лишити його таким. Після цього перевірте
+всі settings fuel model і повторіть stopped-engine процедуру `FUEL_CAPG`.
+
+Фактична зміна `FUEL_DENS` також позначає TOTAL LOST до застосування нової
+густини й скасовує старий pending capacity commit. До успішного verified save
+density запис `FUEL_CAPG` blocked; save failure лишається blocked/LOST. Після
+`Tune saved` EFI все ще мовчить, доки ви не запишете `FUEL_CAPG` за тим самим
+fresh quorum, щоб установити новий zero.
+
+Облік палива триває крізь втрату телеметрії FC і блок через невідому/непідтримувану
+версію FC. Кожен boot установлює latch «двигун міг працювати»; відсутні RPM
+нараховуються за номінальною потужністю, доки одночасно fresh disarmed state,
+нульові RPM і закритий газ не підтвердять зупинку. Тиша лінку й запис
+`FUEL_CAPG` не очищають latch.
+
+Див. [Налаштування](06_tuning.md) для моделі, процедури калібрування і двох
+випадків, які все ще можуть занизити оцінку.

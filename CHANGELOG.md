@@ -6,6 +6,602 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.5.30 — 2026-08-17 (corrective candidate)
+
+- The filter now requests and verifies `AUTOPILOT_VERSION` before publishing
+  GPS. An unknown version or ArduPilot older than 4.6.1 blocks GPS immediately;
+  the 15-second delay applies only to the warning messages.
+- Parked recovery works with named GNSS-time and fresh same-epoch receiver-speed
+  evidence. Optional GSV/SNR is not required; any explicit contradiction still
+  blocks release. Airborne recovery rules are unchanged.
+- Location text is safer: even with `LOG_LOC=1`, coordinates appear only in
+  periodic true-DR0 status, never trip/DR1/synthetic/blend messages.
+- Fuel burn keeps counting through FC-link and FC-version blocks. Every boot
+  starts by assuming the engine may be running until fresh disarmed, valid
+  zero-RPM, and closed-throttle evidence all confirm a stop.
+- After the first H743 `v0.5.30+` promotion, the update service permanently
+  refuses to promote or deliver any pre-`v0.5.30` H743 firmware. Older fuel
+  readers cannot safely preserve the new lost/known provenance, so even the
+  generic owner-authorized rollback option cannot cross this global boundary.
+- A missing, invalid, or legacy V1 backup record now means TOTAL LOST on every
+  boot, including an ordinary power-on: POR/PDR cannot prove that you refuelled.
+  A missing, corrupt, or otherwise invalid H743 tune journal also invalidates a
+  surviving numeric total because its capacity, density, and model provenance
+  is unknown.
+  EFI packets stop until you land or remain on the ground, obtain fresh
+  stopped-engine quorum (disarmed + valid zero RPM + closed throttle), and
+  rewrite `FUEL_CAPG` even when its numerical value is unchanged. Disarmed alone
+  is rejected. An accepted reset cancels a pending charge belonging to the old
+  total. A valid V2 restore otherwise gets a bounded conservative 25-second
+  rated-power reset-gap charge plus the first measured interval. Before risky
+  setup, its retained known record is durably marked TOTAL_LOST and is committed
+  known again only after both charges are integrated. If reset happens first,
+  the next boot stays LOST until stopped-quorum `FUEL_CAPG`; it never reuses a
+  stale known total. The 25 seconds cover backup staleness, longest UM980 setup,
+  other startup overhead, and margin; H743 has no Phase-C boot wait. It is not
+  an exact consumption measurement. Never perform Phase-C maintenance with the
+  engine running.
+- A changed `FUEL_CAPG` remains TOTAL LOST and EFI-silent until its asynchronous
+  tune-journal save is verified. The accepted-write message is not proof of
+  durability; a failed save stays LOST. Factory reset marks fuel LOST before
+  flash starts, so even a failed reset attempt may conservatively require the
+  stopped-engine `FUEL_CAPG` recovery.
+- `FUEL_DENS` now requires the same fresh stopped-engine quorum. A real change
+  marks fuel LOST, cancels an older CAPG commit, and rejects capacity writes with
+  `FUEL_CAPG blocked: wait for FUEL_DENS save` until verified save success. The
+  density save alone does not restore EFI: afterward, write `FUEL_CAPG` again
+  under stopped-engine quorum to establish a fresh zero.
+- Mission Planner's secondary H743 USB connection now works with its default
+  DTR-low open/reconnect sequence, with independent USB and FC packet counters.
+  The private spoof-position stream itself remains a v0.5.29+ feature.
+- `PARKED_MOVE` is now shown as `PARKED MOVE` (or `PARKED` on the board screen),
+  and the H743/UM980/build documentation and parameter descriptions were
+  corrected. No parameter values, defaults, or FC presets changed.
+
+v0.5.29 was uploaded only as an inactive candidate and was never promoted.
+v0.5.30 has not yet been hardware/HIL-qualified or publicly promoted; v0.5.25
+remains the public production release at the time of this entry.
+
+---
+
+## H743 DroneCAN v0.5.29 — 2026-08-17
+
+Supersedes v0.5.28. Adds a live Mission Planner spoofing overlay.
+
+### New: see where the receiver-reported solution is being pulled
+
+The AirDroper Mission Planner package now installs a plugin with a status strip,
+detailed telemetry window, and map overlay. During DR1 it shows:
+
+- **red aircraft:** the receiver-reported, untrusted GNSS position and trail;
+- **orange aircraft:** the filter's wind-blind dead-reckoning reference estimate;
+- **green aircraft:** the flight controller's position estimate;
+- distance/bearing lines, DR reason and confidence, freshness, and RF/jamming
+  diagnostics.
+
+These labels matter. Red is where the GNSS receiver says the aircraft is, not a
+measurement of its real physical location. Orange can drift with wind or freeze
+when speed/yaw telemetry is stale. Green is the FC estimate. None is guaranteed
+ground truth, and the plugin hides stale map points.
+
+Live red/orange points require a second USB-C cable directly from the H743 to
+the Mission Planner computer. Keep the flight controller as the primary link
+and add the H743 COM port as a secondary link at 115200 baud. The untrusted
+coordinates are USB-only and never enter the flight controller's DroneCAN
+MAVLink tunnel. Without that cable, DR state/reason/confidence still work but
+the live spoof path does not.
+
+For the flight controller, the package now includes the reviewed ten-row
+`arduplane_FC_4.6.3_h743_dronecan_CAN1_core.param`. Load it into ArduPlane
+4.6.3/SYSID 1; a fresh disabled-CAN setup may need three load/write passes with
+reboot/reconnect/refresh between them before all hidden rows exist.
+
+This USB arrangement is for a bench or a GCS physically tethered to the
+aircraft. Long-range use requires a separately designed out-of-band link. Bench
+test the plugin and capture CAN simultaneously before flight; in DR1, CAN must
+contain no GPS `Fix2`/`Auxiliary` and no private `SP_*` position records.
+
+### New: provisional live direction to the jammer/spoofer
+
+Mission Planner plugin `0.3.0` adds a purple dashed RF axis. After at least 20
+samples and a real turn, it can show `b / b+180°`; while evidence is
+insufficient it shows `COLLECTING` or a specific `ABSTAIN` reason. A 90° turn
+is the practical minimum and a full orbit is much better.
+
+This is an **unvalidated two-way axis**, not an arrow, range, or source
+position. The fit rejects a plain approach/range trend, weak signal, poor turn
+geometry, and disagreeing RF metrics. It uses fixed segments no longer than
+120 seconds and is labelled provisional because the open-segment result can
+move as samples arrive. The displayed sigma excludes FC-heading age.
+
+The open RF axis works through normal FC telemetry. The second private USB
+cable is required for the red/orange tracks and for a map intersection, because
+only that link provides sample-aligned moving DR-reference anchors. Direction
+fitting runs only in Mission Planner/offline tools and cannot change DR1 or
+aircraft control.
+
+### New: aircraft icons and a guarded three-axis intersection
+
+The red/orange/green map points are now heading-aware aircraft icons, with a
+non-directional dot fallback when heading is unavailable, and a fixed legend.
+**Capture qualified axis** freezes a strict, non-overlapping RF
+observation at the mean moving DR-reference position. After three compatible
+axes are captured from widely separated positions, Mission Planner may show a
+purple target and a dotted geometry-sensitivity circle.
+
+This is deliberately difficult to qualify: each saved segment needs 40 samples
+over 20–120 seconds, strong/stable two-metric evidence and at least 90% moving
+DR-reference coverage. The three axes must be captured within three minutes,
+put every anchor pair at least 500 m apart, separate every axis direction by at
+least 30°, share one private-USB session/event/metric, and pass yaw-age,
+distance, conditioning, perturbation, and disagreement gates. A
+stale or failed gate removes the target instead of preserving an old answer.
+The bounded local projection operates only from 70°S to 70°N and includes map
+scale distortion in the displayed sensitivity bound.
+
+The label says **UNVALIDATED INTERFERENCE-AXIS INTERSECTION — ADVISORY ONLY**.
+It assumes one stationary emitter; it is not a located jammer, ground truth,
+an accuracy circle, or a waypoint. It never uses the red untrusted coordinates
+and nothing is sent back to the flight controller.
+
+---
+
+## H743 DroneCAN v0.5.28 — 2026-08-17
+
+Supersedes v0.5.27. Adds engine fuel estimation.
+
+### New: fuel estimation from engine RPM
+
+The filter can now estimate fuel burn from the engine RPM your flight
+controller already sends it, and report it to ArduPilot as an EFI device. Set
+the FC's `EFI_TYPE` to its DroneCAN option and the fuel figure appears in your
+GCS and in the dataflash log, with no extra wiring and no extra sensor.
+
+There is no flow meter and no tank sensor in this — it is a model of what the
+propeller must be absorbing, calibrated by one number you set after one
+weighed flight. Eight parameters describe your engine and propeller, and
+presets are included for a DLE-120 on a 27x12 and an RCGF-70 on a 23x10.
+
+**On an aircraft with no fuel gauge, this is the only fuel indication you
+have.** It is built to over-report rather than under-report, because
+under-reporting is what stops an engine. Uncalibrated, expect it to read
+roughly 1.2–2x high; after one weighed burn expect 10–20%. Until you have
+calibrated it, fly the clock and treat the number as advisory.
+
+Two things to know before the first flight:
+
+- **Writing `FUEL_CAPG` zeroes the running total.** It is the only thing that
+  does. Write it after every refuel, even if the number has not changed.
+- **Check `RPM1_SCALING` against a hand tachometer once.** The filter has one
+  RPM source, so nothing can contradict it. A twin CDI gives two pulses per
+  revolution; configure it for one and the estimate reads far too low. If you
+  ever see `Fuel held up by throttle - check RPM_SCALING`, stop and check it.
+
+The running total now survives a mid-flight reboot — watchdog, fault or a
+brownout — instead of restarting at zero and showing you a full tank. If it
+cannot be recovered the tank reads UNKNOWN and says so every 60 seconds,
+rather than quietly reading full.
+
+See "Calibrating the fuel estimate" in the tuning guide for the procedure.
+
+### Fixed: two firmware variants would not build
+
+The sensorless and standalone H743 builds could not be compiled at all. Both
+are fixed, and the build system now compiles every variant so this cannot
+recur. The DroneCAN firmware is unchanged by that fix.
+
+---
+
+## H743 DroneCAN v0.5.27 — 2026-08-15
+
+### New: interference direction logging
+
+The filter now records what is needed to work out **which direction** a jammer
+or spoofer is transmitting from. It does not compute a bearing in the air and
+does not use any of it for spoof detection — it only writes the measurements
+to your flight log, deliberately kept separate from the protection logic.
+
+After a flight, run `python tools/df_analyze.py flight.bin` on the FC's log to
+get a bearing, accurate to roughly ±20–45°.
+
+To get a usable answer you must **fly a full orbit** through the interference.
+The method works by watching how received interference power changes with your
+heading, so a straight pass gives it nothing to work with and the tool will
+correctly refuse to answer.
+
+Two honest limits: one bearing gives you a direction, not a position — you need
+two from separated points to triangulate. And until the polarity has been
+confirmed against a known transmitter, treat the answer as a line (bearing or
+bearing+180°) rather than a direction.
+
+---
+
+## H743 DroneCAN v0.5.26 — 2026-08-14
+
+Supersedes v0.5.25. Flash this one.
+
+**Recovery after jamming is dramatically faster.** If you have seen the filter
+sit in DR1 for tens of minutes after a jamming event ended — with no spoofing
+involved — this release is the fix.
+
+### What was wrong
+
+The filter was resetting your GPS receiver while it was trying to reacquire.
+
+A u-blox keeps its satellite almanac for hours. Jam it, and once the jamming
+stops it normally regains a fix in **seconds**. But the filter was sending a
+full receiver reset about 50 seconds into every jamming event — erasing
+exactly the data that makes reacquisition fast — and then repeating that reset
+every two minutes for as long as the fix was missing. Under the weak signal
+that follows a jamming event, a cold reacquisition can take longer than two
+minutes, so each reset destroyed the progress the last one had made. The
+filter recovered only once conditions improved enough to win the race.
+
+### What changed
+
+- **The receiver is left alone while it is working.** A receiver that is still
+  reporting to the filter is acquiring, not stuck, and is no longer reset. A
+  genuinely unresponsive receiver is still reset as before. You will see
+  `GNSS acquiring - reset held` once per event while this applies.
+- **Normal weak-signal warm-up is no longer treated as a spoofing signal.**
+  A recovering receiver briefly shows all satellites at similar low strength,
+  which the recovery check was scoring as an attack and penalising.
+- **A momentary telemetry hiccup no longer throws away the whole countdown.**
+  The ground recovery countdown tolerates brief gaps instead of restarting
+  from zero. A genuine spoofing indication still stops it instantly.
+- **Repeated honest events stop stacking penalties.** Each recovery used to
+  make the next one 60 s longer for the rest of the power cycle, and after
+  four the unit would not recover at all without a power cycle. Ten minutes of
+  normal operation now clears one step.
+- **Jamming is no longer mislabelled as spoofing.** A timing quirk meant a
+  jamming outage was often recorded as a spoof-class event, which triples the
+  required countdown and limits you to one recovery per power cycle.
+
+### Please re-test on the bench
+
+These fixes are verified by code review and automated tests, **not yet by
+hardware**. Repeat your jamming test and tell us the recovery time. Watch the
+`gnd=` field in the status line — it shows the countdown progressing.
+
+---
+
+## H743 DroneCAN v0.5.25 — 2026-08-13
+
+Supersedes v0.5.24.
+
+Septentrio Mosaic-X5 support is now production-grade, and the same review
+that fixed it found two issues that affect **u-blox setups too** — one of
+them needs a one-time check on your board.
+
+### Check your board (u-blox and Mosaic alike)
+
+- **If you ever loaded a receiver preset** (`ublox_autoconfig`,
+  `manual_ublox_460800`, or `mosaic_x5_nmea`), it silently switched off the
+  SNR spoof detector (`SNR_EN=0`) — one of the strongest checks against
+  single-transmitter spoofing, and the docs described it as active. The
+  presets are fixed; **read `SNR_EN` back from your board and set it to `1`**
+  if it reads 0. The value is stored on the board, so flashing new firmware
+  alone does not repair it.
+- The `field_safe` tuning preset no longer changes your receiver type: it
+  used to write `GNSS_TYPE,0`, which turned a Mosaic board back into a
+  u-blox profile at its **next power cycle in the field**.
+
+### Fixed — Mosaic X5 on SBF
+
+- **DR1 recovery now works.** The recovery evidence required a timing
+  alignment only u-blox receivers produce, so any DR1 trip on a Mosaic —
+  even a brief antenna knock — stayed latched until power cycle, and parked
+  ground release could never complete. All recovery paths (in-flight rejoin,
+  ground release, and the GPS-time spoof trip itself) now evaluate correctly
+  on SBF.
+- A Mosaic outputting both NMEA and SBF no longer risks silently running in
+  NMEA-only mode after boot; SBF takes over within seconds and the richer
+  data (covariance, clock checks, per-satellite signal levels) is actually
+  used.
+- No more GPS dropout seconds after a recovery: an internal receiver rescan
+  that only makes sense for other receiver types no longer fires on Mosaic
+  right after DR1 clears.
+- Routine Mosaic clock adjustments no longer inflate the spoof-confidence
+  score; degraded receiver output (error-flagged satellite counts, missing
+  geoid data) is no longer taken at face value.
+
+### Added
+
+- The filter now **warns if the configured receiver type contradicts what is
+  actually wired** (`GNSS_TYPE mismatch?`) instead of failing silently, and
+  tells you if a Mosaic is running NMEA-only with reduced detection coverage.
+- Changing `GNSS_TYPE` now genuinely applies at reboot, exactly as the
+  confirmation message says, and reads back the saved value.
+
+### Docs
+
+The per-receiver detection coverage tables were over-promising on plain NMEA
+(UM980 / Mosaic-in-NMEA): three signals that require velocity or
+per-satellite data are now honestly marked unavailable there. If you run a
+Mosaic, use SBF mode — NMEA mode costs real detection coverage.
+
+**Bench note:** the Mosaic fixes are verified in code review and static
+tests; if you fly a Mosaic, run the standard bench check first — antenna off,
+wait for DR1, antenna on, confirm recovery — and confirm `SIG`-free status
+with your receiver before a mission.
+
+---
+
+## H743 DroneCAN v0.5.24 — 2026-08-13
+
+Supersedes v0.5.16 through v0.5.23.
+
+The theme of this release group is recovery: DR1 now clears **in the field,
+without a power cycle**, on the ground and after long GNSS-denied legs — while
+every release still requires evidence, never elapsed time.
+
+### Added
+
+- **Ground release: a parked, disarmed unit recovers from DR1 by itself.**
+  When the flight controller independently attests the airframe is parked and
+  disarmed, and the returning fix stays self-consistent through a dwell
+  (90 s for signal-loss trips, 240 s for integrity trips, escalating on each
+  use), DR1 clears where it stands. Releases are budgeted per power cycle,
+  every one is announced with a CRITICAL banner, and a probation watch re-trips
+  instantly if the fix wanders while the aircraft hasn't moved. `SOUTH` is
+  never released automatically: a south-hemisphere fix on this airframe is
+  physically impossible and always costs a deliberate human action.
+- **Long-flight rejoin now covers the whole mission envelope.** The rejoin
+  gate's ceiling was ending recovery after ~1 h 51 m of dead reckoning; it now
+  covers the full 8-hour endurance envelope, so a 70 km or 350 km denied leg
+  can rejoin when the attack ends. The clock-drift check likewise no longer
+  hard-fails on a long outage: its allowance grows with how long the baseline
+  has been standing.
+- **Honest repositioning no longer strands the unit.** Carrying the parked
+  airframe from the bench to the launch point after a ground release re-trips
+  DR1 (by design — the fix moved under a stationary airframe), and the unit
+  now re-releases from its new position instead of blocking until power cycle.
+
+### Fixed
+
+- **Boards provisioned before v0.5.21 automatically repair a stored recovery
+  parameter.** The EKF grace period is stored on the board, and old boards
+  kept their stored 7 s — short enough to re-trip DR1 before the flight
+  controller's estimator could converge, making recovery effectively
+  impossible. The firmware now floors the stored value at 20 s (default 60 s),
+  and re-provisioning writes the default outright. If your unit ever seemed to
+  "never recover no matter how long you wait", this was very likely why.
+- Provisioning no longer re-installs an obsolete rejoin ceiling on new boards.
+- The status line no longer publishes a negative DOP, and normal bus traffic
+  is no longer counted as CAN errors.
+
+### After flashing
+
+Nothing to reconfigure: parameters you have deliberately tuned are preserved,
+and only unsafe stored values are floored. Verify on the bench before flying —
+remove the GNSS antenna, wait for DR1, reattach it, and confirm the status
+line reaches DR0 again on its own.
+
+---
+
+## H743 DroneCAN v0.5.16 — 2026-08-08
+
+Supersedes v0.5.13.
+
+### Added
+
+- **The magnetometer is no longer compiled into the default build.** Airframes
+  that take their compass from the flight controller no longer see a node
+  reported unhealthy for a sensor that was never fitted. Boards that do have one
+  build `weact_mini_h743vitx_dronecan_mag`; boards with neither sensor build
+  `weact_mini_h743vitx_dronecan_nosensors`.
+- **The receiver's spoof-detection state is now reported.** The status line gains
+  `enXY`, and the filter warns if the receiver has spoof detection switched off -
+  previously that looked identical to "no spoofing seen", while three of the
+  strongest checks were silently doing nothing.
+
+### Fixed
+
+- A flaky airspeed sensor can no longer inflate the DR1 recovery hold without
+  limit. Contradicted recovery attempts still cost time, but the penalty now
+  decays once the evidence stops contradicting.
+
+### Changing the filter's parameters
+
+The filter's parameters are **not** in Mission Planner's Full Parameter List.
+That list edits the flight controller. The filter is a separate node, **system ID
+42**, and writes typed into the FC's list silently go nowhere.
+
+Use the DroneCAN parameter screen (SETUP -> Optional Hardware -> DroneCAN/UAVCAN,
+`MAVLink - CAN1`, node 42 -> Parameters), or the new script:
+
+```
+python tools/mission_planner/filter_params.py --port COM25 --list
+python tools/mission_planner/filter_params.py --port COM25 --set LOG_MS=2000
+```
+
+Writes are refused while the flight controller is armed, and the filter says so.
+`ARM=1` in the filter's own status line does **not** mean the FC is armed - that
+field is the spoof guard's warm-up state and is healthy.
+
+---
+
+## H743 DroneCAN v0.5.13 — 2026-08-08
+
+Supersedes v0.5.7 through v0.5.12, which were same-day iterations. Flash this one.
+
+### Fixed — DR1 could latch when nothing was wrong
+
+- **A stationary or slow aircraft no longer contradicts itself out of recovery.**
+  The ground-speed plausibility row required at least 8 m/s to recover, so a unit
+  that latched DR1 while stationary recorded 0 m/s as its reference and then
+  refused to clear forever. This is the `ev3/3F1p` some units showed after a GPS
+  antenna was unplugged and reconnected. In flight the same check fired on a
+  takeoff roll and in any headwind strong enough to hold ground speed under
+  8 m/s. It is now referenced against the flight controller's own speed estimate
+  instead of against remembered GNSS.
+- **An aircraft flying without a compass no longer latches DR1 while parked.** A
+  stationary airframe with no magnetometer cannot complete EKF yaw alignment, so
+  the flight controller reported a state the filter read as a spoof. It then
+  sustained itself, because withheld GNSS is exactly what stops the estimator
+  aligning. A never-yet-aligned EKF is now treated as a startup state.
+- **A brief CAN tunnel stall no longer costs minutes of GPS.** Suppression on a
+  stale flight-controller link stays immediate; the DR1 latch now waits 10 s.
+- **One indicator can no longer trip the spoof-confidence quorum on its own.**
+
+### Changed
+
+- The boot spoof veto is unchanged in behaviour after an intermediate release
+  briefly weakened it. If you flashed v0.5.11, replace it.
+
+### Known limits, stated plainly
+
+- **DR1 will not clear on a stationary bench, and no release will change that.**
+  Clearing requires an independent non-GNSS witness, and a desk supplies none.
+  Expect `ev3/3F0p` and power-cycle instead of waiting.
+- **With no airspeed sensor and no compass fitted**, recovery needs a sustained
+  climb or a steady turn - an autopilot loiter is ideal. Straight-and-level
+  flight will not clear DR1.
+
+---
+
+## Desktop app 2026.08.02.2 — 2026-08-02
+
+### Fixed
+
+- Every SWD command and reconnect is pinned to the serial number of the sole
+  enumerated ST-Link. A missing, replaced, or additional probe stops the flow
+  before further board access.
+- USB DFU is re-enumerated immediately before every erase, firmware write, and
+  option-byte transition. Device-count or exposed-serial changes abort instead
+  of risking the wrong board.
+- Recover Board now reads every byte of physical flash before reporting a
+  board blank: 256 KiB for F401 and 2 MiB for H743, including staging, saved
+  tuning, reserved, and metadata regions.
+- Firmware and ordinary API responses are streamed, size-bounded, decoded
+  within that bound, and closed on every success and error path.
+- The app now carries a separately reviewed firmware-signing public key and
+  rejects any server bundle whose key differs. It also verifies a separate
+  target-bound Ed25519 signature over every exact personalized bootloader byte,
+  so a server response cannot substitute executable bootloader code.
+
+---
+
+## H743 DroneCAN v0.5.6 — 2026-08-02
+
+### Fixed
+
+- If filtered GNSS output becomes blocked, all already queued DroneCAN frames
+  are now revoked before recovery can resume publishing. The firmware resets
+  FDCAN through RCC, drains libcanard, and repeats the complete timing, filter,
+  and controller-start sequence while output stays fail-closed.
+
+This build remains a release candidate until the hardware/HIL checklist is
+signed for its exact SHA-256 values.
+
+---
+
+## Desktop app 2026.08.02.1 — 2026-08-02
+
+### Fixed
+
+- Activation and protected updates now validate the entire server bundle before
+  any erase: response target/UID, metadata format and plaintext fields, packed
+  version, vector table, BLAKE2b app hash, Ed25519 signature, patched bootloader
+  keys, UID binding, and report token must all agree.
+- The exact validated bytes are retained across an RDP reconnect; the app never
+  fetches replacement firmware after the board has been erased.
+- Protected USB DFU now stops before writing if the physical UID cannot be read
+  and verified after RDP removal. It no longer substitutes the activation UID
+  for an unavailable hardware measurement.
+- Firmware version selection, tuning-loss/recommission warnings, and physical
+  UID mismatch failures are explicit in both English and Ukrainian flows.
+- Every destructive flow now requires the exact physical-board phrase
+  `F401CC BLACKPILL` or `WEACT H743VI` before hardware access and after each
+  reconnect/transport change. `--yes` cannot bypass it; explicit 128 KiB F401
+  and 1 MiB H743 identities are rejected before option-byte or erase access.
+
+---
+
+## H743 DroneCAN v0.5.5 / F401 v1.6.26 - 2026-08-02
+
+### Fixed
+
+- GNSS forwarding no longer resumes with the post-DR1 position/time integrity
+  guards temporarily disabled. Parser handling for invalid altitude, UTC,
+  SNR, SEC-SIG, malformed frames, and receiver reset was tightened.
+- H743 CAN faults now recover through bounded retries while output remains
+  fail-closed. Stuck I2C lines, tune-journal stalls, and runtime watchdog hangs
+  now have bounded recovery or reset behavior.
+- F401 and H743 production applications enforce the UID embedded for the
+  physical board; unprovisioned templates cannot be uploaded directly.
+
+### Provisioning and releases
+
+- The desktop/CLI tools validate the complete downloaded bundle before any
+  destructive operation and verify the physical UID before success.
+- New firmware is inactive until an owner completes qualification and promotes
+  it. Revoked, inactive, malformed, or storage-tampered binaries are never
+  offered to customers.
+- These builds remain release candidates until the hardware/HIL checklist is
+  signed for their exact SHA-256 values.
+
+## Desktop app 2026.07.23.2 - 2026-07-23
+
+### Added
+
+- **Recover Board** for H743 now finishes the job even when SWD cannot erase
+  the chip at all: after the watchdog-frozen and BOOT0-mode SWD attempts it
+  retries once at a low SWD clock, then walks you through a **USB-C ROM DFU
+  erase** — the chip's own bootloader erases the flash internally on USB
+  power, with no SWD link or ST-Link supply involved. This also recovers
+  boards whose flash was left half-erased (reads as zeros) by an interrupted
+  earlier update.
+- The final failure message now explains that a chip which cannot be erased
+  even by its own ROM bootloader on stable USB power most likely has damaged
+  flash and should be replaced.
+
+---
+
+## H743 DroneCAN v0.4.3 - 2026-07-23
+
+### Fixed
+
+- The firmware now freezes its 15-second hardware watchdog whenever a
+  debugger or the provisioning app halts the chip over SWD (DBGMCU freeze
+  bit set at boot), so long flash operations like a full-chip erase can no
+  longer be reset mid-way by the firmware's own watchdog. This has no effect
+  in flight — the freeze only applies while a debugger holds the core halted.
+- The automatic boot-time parameter migration no longer starts background
+  flash writes while a debugger session is active; it completes on the next
+  normal boot instead. Parameter changes you make yourself are saved as
+  always.
+
+---
+
+## Desktop app 2026.07.23.1 - 2026-07-23
+
+### Fixed
+
+- H743 mass-erase failures (`Mass erase operation failed. Please verify flash
+  protection` with RDP already at `0xAA`) were caused by the installed
+  firmware's 15-second hardware watchdog resetting the chip mid-erase, not by
+  flash protection. Every H743 ST-Link erase now freezes that watchdog for the
+  halted debug session (`DBGMCU` `DBG_IWDG1` write in the same CubeProgrammer
+  invocation) before erasing.
+- Removed the H743 `-ob unlockchip` fallback: CubeProgrammer only supports
+  `unlockchip` on STM32WL, so it always failed on H743 and filled the log with
+  `Error: Only STM32WL devices are supported`.
+- The failed-erase "already blank" shortcut now uploads and verifies every
+  written region (bootloader, application, metadata) plus the H743
+  parameter-journal sectors instead of checking six sentinel words, so a
+  partially erased chip can no longer slip through to the write step.
+
+### Added
+
+- Guided **BOOT0 power-cycle** recovery for H743: if the erase still fails,
+  the app walks you through holding BOOT0 while reconnecting power, so the
+  chip boots its ROM bootloader instead of the firmware and the erase runs
+  with no watchdog at all. The final error message now names the watchdog
+  cause instead of pointing at flash protection.
+
+---
+
 ## H743 DroneCAN v0.4.2 - 2026-07-21
 
 ### Changed

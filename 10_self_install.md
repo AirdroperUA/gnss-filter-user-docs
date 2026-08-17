@@ -2,17 +2,28 @@
 
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
+> **Check the board marking before provisioning.** The app/CLI requires the
+> exact, case-sensitive phrase `F401CC BLACKPILL` for this 256 KiB target (or
+> `WEACT H743VI` for the 2 MiB H743 target) before any UID, option-byte, RDP,
+> erase, or flash access. It repeats the check after every prompted reconnect;
+> `--yes` does not bypass it. Do not continue with an F401xB/128 KiB or
+> H743xG/1 MiB part—the production flash layout is larger than those devices.
+
 This guide covers flashing the GNSS filter firmware onto a blank
 STM32F401CC BlackPill board using a license key purchased from the store.
 
 For WeAct H743 DroneCAN boards, use the separate
 [H743 DroneCAN Guide](13_h743_dronecan.md). H743 provisioning is target-aware
 (`--target h743_dronecan`) and app-aware: AirDroper GNSS Filter app
-`2026.06.23.10` or newer has **Board target -> H743 WeAct DroneCAN** for
+`2026.08.02.1` or newer has **Board target -> H743 WeAct DroneCAN** for
 ST-Link/SWD activation/update and **Update transport -> USB-C ROM DFU** for
-already activated H743 updates. Readable boards get app+metadata only;
-RDP1-protected boards get a full secure USB-C rewrite after UID-short
-confirmation. The BlackPill USB-C warnings on this page apply to F401 boards.
+already activated H743 updates. Every USB-C update validates RDP, mass-erases,
+cryptographically verifies the exact target-bound bootloader bundle, installs
+the complete app+metadata+bootloader image, and verifies final RDP1 by
+option-byte readback. RDP1 boards also require UID-short
+confirmation and a physical UID re-read after unlock. The app does not report
+success if RDP cannot be read or the final lock cannot be verified. The
+BlackPill USB-C warnings on this page apply to F401 boards.
 
 Each license key activates **one board**. The firmware is uniquely
 locked to your specific board and cannot be copied to another.
@@ -42,8 +53,8 @@ Video tutorials:
 2. **[AirDroper GNSS Filter](https://gps.airdroper.org/download/app)** app — download from the link.
    This is the graphical Windows tool that handles everything for you.
 
-3. **[AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod)** ZIP — optional but recommended.
-   It installs Mission Planner descriptions, ranges, units, option labels, and ready `.param` presets for the STM32 filter parameters.
+3. **[AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod)** ZIP — optional but recommended.
+   It installs the spoofing-telemetry map plugin, descriptions, and ready `.param` presets for both the STM32 filter and flight controller. Live red/orange positions and the three-axis intersection require the H743 USB-C port as a secondary Mission Planner connection; the open purple RF axis can use normal FC telemetry.
 
 ---
 
@@ -77,8 +88,8 @@ BlackPill USB-C connector.
 
 1. Open the **AirDroper GNSS Filter** app
 2. Enter your license key (e.g. `GF-XXXX-XXXX-XXXX`)
-3. Leave **Firmware version** on the default stable entry unless support asked
-   you to test a specific version.
+3. Confirm the **Firmware version** shown by the app. The server exposes only
+   the active release that has completed qualification for this board target.
 4. Plug in exactly **one** ST-Link V2. If you have more than one
    connected (lab bench with several adapters), the app will stop and
    ask you to unplug the others — this prevents flashing the wrong
@@ -133,7 +144,7 @@ The status view shows:
 - boards that have reported authenticated completed flash status from app version 2026.05.29.9+
 - registered boards that do not yet have a flash report
 - total reported successful flash attempts
-- default stable firmware available on the server
+- active qualified firmware available for each board target
 - per-board flash timestamps and firmware versions
 
 Older activations may show as registered with no completed flash report. That
@@ -151,7 +162,7 @@ counts.
 3. Connect to [Mission Planner](https://ardupilot.org/planner/) and check for the filter boot message in the
    Messages tab (e.g. `GNSS filter vX.Y.Z UID=12345678`)
 
-**Next steps:** Wire the filter into your drone using the [Wiring Guide](#wiring), then configure your flight controller in [Setup & Flash](#setup-flash).
+**Next steps:** Wire the filter into your drone using the [Wiring Guide](02_wiring.md), then configure your flight controller in [Setup & Flash](04_setup_and_flash.md).
 
 ---
 
@@ -205,17 +216,17 @@ The same hardware as the initial flash:
 1. Wire the ST-Link to the ICWkey SWD header as shown above
 2. Open the **AirDroper GNSS Filter** app
 3. Enter your license key
-4. Choose the firmware version if support asked you to test a specific build;
-   otherwise leave the default stable entry selected.
+4. Confirm the firmware version. Only the active, qualified release for this
+   board target is customer-visible.
 5. Click **Update**
 6. The app connects via ST-Link, downloads the new firmware customised for
    your board, and flashes it (~30–60 seconds)
 7. The board resets automatically when done
 
-Leave **Firmware version** on the default stable entry for normal updates.
-If support asks you to test a development build, it may appear as a separate
-`vX.Y.Z (dev)` entry at the bottom of the firmware list. Select that entry
-only for the requested test; the latest stable firmware remains the default.
+The customer list contains only the active, qualified release for the selected
+board target. Inactive development candidates and revoked releases are never
+offered by the provisioning app. If the list is empty, stop: an owner must
+finish qualification and promote a release on the server before any erase.
 
 Before any RDP1 erase, Update verifies that the license already has an
 activated board on the server. If the license is invalid or not activated yet,
@@ -296,9 +307,11 @@ permanently removed from the firmware in v1.6.8.
 
 > **Privacy note:** if you share the FC dataflash log publicly (e.g. for
 > support), the GPS positions are baked into ArduPilot's own `GPS` and
-> `POS` records — those are not affected by the filter's `LOG_LOC=0`
-> tunable, which only redacts our `STATUSTEXT` lines. Crop or sanitise
-> the `.bin` before sharing if location is sensitive.
+> `POS` records — those are not affected by the filter's `LOG_LOC` tunable.
+> On the filter, `LOG_LOC=1` permits raw coordinates only in true-DR0 periodic
+> `STATUSTEXT`; trip/transition text and every DR1, synthetic, or blend status
+> are always redacted, and default `0` redacts the DR0 periodic fields too.
+> Crop or sanitise the `.bin` before sharing if location is sensitive.
 
 ### EW interference map
 
@@ -311,7 +324,7 @@ The [EW Interference Map](https://gps.airdroper.org/ew-map) is a free, public li
 | Problem | Solution |
 |---------|----------|
 | "STM32_Programmer_CLI not found" | Install STM32CubeProgrammer and restart the app. If it still does not work, add the CubeProgrammer `bin` folder to your system PATH. |
-| "Failed to connect" | Check ST-Link wiring (3V3, GND, SWDIO/A13, SWCLK/A14). Try a different USB port. The current app also tries reset/hotplug attach modes; if it still fails, connect NRST/RST to the ST-Link reset pin if available and power-cycle the board. |
+| "Failed to connect" | Check ST-Link wiring (3V3, GND, SWDIO/A13, SWCLK/A14). Try a different USB port. The current app also tries reset/hotplug attach modes; if it still fails, connect NRST/RST to the ST-Link reset pin if available and power-cycle the board. For H743 boards see the NRST note in [13_h743_dronecan.md](13_h743_dronecan.md) — a miswired reset line there shows up as `DEV_TARGET_HELD_UNDER_RESET`. |
 | "Invalid license key" | Double-check the key from your purchase email |
 | "License already activated on a different board" | Each key works on one board only. Contact support for replacement. |
 | "ST-Link not found" (update) | Plug the ST-Link into a different USB port and re-check the 4-pin SWD wiring (3V3, GND, A14/SWCLK, A13/SWDIO). |
@@ -326,9 +339,11 @@ If you prefer the command line over the graphical app, you can use the CLI tool 
 
 ### Requirements
 
-You need Python 3.10+ with these packages:
+You need Python 3.10+. Install the exact CLI dependencies, including the PyNaCl
+signature verifier (`requirements-provision.txt` contains the same pins in a
+source checkout):
 ```
-pip install requests pyserial
+python -m pip install pynacl==1.6.2 pyserial==3.5 requests==2.34.2
 ```
 
 ### Initial activation (ST-Link)

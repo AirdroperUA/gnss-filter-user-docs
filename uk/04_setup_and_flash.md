@@ -2,13 +2,22 @@
 
 > Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
+> **Обов'язкова перевірка плати під час провізіонування:** перед читанням UID/
+> option bytes, RDP, стиранням або записом перевірте фізичну PCB та маркування
+> MCU. Введіть точно `F401CC BLACKPILL` для BlackPill 256 KiB або
+> `WEACT H743VI` для WeAct 2 MiB. Перевірка повторюється після кожного
+> перепідключення чи зміни SWD/DFU; `--yes` її не обходить. F401 128 KiB та
+> H743 1 MiB відхиляються, бо production layout не вміщується у їх flash.
+
 ## 1) Передумови
 
 - STM32F401 filter board встановлена та попередньо прошита, або WeAct H743
   прошита відповідною standalone/H743 DroneCAN development-прошивкою.
 - На платі має бути встановлена firmware family, яка відповідає схемі
   підключення.
-- Прошивка FC: ArduPilot 4.6.1 або новіша.
+- Прошивка FC: ArduPilot 4.6.1 або новіша; FC має відповісти на запит
+  `AUTOPILOT_VERSION`. Firmware v0.5.30 одразу suppresses GNSS, поки ця
+  identity невідома або unsupported.
 - На платформі мають бути виконані базові калібрування з завідомо справним GPS-шляхом:
   - відкалібрований акселерометр,
   - відкалібрований компас.
@@ -113,13 +122,17 @@ Development USB-C ROM DFU flash:
 pio run -e weact_mini_h743vitx_dronecan_usb -t upload
 ```
 
-H743 secure app USB-C ROM DFU flash. This env writes the app slot at `0x08020000`:
+Збірка H743 secure-app template, скомпонованого за адресою `0x08020000`:
 
 ```powershell
-pio run -e weact_mini_h743vitx_dronecan_phaseb_app_usb -t upload
+pio run -e weact_mini_h743vitx_dronecan_phaseb_app_usb
 ```
 
-These PlatformIO USB environments are direct ROM DFU flash paths for WeAct H743.
+Пряме завантаження phase-B template навмисно заблоковано. Використовуйте
+AirDroper provisioning app, щоб застосунок був прив'язаний до UID і мав
+відповідні signed metadata та правильний bootloader layout. Лише standalone
+environment `weact_mini_h743vitx_dronecan_usb` є прямим development ROM DFU
+шляхом.
 The onboard display shows standard DroneCAN node mode/health and ArduPilot
 `NotifyState` vehicle-state bits, not exact flight-mode names such as Loiter or
 Auto.
@@ -129,11 +142,13 @@ Auto.
 
 Production H743 DroneCAN boards використовують signed H743 bootloader layout:
 bootloader at `0x08000000`, app at `0x08020000`, metadata at `0x081E0000`.
-Desktop app `2026.06.23.10+` може оновлювати вже активовану H743 через
-USB-C ROM DFU. На readable/unlocked платах додаток пише лише app+metadata.
-Для RDP1-protected плат потрібне підтвердження UID-short: додаток знімає RDP
-через USB DFU, просить повернути плату в ROM DFU із затиснутим `BOOT0`, робить
-mass erase, переписує app + metadata + bootloader і повертає H743 RDP Level 1.
+Desktop app `2026.08.02.1+` може оновлювати вже активовану H743 через USB-C ROM
+DFU. Спочатку він читає RDP, а потім для RDP0 і RDP1 завжди робить mass erase та
+записує повний перевірений пакет app + metadata + bootloader. Для RDP1 потрібні
+підтвердження UID-short, перевірка RDP0 після unlock і фізичне повторне читання
+UID до запису. Про успіх повідомляється лише після окремого читання option bytes,
+яке підтвердило фінальний RDP1; якщо RDP не читається/не розбирається або lock не
+підтверджено, оновлення зупиняється без повідомлення про успіх.
 
 Licensed H743 DroneCAN provisioning через ST-Link/SWD:
 
@@ -146,6 +161,12 @@ activation/update оберіть **Update transport -> ST-Link (SWD)**. Для �
 активованої H743 можна обрати **Update transport -> USB-C ROM DFU**; якщо app
 просить power-cycle після RDP removal, тримайте `BOOT0`, щоб плата повернулась
 у ROM DFU.
+
+Після першого promotion H743 DroneCAN `v0.5.30+` update service назавжди
+відмовляється promote або deliver будь-яку pre-`v0.5.30` H743 firmware. Старі
+fuel readers не можуть безпечно зберегти нову lost/known fuel provenance, тому
+ця global межа діє також для owner-authorized rollback. Для recovery
+використовуйте forward-versioned build.
 
 ## 4) Режим CAN-ноди (UCAN serial transport)
 
@@ -181,7 +202,7 @@ activation/update оберіть **Update transport -> ST-Link (SWD)**. Для �
   - `Config/Tuning` -> `Full Parameter List`
   - виберіть STM32 (`SYSID=42`)
   - `Refresh Params` -> змініть значення -> `Write Params`
-- Перед тюнінгом UART-збірок встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів для параметрів STM32, а не лише сирі назви.
+- Перед тюнінгом UART-збірок встановіть [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod), щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів для параметрів STM32, а не лише сирі назви.
 - H743 DroneCAN `v0.1.4+` params змінюються в Mission Planner:
   `SETUP -> Optional Hardware -> DroneCAN/UAVCAN -> node 42 -> Params`, далі
   `Write Params` і `Commit Params`.
@@ -235,6 +256,41 @@ instance.
 Цей commissioning step не застосовується до H743 DroneCAN mode, бо та
 прошивка не має raw GPS UART bypass.
 
-## 8) Примітка щодо типу збірки
+## 8) Стендова перевірка recovery з DR1
+
+Airborne quorum потребує щонайменше одного незалежного non-GNSS witness:
+
+| Row | Коли стає independent witness |
+|-----|-------------------------------|
+| Barometric vertical rate | реальний набір або зниження щонайменше 3 м/с |
+| Ground speed проти airspeed | live pitot щонайменше 12 м/с |
+| GNSS course проти FC yaw | справжній розворот планера |
+
+На нерухомому столі жоден із них недоступний, тому airborne quorum правильно
+не завершується. H743 DroneCAN v0.5.30 має окремий parked/disarmed ground
+release. Він не залежить від generic three-row pass count. Крім наявних gates
+disarmed state, FC motion, position agreement, receiver verdict, dwell і
+budget, він вимагає:
+
+- нуль evidence rows із FAIL;
+- GNSS-time row у стані PASS;
+- fresh, finite, non-negative receiver speed не вище 4 м/с;
+- speed із поточного location epoch, віком/skew не більше 1500 мс. Для passive
+  NMEA це RMC speed, узгоджений з GGA/RMC fix epoch.
+
+Optional GSV/SNR evidence може заборонити release, якщо явно FAIL, але не
+зобов'язане існувати. Тому deployed UM980 GGA/RMC/AGRICA profile може завершити
+stationary ground release при `SNR=NA`. У recovery line `EVM` означає відсутнє
+named ground evidence, `EVF` — contradiction, а зростання `gnd=` — progress
+parked release. Поля `ev...W...` описують лише airborne quorum.
+
+Щоб перевірити саме airborne path, рухайтесь із receiver/FC так, щоб отримати
+реальний turn/climb/pitot witness. Power-cycle швидко повертає bench unit у
+DR0, але recovery не тестує. Lab-only waiver build із
+`FILTER_REMOTE_OPERATOR_WAIVER_ENABLE=1` скасовує лише witness requirement;
+він не автентифікований, compiled out з усіх flight builds і **ніколи не має
+використовуватися у польоті**.
+
+## 9) Примітка щодо типу збірки
 
 Для штатної експлуатації використовується звичайна робоча прошивка, яку вже встановлює постачальник або сервіс.

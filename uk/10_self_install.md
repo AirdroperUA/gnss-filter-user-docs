@@ -2,16 +2,27 @@
 
 > Де купити плату: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
+> **Перевірте маркування плати до провізіонування.** Застосунок/CLI вимагає
+> точну case-sensitive фразу `F401CC BLACKPILL` для BlackPill 256 KiB або
+> `WEACT H743VI` для H743 2 MiB до доступу до UID, option bytes, RDP, erase чи
+> flash. Перевірка повторюється після кожного запропонованого перепідключення;
+> `--yes` її не обходить. Не використовуйте F401xB/128 KiB або H743xG/1 MiB:
+> production layout перевищує їх обсяг flash.
+
 Цей посібник описує прошивку GNSS-фільтра на чисту плату
 STM32F401CC BlackPill за допомогою ліцензійного ключа, придбаного в магазині.
 
 Для WeAct H743 DroneCAN плат використовуйте окремий
 [H743 DroneCAN Guide](13_h743_dronecan.md). H743 provisioning target-aware:
-`--target h743_dronecan`. AirDroper GNSS Filter app `2026.06.23.10+` має
+`--target h743_dronecan`. AirDroper GNSS Filter app `2026.08.02.1+` має
 **Board target -> H743 WeAct DroneCAN** і **Update transport -> USB-C ROM DFU**
-для вже активованих H743: readable плати отримують лише app+metadata, а
-RDP1-protected плати отримують повний secure USB-C rewrite після підтвердження
-UID-short. Попередження про BlackPill USB-C на цій сторінці стосуються F401.
+для вже активованих H743. App `2026.08.02.2+` криптографічно перевіряє exact
+target-bound bootloader bundle. Кожне USB-C update перевіряє RDP, робить mass
+erase, встановлює повний app+metadata+bootloader image і окремим читанням option
+bytes підтверджує фінальний RDP1. Для RDP1 також потрібні підтвердження
+UID-short і фізичне повторне читання UID після unlock. Якщо RDP не читається або
+фінальний lock не підтверджено, застосунок не повідомляє про успіх. Попередження
+про BlackPill USB-C на цій сторінці стосуються F401.
 
 Кожний ліцензійний ключ активує **одну плату**. Прошивка унікально
 прив'язана до апаратного ID вашої конкретної плати і не може бути скопійована на іншу.
@@ -41,8 +52,8 @@ UID-short. Попередження про BlackPill USB-C на цій стор�
 2. **AirDroper GNSS Filter** додаток — завантажте з [gps.airdroper.org/download/app](https://gps.airdroper.org/download/app).
    Це графічний інструмент, який виконує все за вас.
 
-3. **[AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod)** ZIP — необов'язково, але рекомендовано.
-   Додає описи, діапазони, одиниці, підписи варіантів і готові `.param` presets для параметрів STM32-фільтра.
+3. **[AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod)** ZIP — необов'язково, але рекомендовано.
+   Встановлює плагін карти телеметрії спуфінгу, описи й готові `.param` presets для STM32-фільтра та flight controller. Для live червоної/помаранчевої позицій і intersection трьох осей потрібне direct USB-C H743 як secondary link Mission Planner; відкрита фіолетова RF-вісь працює через normal FC telemetry.
 
 ---
 
@@ -76,8 +87,8 @@ USB-C роз'єм BlackPill.
 
 1. Відкрийте додаток **AirDroper GNSS Filter**
 2. Введіть ліцензійний ключ (напр. `GF-XXXX-XXXX-XXXX`)
-3. Залиште **Firmware version** на типовій стабільній версії, якщо підтримка
-   не попросила перевірити конкретну збірку.
+3. Перевірте **Firmware version**, показану застосунком. Server віддає лише
+   active release, який пройшов qualification для цього board target.
 4. Підключіть рівно **один** ST-Link V2. Якщо підключено декілька
    (лабораторний стенд із кількома адаптерами), додаток зупиниться і
    попросить відключити інші — це запобігає прошивці не тієї плати.
@@ -131,7 +142,7 @@ Writing application + metadata (100984 bytes)...
 - плати, які вже повідомили автентифікований статус завершеного прошивання з версії додатка 2026.05.29.9+
 - зареєстровані плати, для яких ще немає звіту про прошивання
 - загальну кількість підтверджених успішних записів прошивки
-- типову стабільну прошивку на сервері
+- active qualified firmware для кожного board target
 - час прошивання і версію для кожної плати
 
 Старі активації можуть показуватися як зареєстровані без звіту про завершене
@@ -206,11 +217,10 @@ PA11/PA12 тепер зарезервовані під GPS UART (USART6) кон�
    адаптовану під вашу плату, і прошиє її (~30–60 секунд)
 7. Плата автоматично перезавантажиться після завершення
 
-Для звичайних оновлень залишайте поле **Firmware version** / **Версія прошивки**
-на типовому пункті останньої стабільної версії. Якщо підтримка просить
-протестувати `dev`-збірку, вона може з'явитися окремим пунктом `vX.Y.Z (dev)`
-внизу списку прошивок. Обирайте її лише для цього тесту; стабільна остання
-прошивка залишається типовим варіантом.
+Customer list містить лише active, qualified release для вибраного board
+target. Inactive development candidates і revoked releases provisioning app
+ніколи не пропонує. Якщо список порожній, зупиніться: owner має завершити
+qualification і promote release на server до будь-якого erase.
 
 Перед будь-яким RDP1 erase Update перевіряє на сервері, що ліцензія вже має
 активовану плату. Якщо ліцензія невалідна або ще не активована, додаток
@@ -296,9 +306,11 @@ EEPROM-кільцевий буфер на платі вперше було пр�
 
 > **Примітка щодо приватності:** якщо ви публічно ділитесь dataflash-логом
 > FC (наприклад, для підтримки), GPS-координати запечені у власні записи
-> ArduPilot `GPS` і `POS` — на них не впливає тунабл `LOG_LOC=0` фільтра,
-> який редагує лише наші `STATUSTEXT`-рядки. Обріжте або очистьте `.bin`
-> перед поширенням, якщо координати чутливі.
+> ArduPilot `GPS` і `POS` — на них не впливає тунабл `LOG_LOC` фільтра.
+> На фільтрі `LOG_LOC=1` дозволяє raw coordinates лише у true-DR0 periodic
+> `STATUSTEXT`; trip/transition text і всі DR1, synthetic або blend status
+> завжди redacted, а default `0` редагує також periodic DR0 fields. Обріжте
+> або очистьте `.bin` перед поширенням, якщо координати чутливі.
 
 ### Карта РЕБ перешкод
 
@@ -311,7 +323,7 @@ EEPROM-кільцевий буфер на платі вперше було пр�
 | Проблема | Рішення |
 |----------|---------|
 | "STM32_Programmer_CLI not found" | Встановіть STM32CubeProgrammer і перезапустіть додаток. Якщо не допомогло, додайте теку `bin` CubeProgrammer до системного PATH. |
-| "Failed to connect" | Перевірте підключення ST-Link (3V3, GND, SWDIO/A13, SWCLK/A14). Спробуйте інший USB-порт. Поточний додаток також пробує reset/hotplug режими підключення; якщо все одно не вдається, під'єднайте NRST/RST до reset-піна ST-Link, якщо він є, і перепідключіть живлення плати. |
+| "Failed to connect" | Перевірте підключення ST-Link (3V3, GND, SWDIO/A13, SWCLK/A14). Спробуйте інший USB-порт. Поточний додаток також пробує reset/hotplug режими підключення; якщо все одно не вдається, під'єднайте NRST/RST до reset-піна ST-Link, якщо він є, і перепідключіть живлення плати. Для плат H743 див. примітку про NRST у [13_h743_dronecan.md](13_h743_dronecan.md) — неправильно під'єднана reset-лінія там проявляється як `DEV_TARGET_HELD_UNDER_RESET`. |
 | "Invalid license key" | Перевірте ключ з листа про покупку |
 | "License already activated on a different board" | Кожний ключ працює лише на одній платі. Зверніться до підтримки для заміни. |
 | "ST-Link not found" (оновлення) | Підключіть ST-Link до іншого USB-порту й перевірте 4-пінне SWD-підключення (3V3, GND, A14/SWCLK, A13/SWDIO). |
@@ -326,9 +338,11 @@ EEPROM-кільцевий буфер на платі вперше було пр�
 
 ### Вимоги
 
-Потрібен Python 3.10+ з пакетами:
+Потрібен Python 3.10+. Встановіть exact CLI dependencies, включно з PyNaCl
+signature verifier (`requirements-provision.txt` містить ті самі pins у source
+checkout):
 ```
-pip install requests pyserial
+python -m pip install pynacl==1.6.2 pyserial==3.5 requests==2.34.2
 ```
 
 ### Початкова активація (ST-Link)

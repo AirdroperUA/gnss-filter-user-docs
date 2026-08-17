@@ -3,7 +3,7 @@
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 Set `GNSS_TYPE` in Mission Planner to match your receiver, then reboot the STM32.
-Install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) first if Mission Planner does not show descriptions, units, ranges, or option labels for `GNSS_TYPE`, `UBX_BAUD`, and receiver-specific settings.
+Install [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod) first if Mission Planner does not show descriptions, units, ranges, or option labels for `GNSS_TYPE`, `UBX_BAUD`, and receiver-specific settings.
 
 | `GNSS_TYPE` | Receiver family | ArduPilot `GPS1_TYPE` |
 |---|---|---|
@@ -88,9 +88,12 @@ Pseudorange-residual analytics remain u-blox-only because the parsed Mosaic SBF
 path does not provide a UBX `NAV-SAT`-style `prRes` field.
 
 On UART/F401 NMEA builds, Mosaic X5 uses the same passive NMEA coverage as the
-UM980/UM981/UM982 path: position jump, altitude, SNR, heading reversal,
-geo-fence, GPS time, and velocity-position consistency work from NMEA; native
-SBF-only diagnostics are not parsed there by default.
+UM980/UM981/UM982 path: position jump, altitude, SNR span, heading reversal,
+geo-fence, and GPS time work from NMEA. Velocity-position consistency does
+NOT: it needs the GNSS velocity vector, which only the UBX and SBF parsers
+commit — the same restriction applies to the barometer-vs-GNSS vertical-rate
+row and SNR temporal correlation. Native SBF-only diagnostics are not parsed
+there by default.
 
 ---
 
@@ -130,6 +133,12 @@ AGRICA COM1 0.2
 SAVECONFIG
 ```
 
+The STM32 parses GGA and RMC from this profile. It does **not** parse the
+proprietary AGRICA record; AGRICA is forwarded unchanged for ArduPilot. This
+deployed profile also has no GSV output, so `SNR=NA` is expected and
+SNR-dependent evidence is unavailable. GSV may be enabled optionally at
+1-5 Hz for STM32 SNR monitoring, but it is not a DR1-recovery prerequisite.
+
 #### High-Dynamic UAV profile
 
 Same as above but replace the MODE line:
@@ -166,7 +175,8 @@ MODE ROVER UAV HIGHDYN
 - **`AGRICA` at 5 Hz** — ArduPilot's UnicoreNMEA driver uses AGRICA for
   high-precision 3D NED velocity, velocity accuracy, position accuracy, and
   undulation. Without AGRICA the EKF has no speed accuracy data and uses
-  conservative defaults that degrade flight performance.
+  conservative defaults that degrade flight performance. The STM32 does not
+  parse AGRICA; it only passes the record through to the FC.
 - **`GPS_AUTO_CONFIG = 0`** — **critical.** ArduPilot 4.6.x's UnicoreNMEA
   auto-config sends `MODE MOVINGBASE` and `CONFIG COM1 230400` to the UM980
   on every config cycle. `MODE MOVINGBASE` overwrites your `MODE ROVER UAV`,
@@ -177,22 +187,31 @@ MODE ROVER UAV HIGHDYN
 - **`CONFIG ANTIJAM FORCE`** — hardware anti-jamming always active.
 - **`MASK 5`** — 5-degree elevation mask, filters low-elevation noisy satellites.
 - `COM2` is not needed for the filter. Leave unused or use for diagnostics only.
-- **GPGSA / GPGSV / GPGST are not needed** — the UnicoreNMEA driver does not
-  parse these sentences. The driver gets DOP from GGA and accuracy data from
-  AGRICA. Omitting them saves serial bandwidth.
+- **GPGSA / GPGSV / GPGST are not needed by ArduPilot** — the UnicoreNMEA
+  driver gets DOP from GGA and accuracy data from AGRICA. The STM32 can parse
+  standard GSV for optional SNR evidence, however. Omit GSV for the documented
+  bandwidth-minimal profile, or enable it at 1-5 Hz when SNR monitoring is
+  required; recovery must remain possible without it.
 
 ### Detection feature coverage (passive NMEA vs u-blox)
 
-The passive NMEA path used by UM980/UM981/UM982 and Mosaic X5 supports all
-core detection features (position jump, altitude, SNR, heading reversal,
-geo-fence, GPS time). However, three advanced signals are u-blox only because
-NMEA does not provide the underlying data:
+The passive NMEA path used by UM980/UM981/UM982 and Mosaic X5 supports
+position jump, altitude, heading reversal, geo-fence, and GPS time from the
+deployed GGA/RMC profile. SNR span and SNR temporal correlation are available
+only when optional GSV is also present. The advanced signals below need data
+the deployed profile does not carry:
 
-- **Pseudorange residual analysis** — requires UBX NAV-SAT `prRes` field
-- **GDOP sudden change** — requires UBX NAV-DOP `gDOP` field. NMEA GSA and
-  Mosaic SBF `DOP` only provide PDOP/HDOP/VDOP, so this specific guard remains
-  u-blox-only.
-- **Clock bias jump** — requires UBX NAV-CLOCK
+- **Pseudorange residual analysis** — requires UBX NAV-SAT `prRes`; u-blox
+  only.
+- **GDOP sudden change** — requires UBX NAV-DOP `gDOP`. NMEA GSA and Mosaic
+  SBF `DOP` only provide PDOP/TDOP/HDOP/VDOP (no GDOP), so this specific
+  guard remains u-blox-only.
+- **Clock bias jump** — requires UBX NAV-CLOCK, or the Mosaic PVTGeodetic
+  clock fields over SBF on H743 DroneCAN; not available from NMEA.
+- **Velocity-position consistency and vertical-rate** — need the velocity
+  vector that only the UBX and SBF parsers commit; not available from NMEA.
+- **SNR span and SNR temporal correlation** — absent with the deployed
+  GGA/RMC/AGRICA profile, but available when optional standard GSV is enabled.
 
 The spoofing confidence score (`DR_CONF`) adapts automatically — unavailable
 signals are excluded from the weighted average.
@@ -210,9 +229,10 @@ signals are excluded from the weighted average.
   Use 460800 for fastest startup.
 - Setting message rates to 1 Hz (period `1`) instead of 5 Hz (period `0.2`) —
   ArduPilot works but EKF performance is worse with 1 Hz GPS updates.
-- Adding `GPGGA`, `GPRMC`, `GPGSA`, `GPGSV`, `GPGST` — the driver only needs
-  `GNGGA`, `GNRMC`, and `AGRICA`. Extra sentences waste bandwidth and can slow
-  parsing on the FC.
+- Adding duplicate `GPGGA`, `GPRMC`, `GPGSA`, or `GPGST` — the FC driver only
+  needs `GNGGA`, `GNRMC`, and `AGRICA`. Extra sentences waste bandwidth and can
+  slow parsing on the FC. `GSV` is the deliberate exception: add it only when
+  optional STM32 SNR monitoring is wanted.
 
 ---
 

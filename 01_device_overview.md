@@ -2,7 +2,7 @@
 
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
-This document describes how the STM32 filter operates between the GNSS receiver and the flight controller (FC). For wiring instructions, see the [Wiring Guide](#wiring). For first-time setup, see [Setup & Flash](#setup-flash).
+This document describes how the STM32 filter operates between the GNSS receiver and the flight controller (FC). For wiring instructions, see the [Wiring Guide](02_wiring.md). For first-time setup, see [Setup & Flash](04_setup_and_flash.md).
 
 ## Key terms
 
@@ -140,7 +140,11 @@ See [Operation](#operation) for the full state machine and [Tuning](#tuning) to 
 ### Example A: no-fix or low satellites
 
 - GPS fix becomes invalid, or satellite count drops below 5.
-- The filter enters DR1 immediately.
+- No-fix enters DR1 only after at least 3 distinct invalid GNSS epochs whose
+  first and latest epochs span at least 600 ms.
+- Low satellites uses the highest count seen in a rolling approximately
+  3-second window, then requires 3 distinct below-threshold epochs spaced at
+  least 200 ms apart. The startup guard still applies to both paths.
 
 ### Example B: position jump
 
@@ -154,19 +158,36 @@ See [Operation](#operation) for the full state machine and [Tuning](#tuning) to 
 
 ### Example D: altitude anomaly
 
-- Large single-step altitude jump, high altitude rate, or persistent GPS-vs-barometer separation.
+- A large single-step GNSS altitude jump or excessive GNSS altitude rate.
+- DroneCAN builds additionally compare GNSS vertical velocity with fresh FC
+  barometric vertical rate. The older absolute GPS-vs-barometer altitude
+  separation path is disabled because it has not been flight-qualified.
 
 ### Example E: EKF flags trip
 
-- The flight controller's own navigation filter reports unhealthy state.
+- Every bad EKF category, including `GPS_GLITCHING` and `UNINITIALIZED` after
+  the FC session has first reported healthy, requires at least 2 newly decoded
+  `EKF_STATUS_REPORT` messages spanning the full `EKF_TRIPMS` interval. Both
+  released targets default to 500 ms; tuning it to zero still keeps the
+  two-report minimum. Startup `UNINITIALIZED` remains exempt until that first
+  healthy report.
 
 ### Example F: heading reversal (v1.5.5+)
 
-- Impossible 180° heading change while moving fast — physically unrealistic, common in spoofing attacks.
+- A 150°+ reversal while moving faster than 5 m/s must be confirmed by 3
+  distinct epochs. Consecutive confirmations may be no more than 2.5 seconds
+  apart and all 3 must fit within 5 seconds. That evidence then feeds the
+  confidence score, whose high result must persist through the outer 1.5-second
+  hold before score-only DR1 entry.
 
 ### Example G: south-hemisphere jump
 
-- GPS latitude drops below 0°. Since all operations are in the northern hemisphere, any southern position is guaranteed spoofing. DR1 triggers instantly and the position is hard-blocked from the FC in normal operation.
+- GPS latitude drops below 0°. This product is configured for northern-
+  hemisphere operations, so the hard-north policy treats any southern report
+  as unsafe regardless of whether it came from spoofing, receiver corruption,
+  or a configuration mistake. DR1 triggers immediately and blocks the position
+  from the FC in normal operation. Do not use this firmware south of the
+  equator.
 
 ### Example H: geo-fence violation (v1.5.5+)
 
@@ -176,34 +197,54 @@ See [Operation](#operation) for the full state machine and [Tuning](#tuning) to 
 
 - GPS time-of-day drifts more than 2 seconds from the filter's internal clock. Spoofers often use slightly wrong time bases.
 
-### Example J: clock bias jump (v1.5.5+, u-blox only)
+### Example J: clock bias jump (v1.5.5+, u-blox; Mosaic SBF on H743)
 
-- Sudden jump in the receiver's internal clock bias (from UBX NAV-CLOCK). Indicates the receiver locked onto a spoofed signal with a different timing offset.
+- Sudden jump in the receiver's internal clock bias (from UBX NAV-CLOCK, or the Mosaic PVTGeodetic clock fields over SBF). Indicates the receiver locked onto a spoofed signal with a different timing offset. On Mosaic, the receiver's own routine integer-millisecond clock resyncs are recognized and re-baseline the comparison instead of scoring.
 
-### Example K: velocity-position mismatch (v1.5.5+, u-blox only)
+### Example K: velocity-position mismatch (v1.5.5+, u-blox; Mosaic SBF on H743)
 
 - The reported velocity doesn't match the actual position change between epochs. Spoofers that shift position without matching velocity are caught.
 
 ### Spoofing confidence score (v1.5.5+)
 
-The filter computes a confidence score (0–100) combining up to 8 independent detection signals. A higher score means more signals indicate spoofing. The score is sent as `DR_CONF` in MAVLink telemetry and recorded in each spoofing event log.
+The filter computes a confidence score (0–100) combining up to 10 distinct
+evidence rows. A higher score means more available rows indicate spoofing. The
+score is sent as `DR_CONF` in MAVLink telemetry and recorded in each spoofing
+event log. Only the receiver `SEC-SIG` verdict and barometric vertical-rate
+row are independent of attacker-shaped GNSS content.
 
 | Signal | Weight | u-blox | UM980 / Mosaic NMEA | Mosaic SBF on H743 |
 |--------|--------|--------|---------------------|--------------------|
-| SNR span anomaly | 20 | Yes | Yes | Yes |
+| Barometer-vs-GNSS vertical-rate divergence | 20 | H743 DroneCAN | No | Yes |
+| SNR span anomaly | 20 | Yes | GSV only; UM980 baseline: No | Yes |
+| Receiver spoof verdict (`SEC-SIG`) | 25 | H743 only | No | No |
 | Pseudorange residual stddev | 15 | Yes | No | No |
-| SNR temporal correlation | 12 | Yes | Partial | Yes, from `MeasEpoch` C/N0 |
+| SNR temporal correlation | 12 | Yes | GSV only; UM980 baseline: No | Yes, from `MeasEpoch` C/N0 |
 | Heading reversal | 12 | Yes | Yes | Yes |
 | GDOP sudden change | 8 | Yes | No | No |
 | GPS time sanity | 12 | Yes | Yes | Yes |
-| Velocity-position consistency | 10 | Yes | Partial | Yes |
+| Velocity-position consistency | 10 | Yes | No | Yes |
 | Clock bias jump | 11 | Yes | No | Yes |
 
-Signals marked "No" or "Partial" are skipped in the weighted average — the score adapts to available data. u-blox receivers get the pseudorange-residual signal from UBX `NAV-SAT`; Mosaic SBF does not carry that field in the parsed `MeasEpoch` data, so H743 DroneCAN keeps that score disabled in Mosaic mode.
+The deployed UM980 GGA/RMC/AGRICA profile contains no GSV, so both SNR rows
+are unavailable by default. The STM32 does not parse AGRICA or UM980
+proprietary binary diagnostics; it can obtain per-satellite C/N0 only from
+optional standard GSV. GSV is additional evidence, not a DR1-recovery
+prerequisite. Vertical-rate and velocity-position still require a velocity
+vector committed by the UBX or SBF parser and cannot evaluate on NMEA.
+
+Signals marked "No" are skipped in the weighted average — the
+score adapts to available data. The `SEC-SIG` row is compiled only for H743 and
+is available only when the active receiver is a supported u-blox. The
+barometric vertical-rate row is compiled only in DroneCAN builds and requires
+fresh FC barometer telemetry plus GNSS vertical velocity, regardless of
+receiver protocol. u-blox receivers get the pseudorange-residual signal from
+UBX `NAV-SAT`; Mosaic SBF does not carry that field in the parsed `MeasEpoch`
+data, so H743 DroneCAN keeps that score disabled in Mosaic mode.
 
 ## 6) Returning from DR1 (rejoin)
 
-The filter returns to DR0 (normal GPS) only after all quality checks pass for a stable period. This prevents false recoveries. See [Tuning](#tuning) for adjustable thresholds (`RJ_MIN_SATS`, `RJ_MAX_HD`, `RJ_STAB_MS`, `DR_LOCK_MS`).
+The filter returns to DR0 (normal GPS) only after all quality checks pass for a stable period. This prevents false recoveries. See [Tuning](#tuning) for adjustable thresholds (`RJ_MIN_SATS`, `RJ_MAX_HD`, `RJ_STAB_MS`, `DR_LOCK_MS`). The retired `RJ_REQEKF` and `EKF_OKRJMS` names remain in the parameter schema, but F401 v1.6.26+ and H743 v0.5.5+ lock both to zero and do not use them for recovery.
 
 ## 7) Key operational notes
 
@@ -215,7 +256,13 @@ The filter returns to DR0 (normal GPS) only after all quality checks pass for a 
 
 ## 8) Electronic warfare systems compatibility
 
-The GPS Spoofing Filter is designed to protect against GPS spoofing and jamming attacks from any electronic warfare system. The filter's guard algorithms detect anomalies in satellite signals regardless of the EW source — the detection is physics-based, not signature-based.
+The filter detects supported classes of GNSS anomalies without needing to know
+the source system's name: fix loss, implausible position/time/altitude changes,
+suspicious SNR patterns, and available disagreements with FC or independent
+sensors. This is not a guarantee that every spoofer or future waveform will be
+detected. Under strong jamming it can withhold untrustworthy GNSS, but it cannot
+create alternative navigation or protect radio, control, or radar links. The
+systems below are threat context, not a certification matrix.
 
 ### Ukrainian EW systems
 
@@ -262,7 +309,10 @@ The GPS Spoofing Filter is designed to protect against GPS spoofing and jamming 
 |--------|------|-------|
 | **Groza** (KB Radar) | GNSS jamming | Designed to jam satellite navigation signals. Belarus has supplied these to Russia. |
 
-> **Note:** The filter detects spoofing and jamming based on signal anomalies (position jumps, SNR patterns, altitude divergence, satellite count drops), not by identifying specific EW hardware. This means it works against **any** EW system that affects GNSS signals — including systems not listed here and future systems not yet deployed.
+> **Note:** Detection depends on an attack producing one of the implemented,
+> enabled, and sufficiently observed anomaly classes. Validate the exact
+> receiver, airframe, tuning, and firmware artifact against representative RF
+> and HIL scenarios; do not infer universal protection from this list.
 
 ## 9) Which GPS receiver to choose?
 

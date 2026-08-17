@@ -62,7 +62,7 @@ The onboard status LED follows the same state shown in logs:
                     │         • RJ_MAX_HD met          │
                     │         • RJ_STAB_MS held        │
                     │         • DR_LOCK_MS elapsed     │
-                    │         • (optional) EKF OK      │
+                    │         • independent evidence  │
                     │                                  │
                     └──────────────────────────────────┘
                           rejoin guard (500 ms)
@@ -71,41 +71,66 @@ The onboard status LED follows the same state shown in logs:
 
 ## DR1 trigger behavior (current firmware)
 
-- No-fix or low-satellite condition (`sats < 5`) triggers DR1 immediately (after startup guard window).
+- No-fix requires at least 3 distinct invalid GNSS epochs whose first and
+  latest epochs span at least 600 ms. Low satellites (`sats < 5`) uses the
+  peak count from a rolling approximately 3-second window and requires 3
+  distinct low-count epochs spaced at least 200 ms apart. Both remain subject
+  to the startup guard.
 - Position jump, altitude checks, SNR checks, and EKF checks can also trigger DR1 based on tuning.
-- H743 DroneCAN defaults to `EKF_TRIPMS=500`: generic horizontal EKF evidence
-  must remain invalid for at least 500 ms, then DR1 trips on the next bad
-  report. An explicit `GPS_GLITCHING` report is immediate after boot/rejoin
-  inhibition. F401 keeps its released `EKF_TRIPMS=0` generic-loss behavior.
+- Both released targets default to `EKF_TRIPMS=500`. Every bad EKF category,
+  including `GPS_GLITCHING` and `UNINITIALIZED` after the FC session has first
+  reported healthy, requires at least 2 newly decoded `EKF_STATUS_REPORT`
+  messages spanning the full configured interval. Tuning the interval to zero
+  still keeps the two-report minimum; startup `UNINITIALIZED` remains exempt
+  until the first healthy report.
 - South-hemisphere jump: if GPS latitude goes below 0°, DR1 triggers immediately. The filter hard-blocks any south-hemisphere position from reaching the FC in normal operation (all drones operate in the northern hemisphere).
 - Geo-fence violation (if `FENCE_RAD > 0`): position outside configured radius (up to 2000 km) triggers DR1.
-- Heading reversal: 150°+ heading change within 2 seconds while moving > 5 m/s triggers DR1.
+- Heading reversal: a 150°+ change while moving > 5 m/s must be confirmed by
+  3 distinct epochs, with no more than 2.5 seconds between confirmations and
+  all 3 inside 5 seconds. The resulting score must then remain high through
+  the outer 1.5-second confidence hold before score-only DR1 entry.
 - GPS time anomaly: > 2 s drift between GPS time and the filter's internal clock triggers DR1.
 - DR1 max duration (`DR1_MAXMS > 0`): automatically exits DR1 after the configured timeout, even if GNSS hasn't recovered, but only after `DR_LOCK_MS` has elapsed. Use for missions that cannot tolerate indefinite GPS blocking.
 
 H743 DroneCAN `v0.2.0+` has no physical FC MAVLink UART, but S2/index `1`
 carries the filter's MAVLink2 and returns FC telemetry. EKF-status trip,
-barometer altitude comparison, arm-state handling, and MAVLink
+barometric vertical-rate evidence, arm-state handling, and MAVLink
 `STATUSTEXT`/`NAMED_VALUE` logging therefore continue when S2 is configured.
 Camera S1/index `0` also remains active in DR0 and DR1; only native GPS
 `Fix2/Auxiliary` publishing is suppressed by DR1.
 
 ### Spoofing confidence score
 
-The firmware computes a weighted confidence score (0–100) from up to 8 detection signals. The score is visible in Mission Planner as `DR_CONF` in the named-value telemetry and is recorded in each spoofing event log entry. Higher values indicate more evidence of spoofing. The score adapts to available data — signals that require UBX-specific messages are skipped when that protocol data is not present. H743 DroneCAN Mosaic SBF adds C/N0 temporal and clock-bias coverage compared with passive NMEA, but pseudorange-residual scoring remains u-blox-only.
+The firmware computes a weighted confidence score (0–100) from up to 10
+detection signals. The score is visible in Mission Planner as `DR_CONF` in the
+named-value telemetry and is recorded in each spoofing event log entry. Higher
+values indicate more evidence of spoofing. The score adapts to available data:
+unavailable protocol, target, and transport-specific rows are excluded from
+the denominator.
 
-### UBX-only vs universal detection
+### Confidence-signal availability
 
-Most detection signals work with u-blox and passive NMEA receivers. The following advanced signals are **u-blox only** in UART/NMEA builds because they require UBX binary messages not available in NMEA:
+| Signal | Weight | u-blox | UM980 / Mosaic NMEA | Mosaic SBF on H743 |
+|--------|--------|--------|---------------------|--------------------|
+| Barometer-vs-GNSS vertical-rate divergence | 20 | H743 DroneCAN | H743 DroneCAN | Yes |
+| SNR span anomaly | 20 | Yes | Yes | Yes |
+| Receiver spoof verdict (`SEC-SIG`) | 25 | H743 only | No | No |
+| Pseudorange residual stddev | 15 | Yes | No | No |
+| SNR temporal correlation | 12 | Yes | Partial | Yes, from `MeasEpoch` C/N0 |
+| Heading reversal | 12 | Yes | Yes | Yes |
+| GDOP sudden change | 8 | Yes | No | No |
+| GPS time sanity | 12 | Yes | Yes | Yes |
+| Velocity-position consistency | 10 | Yes | Partial | Yes |
+| Clock bias jump | 11 | Yes | No | Yes |
 
-| Signal | Required UBX message |
-|--------|---------------------|
-| Pseudorange residual stddev | NAV-SAT (prRes field) |
-| GDOP sudden change | NAV-DOP (gDOP field) |
-| Clock bias jump | NAV-CLOCK (clkB field) |
-
-Velocity-position consistency works with both receiver classes but is more precise with u-blox (uses NED velocity from NAV-PVT) than passive NMEA receivers (derived from RMC speed/course).
-On H743 DroneCAN, Mosaic SBF provides PDOP/HDOP/VDOP/TDOP and clock-bias inputs directly. The GDOP-jump confidence signal and pseudorange-residual signal remain unavailable in Mosaic mode.
+The receiver-spoof verdict is compiled only for H743 and requires a supported
+u-blox receiver. The barometric vertical-rate row is compiled only in
+DroneCAN builds and requires fresh FC barometer telemetry plus GNSS vertical
+velocity. Pseudorange residual requires UBX `NAV-SAT`; GDOP jump requires
+UBX `NAV-DOP`; and the u-blox clock row uses `NAV-CLOCK`. Velocity-position
+consistency works with passive NMEA too, but is more precise with NAV-PVT NED
+velocity. Mosaic SBF restores binary C/N0 temporal and clock-bias coverage;
+pseudorange-residual and GDOP-jump scoring remain unavailable in Mosaic mode.
 
 ## Startup guard
 
@@ -116,15 +141,26 @@ On H743 DroneCAN, Mosaic SBF provides PDOP/HDOP/VDOP/TDOP and clock-bias inputs 
 
 The filter is designed to survive several failure modes without operator intervention. Understanding what it does in each case helps you read logs and plan recovery.
 
-### Hardware watchdog (IWDG, 15 s)
+### Hardware watchdog (IWDG: 15 s boot, 2 s runtime)
 
-The STM32 runs an independent hardware watchdog clocked by the internal LSI oscillator (~32 kHz). If the main firmware loop ever stalls for more than **15 seconds** — for example, a pathological parser input, a CPU fault, or a stuck interrupt — the watchdog forcibly resets the MCU. The watchdog counts through CPU faults, so it is the last line of defense against any software deadlock.
+The STM32 runs an independent hardware watchdog clocked by the internal LSI
+oscillator (~32 kHz). It allows **15 seconds during boot** for receiver probing
+and other one-time initialization, then tightens to a **2-second runtime
+deadline**. After setup, a parser path, CPU fault, stuck bus, or interrupt that
+prevents the main loop from reaching its final reload point therefore forces a
+reset within approximately two seconds.
+
+When a debugger or the provisioning app halts the chip over SWD, H743 firmware v0.4.3 and newer freezes this watchdog for the debug session (DBGMCU freeze bit) so long flash operations like a full-chip erase are not reset mid-way. This has no effect in flight — the freeze only applies while a debugger holds the core halted.
 
 Symptoms in logs:
 - Unexplained `BOOT t=0ms` log line mid-flight with no user-triggered reset.
-- Brief GPS blackout on the FC (typically <15 s depending on what the filter was doing when the deadlock started).
+- A GNSS interruption whose total length includes the runtime deadline, reboot,
+  receiver autobaud, and the applicable boot guard; do not assume a fixed
+  sub-15-second recovery bound.
 
-The 15 s window is deliberately chosen to cover the worst-case firmware startup (up to ~11.5 s for a UM980 long-scan autobaud fallback) plus margin. You cannot reduce or disable it from Mission Planner.
+The 15-second boot allowance covers the worst-case receiver initialization;
+the 2-second flight-time deadline begins only after setup completes. Neither
+deadline is a Mission Planner parameter.
 
 ### Mid-flight reboot with FC already armed
 
@@ -140,19 +176,126 @@ Behavior:
 
 If the FC is **disarmed** at the moment of reboot (pre-flight bench test), the full `BOOT_DLYMS` window applies — this is intentional, since a cold boot on the bench shouldn't trust a first-second fix.
 
+**The fuel total survives a reboot only when a trustworthy V2 backup-SRAM
+record survives with it** (H743 DroneCAN `v0.5.28+`; V2 provenance in
+`v0.5.30`). The filter trusts the record rather than the reset-cause flag, so a
+valid record is restored after a watchdog bite, hard fault, brownout, or even a
+POR/PDR indication. It reports `Reset in flight - fuel total kept: N g`.
+
+POR/PDR proves only an electrical reset. It does not prove that the operator
+stopped the mechanical engine or refuelled; a deep in-flight supply dip can
+erase backup SRAM while the engine keeps running. Therefore **every missing,
+corrupt, or legacy V1 backup record is TOTAL LOST on every boot**, including an
+ordinary power-on. A surviving V2 fuel record is also invalidated when the H743
+tune journal is missing, corrupt, or has no valid record: without the durable
+capacity, density, and model settings, its numeric total has unknown
+provenance. There is no automatic "cold boot means a fresh full tank" shortcut.
+
+With a lost total the filter emits **no DroneCAN ICE Status packets**:
+ArduPilot's EFI backend must age stale/unhealthy instead of accepting a false
+numeric total. The filter repeats `Fuel total LOST - write FUEL_CAPG to restart
+it` every 60 s and mutes the warning ladder. Land or remain on the ground and
+wait for the fresh stopped-engine quorum: the FC must freshly report disarmed,
+RPM must be freshly valid and zero, and throttle must be freshly closed. Only
+then deliberately write `FUEL_CAPG` for the fuel actually loaded. This is
+required after a normal power-on with no valid retained record **even when the
+numerical `FUEL_CAPG` value has not changed**. A disarmed indication by itself
+is not enough, and the write is rejected with `FUEL_CAPG blocked: engine not confirmed stopped`
+until all three fresh observations agree. An accepted write zeroes the running
+total and cancels any not-yet-applied 25-second charge belonging to the old
+restored total. If the numerical capacity did not change, it can clear the
+lost-total lockout immediately. If the capacity changed, however, the total
+remains TOTAL LOST and EFI remains silent until the asynchronous tune-journal
+save succeeds and reports `Tune saved`; `FUEL_CAPG written - fuel total zeroed`
+alone does not prove persistence or EFI recovery. `Tune save failed` leaves the
+total lost while the save remains pending for retry. A fabricated zero would
+look like a full tank, which is the one thing this path must never send.
+
+`FUEL_DENS` uses the same fresh stopped-engine quorum. An actual density change
+marks the total LOST before applying the new value, cancels any older pending
+capacity commit, and keeps EFI silent. Until the verified density-journal save
+succeeds, capacity writes are rejected with
+`FUEL_CAPG blocked: wait for FUEL_DENS save`; a failed save stays blocked and LOST. `Tune saved` clears that
+pending-density block but does not restore fuel. Only then can a subsequent
+stopped-quorum `FUEL_CAPG` write establish a fresh zero under the new density.
+
+A factory-reset attempt marks the fuel total LOST in backup SRAM **before** its
+first flash operation can start. Even an attempt that reports storage failure
+may therefore conservatively leave EFI silent. After any factory-reset attempt,
+verify the complete fuel-model configuration, keep the engine stopped, and
+write `FUEL_CAPG` for the fuel actually aboard; a successful changed-capacity
+write still needs `Tune saved` before EFI resumes.
+
+Every boot also begins with the conservative assumption that the engine may be
+running. Only fresh disarmed state together with fresh valid zero RPM and fresh
+closed throttle clears that latch; writing `FUEL_CAPG` does not. When a valid V2 record is
+restored, the firmware adds a fixed **25-second rated-power reset-gap charge**.
+That bound covers up to 2 seconds of backup-save staleness, the roughly
+11.5-second longest UM980 setup path, other startup overhead, and margin. H743
+has no Phase-C boot wait. This is a deliberately conservative bounded charge,
+not proof of the exact fuel consumed. The integration clock also starts during
+early backup initialization so any further receiver/setup elapsed time is
+charged rather than silently discarded.
+
+The restore is protected by a durable write-ahead marker. Immediately after a
+known V2 total is copied into runtime, the retained BKPSRAM record is rewritten
+as TOTAL LOST before risky setup begins. A successful boot replaces that marker
+with a known record only after both the fixed 25-second charge and the first
+measured interval have been integrated. If another reset happens before that
+known commit completes, the next boot remains LOST and EFI stays suppressed
+until the stopped-engine quorum permits a `FUEL_CAPG` write. This prevents
+repeated setup resets from reusing one stale known total while charging its
+unobserved time only once.
+
+> **Never perform Phase-C maintenance while the engine is running.** The fixed
+> 25-second allowance covers bounded reset/startup work, not an operator who
+> leaves a maintenance session connected for an arbitrary time.
+
 ### FC MAVLink staleness (link loss fail-safe)
 
 This applies to the physical FC telemetry UART on UART builds and to the H743
 DroneCAN S2/index `1` virtual port.
 
-The filter tracks a per-field freshness timestamp for `ATTITUDE`, `VFR_HUD`, `ALTITUDE`, and `HEARTBEAT`. If any of these fields stops refreshing for more than **2 seconds**, the filter treats it as positive evidence that the MAVLink link is impaired — not as "no news is good news." Concretely:
+The direct FC-link DR1 gate watches two safety streams: `HEARTBEAT` and
+`EKF_STATUS_REPORT`. A heartbeat is stale after 3 seconds. EKF status is stale
+after 4 seconds on H743 (2 seconds on direct-UART F401). If either remains
+outside its freshness window for another continuous 2 seconds, the filter
+enters DR1. This distinguishes a brief delayed frame from a sustained loss of
+the safety link.
 
-- Synthetic position integration freezes (no more IMU-blended coasting) if `ATTITUDE`/`VFR_HUD` are stale.
-- Altitude-vs-barometer separation checks are disabled if the FC `ALTITUDE` message is stale — comparing a live GNSS altitude to a frozen baro reading could trip DR1 incorrectly during a climb.
-- The rejoin altitude gate skips its baro cross-check when the baro is stale.
-- The filter does **not** forcibly exit DR1 when the link drops — dropping protection at the moment the link is in trouble is exactly the wrong response.
+Other fields do not directly trip the FC-link guard. Stale `ATTITUDE` or
+`VFR_HUD` freezes/removes the affected synthetic-motion evidence, and stale
+`SCALED_PRESSURE` removes barometric evidence so a frozen value cannot create
+a false comparison. `ALTITUDE` is not part of this path: ArduPilot has no
+streamable MAVLink `ALTITUDE` message, so the firmware uses
+`SCALED_PRESSURE` where barometric input is applicable. The filter does
+**not** forcibly exit DR1 when the link drops.
 
-Symptoms in logs: no specific message, but a `DR` that sticks across a MAVLink dropout combined with a frozen synth position is expected behavior.
+Fuel accounting deliberately continues through this failure. Once fresh armed
+state, running RPM, or an open-throttle observation establishes that the engine
+may be running, silence cannot clear that latch. With RPM gone, the estimator
+charges rated-power burn and keeps the cumulative total advancing. Only fresh,
+explicit agreement on disarmed + zero RPM + closed throttle clears the latch.
+The same update runs while an FC-version hard block is active, so a navigation
+fail-closed state cannot silently freeze the fuel clock.
+
+The trip emits `DR: FC telemetry stale (hb=... ekf=...)`; `never` identifies a
+stream that has not been decoded since boot, while the numeric values show its
+age in seconds.
+
+### FC firmware identity gate
+
+FC version is a separate publication gate, not a DR1-recovery vote. Starting in
+H743 DroneCAN v0.5.30, the filter explicitly sends both a message-interval
+request and `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES` for
+`AUTOPILOT_VERSION`. GNSS output is suppressed immediately while the version
+is unknown, and remains suppressed for any version older than ArduPilot 4.6.1.
+The 15-second grace starts only after the FC transport target exists and delays
+only the repeating warning/hard processing block; it never permits GPS through.
+After it expires, an unknown FC reports `FC VERSION UNKNOWN` and
+`AUTOPILOT_VERSION REQUIRED`. A known old FC reports `FIRMWARE TOO OLD` and
+`UPDATE TO ARDUPILOT 4.6.1+`. A peer reset/rebind clears the old version credit
+and starts fail-closed again.
 
 ### DR1 maximum latch (`DR1_MAXMS`)
 
@@ -190,7 +333,7 @@ The following screenshot shows expected status-text format in GCS messages.
   - mode/state line: `ARM=... DR=... BLEND=... LAT=... LONG=...`
 - On H743 DroneCAN `v0.2.0+`, these messages use S2/index `1`; configure that
   virtual port before treating missing GCS logs as a filter fault.
-- If Mission Planner shows raw parameter names while you are tuning log or SNR settings, install [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) and refresh the parameter list.
+- If Mission Planner shows raw parameter names while you are tuning log or SNR settings, install [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod) and refresh the parameter list.
 - `fix` is the age of the last valid position/altitude fix; `nav` is the age of the last valid GNSS nav-data frame seen by the filter.
 - `SNR=NA` means the filter is not currently receiving usable SNR data from the receiver. With u-blox, this usually means `NAV-SAT` is not being output. With NMEA receivers such as UM980 or Mosaic X5, it means no `GSV` sentences are arriving. With H743 DroneCAN Mosaic SBF, it means `MeasEpoch` is missing, stale, or has no usable C/N0.
 - On u-blox firmware v1.6.12+, persistent `SNR=NA` also emits `snrdbg n... a... l... s... g... o... b...`: NAV-SAT frames seen, frame age, last length, reported satellites, usable C/N0 satellites, oversize drops, malformed/checksum drops.
@@ -232,6 +375,194 @@ When rejoin conditions are satisfied:
 1. Rejoin stability timer runs.
 2. Optional blend phase runs for `BLEND_MS`.
 3. Filter exits DR1 and restores DR0 forwarding.
+
+## Live spoofing map in Mission Planner
+
+H743 DroneCAN `v0.5.29+` and the
+[AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod)
+can show the receiver solution moving during DR1. The plugin adds a compact
+status strip, a **Details** window, and a Flight Data map overlay:
+
+- a **red aircraft** is the receiver-reported, untrusted GNSS position and
+  trail — where the receiver claims the aircraft is, not measured physical
+  truth;
+- an **orange aircraft** is the filter's wind-blind DR reference estimate; it
+  can drift in wind or freeze when FC speed/yaw telemetry is stale;
+- a **green aircraft** is the flight controller's position estimate, also not
+  ground truth;
+- a **purple dashed line** is the plugin's live, provisional RF bearing
+  **axis** (`bearing / bearing+180°`), not an arrow or source position;
+- thin purple lines are finalized RF axes, while a purple target and dotted
+  sensitivity circle are a strict three-axis advisory intersection;
+- connector lines show distance and bearing from the DR/FC estimates to the
+  untrusted receiver solution.
+
+When no fresh heading is available, an aircraft becomes a non-directional dot;
+the plugin never invents a north-facing heading.
+
+The panel also shows DR0/DR1, active and latched trip reasons, confidence,
+event count, stream freshness, u-blox RF/jamming diagnostics, and the live
+axis fit or its reason for abstaining. It hides live markers and the RF axis
+when samples go stale. Confidence is availability-normalized, so zero does not
+by itself prove the signal is clean.
+
+### Connect the two links
+
+1. Install the Mission Planner Mod and restart Mission Planner.
+2. Connect the FC normally and keep it as the primary connection.
+3. Connect a second USB-C cable directly from the H743 filter to the GCS PC.
+4. In Mission Planner **Connection Options**, add the H743 COM port as a
+   secondary MAVLink connection at `115200`. Mission Planner performs its normal
+   parameter request; no separate parameter step is needed.
+5. Open Flight Data and click **Details** in the AirDroper strip. During DR1,
+   require the **Private USB stream** field to begin `LIVE (private USB:` and
+   name the H743 COM port before treating the red/orange points as current.
+
+The H743 USB device identifies as VID/PID `0483:5740` and product
+`AirDroper_GNSS_Filter_H743_DroneCAN`. Normal DR status can arrive through the
+primary FC link, but live receiver and DR-reference coordinates are emitted only
+through this private USB connection. They never enter S2, CAN, or the flight
+controller path. This preserves the absolute rule that GNSS position must not
+reach the FC in DR1.
+
+Firmware v0.5.30+ deliberately accepts Mission Planner secondary connections
+that leave DTR deasserted and re-enumerates CDC cleanly at boot. It also gives
+USB its own MAVLink transmit sequence, separate from FC/S2, so interleaved
+normal and private `SP_*` frames do not create sequence holes on either link.
+The private `SP_*` feature itself was introduced in v0.5.29; the DTR and
+sequence corrections begin in v0.5.30.
+
+A direct cable is appropriate for bench work or a GCS physically tethered to
+the aircraft. For untethered/long-range use, design a separate out-of-band
+radio or companion path; the existing FC tunnel will not carry these positions.
+Before flight, inject a moving false solution on the bench while capturing raw
+CAN: USB should show the track, while CAN contains no `Fix2`, `Auxiliary`, or
+private `SP_*` records.
+
+## Finding the jammer: live and post-flight direction estimate
+
+H743 DroneCAN `v0.5.27+` emits the RF observables needed to estimate a BEARING
+to a jammer or spoofer. Mission Planner plugin `v0.3.0+` can fit them live, and
+`tools/df_analyze.py` can fit the same records after the flight. **The filter
+computes no bearing on board** and feeds none of this back into detection or
+recovery — it only emits telemetry, and a test enforces that it can never write
+filter state or trip DR1. That isolation is deliberate: a bearing that could
+influence DR1 would hand an attacker a lever controlled by transmit power and
+position.
+
+**How a bearing is possible with one antenna.** It isn't, instantaneously — one
+antenna is one phase centre, so there is no interferometry. The bearing comes
+from MOTION. A ground emitter arrives near or below the horizon, exactly where
+a patch antenna's gain rolls off and where the airframe shadows it, so received
+interference power modulates with heading in a single-lobe shape whose peak
+points at the emitter. Fitting that modulation over a turn recovers a bearing
+to roughly ±20–45°.
+
+Records are `NAMED_VALUE_INT`, so ArduPilot dataflash-logs them automatically.
+The fit uses the heading carried in `DF_YAW`. A single fit gives no source
+position or range; plugin `v0.3.0+` can separately intersect several finalized
+axes under the strict gates below:
+
+| Record | Contents |
+|--------|----------|
+| `DF_RF` | AGC, jamming indicator, jamming state and antenna status, bit-packed |
+| `DF_NOIS` | receiver noise level |
+| `DF_SNR` | max/min C/N0 and the satellite count they came from |
+| `DF_YAW` | latest fresh FC heading when the RF record was emitted, in centidegrees |
+
+The heading can be up to two seconds old; its exact age is not telemetered.
+That phase error is not included in the displayed fit sigma, so sigma is not a
+complete accuracy guarantee. Sampling is 1 Hz normally and 5 Hz once the
+receiver reports elevated interference or DR1 latches — 1 Hz aliases the lobe
+for a 20°/s turn.
+
+### Live in Mission Planner
+
+The normal FC telemetry link is enough for the open RF-axis estimate. The
+second private USB cable is additionally required for the red/orange tracks
+and the three-axis map intersection. Open the AirDroper **Details** window and
+watch **Approx. jammer/spoofer axis**:
+
+- `COLLECTING` means fewer than 20 usable RF/yaw samples have arrived;
+- `ABSTAIN - turn geometry` means the aircraft has not turned enough;
+- `ABSTAIN - no directional lobe` means a lobe did not beat noise and the
+  fitted range trend;
+- `ABSTAIN - RF metrics disagree` means the observables point in incompatible
+  directions;
+- `LIVE PROVISIONAL / UNVALIDATED AXIS b / b+180°` is an accepted open-segment
+  fit. It can move as more samples arrive.
+
+When an axis is accepted, Mission Planner draws a bidirectional purple dashed
+line through the fixed mean of the positions that accompanied that fit. It does
+not move the old bearing to the aircraft's latest position. The line is
+arbitrarily 3 km long on each side and does **not** mean the emitter is at an
+endpoint. Fly at least a 90° turn; a full orbit is much better. The live fitter
+uses fixed segments of at most 120 seconds and starts over after a telemetry gap
+longer than 10 seconds.
+
+### Provisional three-axis intersection
+
+The normal FC link is sufficient for the live purple axis, but a map
+intersection also needs the H743 USB-C secondary link. Only its moving,
+wind-blind DR reference is accepted as the position anchor. The red
+receiver-reported position is attacker-controlled and is never used.
+
+1. At one observation area, turn slowly for at least 20 seconds and collect at
+   least 40 RF/yaw samples. Press **Capture qualified axis** when enabled.
+2. Repeat at two more areas so **every pair** of observation anchors is at
+   least 500 m apart and every pair of axis directions differs by at least 30°.
+   All three axes must be finalized within 180 seconds, and the newest expires
+   after 30 seconds. Choose geometry where the axes cross widely.
+3. Watch **Provisional RF intersection**. Until three axes qualify it says
+   `ABSTAIN - third independent finalized axis required`; every other failed
+   gate also produces a specific abstention reason.
+4. A qualified result draws a purple target and dotted **geometry sensitivity**
+   circle. Use **Center RF intersection** to inspect it and **Reset RF axes**
+   before investigating another source or incident.
+
+The location gate is deliberately stricter than the live-axis gate: each
+finalized segment needs at least 40 samples over 20–120 seconds, sigma no worse
+than 15°, `F >= 8`, geometry `>= 1e-3`, two agreeing RF metrics, stable bearing,
+at least 90% moving-reference coverage, and bounded yaw-age sensitivity. The
+set needs the same private-USB telemetry session, DR event, and fitted metric;
+three pairwise-separated anchors and directions, strong crossing geometry,
+bounded range, and agreement from every retained axis. The marker disappears
+immediately when freshness or any
+gate fails.
+
+The local intersection solver is limited to 70°S–70°N and abstains outside
+that band; this keeps projection distortion inside the displayed sensitivity
+bound.
+
+The display is labelled **UNVALIDATED INTERFERENCE-AXIS INTERSECTION — ADVISORY
+ONLY**. It assumes one stationary emitter. Its axes have uncalibrated airframe
+and antenna bias, its DR anchors can drift, and its dotted circle is sensitivity
+to the known fit/yaw-age geometry—not a confidence or accuracy radius. It is
+not ground truth, a waypoint, or a navigation/targeting input, and nothing is
+sent back to the flight controller.
+
+### Post-flight analysis
+
+1. Fly a **full orbit** through the interference. A straight pass will not do
+   it: the fit needs heading spread, and without it the tool abstains.
+2. Pull the FC's `.bin` log.
+3. Run `python tools/df_analyze.py flight.bin`.
+
+The plugin and tool fit every metric independently and refuse to show an axis
+when usable metrics disagree. Two limits are worth understanding before you
+act on a number:
+
+- **Treat the result as an AXIS, not a direction, until you have confirmed it
+  against a known emitter.** The AGC polarity assumption is unvalidated; if it
+  is backwards, the bearing is 180° reversed at identical fit quality with
+  nothing in the output to reveal it.
+- **One bearing is a direction, not a position.** Although two mathematical
+  lines always intersect, the live plugin requires three independent axes so a
+  conflicting segment cannot silently become a plausible location.
+
+The tool applies a geometry gate as well as a noise gate, and abstains rather
+than guessing — an abstention is the correct answer to a flight that did not
+turn enough.
 
 ## DR1 event pulse output
 

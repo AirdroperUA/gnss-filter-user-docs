@@ -4,9 +4,11 @@
 
 This page is the complete H743-specific setup path for the WeAct Studio
 MiniSTM32H743VITX board with a 3.3 V CAN transceiver such as the SN65HVD230.
-Use it when you want the filter to publish GPS, MS4525DO airspeed and HMC5983
-compass data to ArduPilot, while carrying MAVLink2 over the same DroneCAN
-connection instead of using flight-controller UARTs.
+The production/default build publishes GPS and MS4525DO airspeed to ArduPilot
+while carrying MAVLink2 over the same DroneCAN connection instead of using
+flight-controller UARTs. It compiles the HMC5983 driver out. HMC5983 compass
+publication is available only in the optional direct-flash `*_dronecan_mag`
+variant described below.
 
 ## 1) Supported H743 firmware families
 
@@ -16,17 +18,26 @@ connection instead of using flight-controller UARTs.
 | `weact_mini_h743vitx_usb` | Same standalone UART build | USB-C ROM DFU |
 | `weact_mini_h743vitx_dronecan` | H743 DroneCAN GPS build | ST-Link |
 | `weact_mini_h743vitx_dronecan_usb` | Same DroneCAN GPS build | USB-C ROM DFU |
+| `weact_mini_h743vitx_dronecan_mag` | Optional HMC5983-enabled DroneCAN build | ST-Link |
+| `weact_mini_h743vitx_dronecan_mag_usb` | Same optional HMC5983-enabled build | USB-C ROM DFU |
 | `weact_mini_h743vitx_dronecan_bootloader` | H743 DroneCAN secure bootloader | ST-Link |
-| `weact_mini_h743vitx_dronecan_phaseb_app` | Signed H743 DroneCAN app at `0x08020000` | ST-Link |
-| `weact_mini_h743vitx_dronecan_phaseb_app_usb` | Signed H743 DroneCAN app at `0x08020000` | USB-C ROM DFU |
+| `weact_mini_h743vitx_dronecan_phaseb_app` | UID-patchable H743 app template at `0x08020000` | Provisioner only |
+| `weact_mini_h743vitx_dronecan_phaseb_app_usb` | Identical build-validation template | Provisioner only |
+
+The default direct-flash builds and both signed phase-B production templates
+set `FILTER_DRONECAN_HMC5983_ENABLE=0`; node 42 publishes no
+`MagneticFieldStrength2` from them. There is currently no production/signed
+phase-B magnetometer variant. Select a `*_dronecan_mag` environment only for a
+deliberate direct-flash installation with a physically fitted HMC5983.
 
 The recommended H743 flight configuration is the DroneCAN family:
 
 - GNSS input on `PA2/PA3`
 - CAN to the flight controller on `PB8/PB9` through a CAN transceiver
 - OpenIPC camera MAVLink2 on `PA10` RX / `PA9` TX at `115200` baud
-- shared I2C2 sensor bus on `PB10` SCL / `PB11` SDA for an MS4525DO
-  differential-pressure sensor and HMC5983 magnetometer
+- shared I2C2 sensor bus on `PB10` SCL / `PB11` SDA for the default MS4525DO
+  differential-pressure sensor; an HMC5983 may share it only with a
+  `*_dronecan_mag` build
 - USB-C kept on `PA11/PA12` for ROM DFU and bench/debug USB
 - two bidirectional `uavcan.tunnel.Targetted` virtual serial ports over CAN:
   index `0` for the camera, index `1` for filter-owned MAVLink and FC telemetry
@@ -50,7 +61,7 @@ so `PA11/PA12` remain available for USB-C.
 | CAN cable to flight controller | CANH, CANL, and GND |
 | Camera UART cable | Camera TX, camera RX, and common GND; power the camera from a suitable separate supply |
 | MS4525DO airspeed sensor | Default firmware scaling is specifically for `4525DO-DS3AI001DP`; see the ordering-code warning below |
-| HMC5983 magnetometer | Genuine HMC5983 at I2C address `0x1E`; verify identity before flight |
+| HMC5983 magnetometer | Optional, and used only with a direct-flash `*_dronecan_mag` build; genuine device at I2C address `0x1E` required |
 | Keyed 4-pin I2C connector/harness | Separate from the full HD-15 connector; carries 3V3, GND, SCL, and SDA |
 | USB-C cable | For H743 ROM DFU flashing and bench power/debug |
 | ST-Link V2 | Optional for development and required for locked production provisioning |
@@ -70,8 +81,8 @@ that termination disabled.
 | STM32 TX to GNSS RX | `PA2` | GNSS RX | Cross TX to RX |
 | Camera TX to STM32 RX | `PA10` | OpenIPC camera TX | 3.3 V UART, cross TX to RX |
 | STM32 TX to camera RX | `PA9` | OpenIPC camera RX | 3.3 V UART, cross TX to RX |
-| Sensor I2C clock | `PB10` | MS4525DO and HMC5983 `SCL` | I2C2, shared bus |
-| Sensor I2C data | `PB11` | MS4525DO and HMC5983 `SDA` | I2C2, shared bus |
+| Sensor I2C clock | `PB10` | MS4525DO `SCL`; optional HMC5983 `SCL` only for `*_dronecan_mag` | I2C2, shared bus |
+| Sensor I2C data | `PB11` | MS4525DO `SDA`; optional HMC5983 `SDA` only for `*_dronecan_mag` | I2C2, shared bus |
 | Sensor power | `3V3` | Sensor `VCC` | Only for confirmed 3.3 V-compatible parts/modules |
 | Sensor ground | `GND` | Sensor `GND` | Common signal/power ground |
 | CAN TX | `PB9` | Transceiver `TXD` | FDCAN1_TX |
@@ -89,7 +100,7 @@ the UART wiring described here is not a camera power feed.
 
 <a id="sensor-i2c-connector"></a>
 
-### Shared I2C2 airspeed/compass connector (`SENSOR_I2C`)
+### Shared I2C2 airspeed/optional-compass connector (`SENSOR_I2C`)
 
 The HD-15 assignment below is already full. Do not repurpose one of its pins.
 Install a separate, keyed and clearly labelled 4-pin connector for the sensor
@@ -105,8 +116,9 @@ HD-15 numbering:
 
 Use the connector manufacturer's mating-face numbering and key the housing so
 it cannot be inserted reversed. Confirm pin 1 with a meter before connecting a
-sensor. The MS4525DO and HMC5983 are wired in parallel on the same bus; they are
-not daisy-chained through CAN.
+sensor. The default build uses this bus for the MS4525DO. When a direct-flash
+`*_dronecan_mag` build and HMC5983 are deliberately used, the two sensors are
+wired in parallel on the same bus; they are not daisy-chained through CAN.
 
 Use one effective set of pull-ups from SCL and SDA to **3.3 V** (typically
 2.2-4.7 kohm each, selected for the actual harness capacitance). Many breakout
@@ -129,14 +141,15 @@ polarity before using such a part. On the bench, gently apply pressure and
 confirm that the flight controller reports increasing positive airspeed;
 never validate the sign for the first time in flight.
 
-The magnetometer driver expects HMC5983 address `0x1E` and identification bytes
+Only the optional direct-flash `*_dronecan_mag` builds enable the magnetometer
+driver. It expects HMC5983 address `0x1E` and identification bytes
 `H43`. Numerous modules sold as HMC5983 use HMC5883-compatible or unmarked
 clones. An address scan alone is not proof of the device. This firmware rejects
 the wrong identity, but a module that imitates `H43` can still have different
 gain, noise or temperature behavior; use a traceable part and bench-compare it
 against a known compass.
 
-Mount the HMC5983 rigidly and record its axis orientation. Prefer an external
+For that optional variant, mount the HMC5983 rigidly and record its axis orientation. Prefer an external
 mast/location away from motors, magnets, steel fasteners, high-current battery
 and ESC wiring, switching regulators, the CAN transceiver, and the camera/LTE
 radio. Keep the MS4525 and its pitot hoses away from prop wash, leaks, sharp
@@ -238,15 +251,17 @@ For the unlocked development DroneCAN build:
 pio run -e weact_mini_h743vitx_dronecan_usb -t upload
 ```
 
-For the signed secure app build behind the H743 bootloader:
+Build the secure-app template behind the H743 bootloader with:
 
 ```powershell
-pio run -e weact_mini_h743vitx_dronecan_phaseb_app_usb -t upload
+pio run -e weact_mini_h743vitx_dronecan_phaseb_app_usb
 ```
 
-The secure-app USB environment writes the app slot at `0x08020000`. Use it
-only when the H743 bootloader is already installed or when you intentionally
-want an app image linked for that address.
+The phase-B environments deliberately reject `-t upload`. Their binary still
+contains an unprovisioned UID sentinel and is not a complete secure bundle.
+Use the AirDroper provisioning app for licensed ST-Link/SWD or USB-C ROM DFU
+updates; it obtains a UID-bound application, matching signed metadata, and the
+correct bootloader layout before modifying a protected board.
 
 To enter STM32 ROM DFU:
 
@@ -255,7 +270,7 @@ To enter STM32 ROM DFU:
 3. Connect USB-C to the computer.
 4. Release `BOOT0` after the board enumerates in DFU mode.
 
-The Windows **AirDroper GNSS Filter** app version `2026.06.23.10` or newer can
+The Windows **AirDroper GNSS Filter** app version `2026.08.02.1` or newer can
 update an already activated H743 over USB-C ROM DFU:
 
 1. Set **Board target** to **H743 WeAct DroneCAN**.
@@ -264,16 +279,18 @@ update an already activated H743 over USB-C ROM DFU:
 4. Put the H743 into ROM DFU with `BOOT0` + reset/power-cycle.
 5. Click **Update**.
 
-The `.exe` uses two USB-C update paths:
+The `.exe` first reads and parses the physical RDP option byte. It refuses to
+write when that read fails, is unparseable, or reports irreversible RDP2. Both
+readable RDP0 and protected RDP1 boards then use the same secure destination:
+a mass erase, the complete prevalidated application at `0x08020000`, metadata
+at `0x081E0000`, the matching bootloader at `0x08000000`, and final RDP1.
 
-- **Readable/unlocked board:** writes the signed H743 application at
-  `0x08020000` and metadata at `0x081E0000`; bootloader and option bytes are
-  left unchanged.
-- **RDP1-protected production board:** asks the operator to type the expected
-  UID-short from the license preflight, removes RDP over USB DFU, requires a
-  full power-cycle back into ROM DFU with `BOOT0` held, mass-erases flash,
-  writes app + metadata + bootloader, verifies app/metadata readback, then
-  restores H743 RDP Level 1.
+An RDP1 board additionally requires the expected UID-short from license
+preflight, RDP removal, a verified RDP0 readback, and a physical re-read of the
+exact UID before any firmware is written. Application/metadata readback is
+verified before the bootloader and lock are applied. A separate final
+option-byte read must prove RDP1; if it does not, the app does not claim or
+report a successful update.
 
 RDP1 hides the physical UID until after erase, so the protected USB-C path is
 intentionally operator-confirmed. If the typed UID-short is wrong or the dialog
@@ -314,8 +331,31 @@ from the server, flashes app `0x08020000`, metadata `0x081E0000`,
 bootloader `0x08000000`, and then applies H743 RDP Level 1 with `RDP=0xBB`.
 Version `2026.06.23.10+` writes the H743 application and metadata as separate
 flash operations. If CubeProgrammer already erased the board and a repeated
-mass erase fails, the app checks blank bootloader/app/metadata sentinels and
-continues with write + verify when those slots are already blank.
+mass erase fails, app `2026.07.23.1+` uploads and verifies that every written
+region (and the parameter-journal sectors) reads fully blank before it
+continues with write + verify.
+
+**Mass erase and the firmware watchdog (app `2026.07.23.1+`).** The installed
+H743 firmware arms a 15-second hardware watchdog at boot, and that watchdog
+keeps counting even while the programmer holds the chip halted. An H743
+full-flash erase takes long enough that the watchdog can reset the chip
+mid-erase, which CubeProgrammer reports as
+`Mass erase operation failed. Please verify flash protection` even though the
+board is NOT protected (RDP reads `0xAA`). App `2026.07.23.1+` prevents this
+automatically: every H743 erase first freezes the firmware watchdog for the
+debug session (a `DBGMCU` register write in the same CubeProgrammer call). If
+the erase still fails, the app walks you through a **BOOT0 power cycle**:
+
+1. Remove power from the H743.
+2. Hold the **BOOT0** button on the WeAct board.
+3. Reconnect power while still holding BOOT0.
+4. Release BOOT0 about one second after power-up.
+
+With BOOT0 held during power-up the chip starts its built-in ROM bootloader
+instead of the installed firmware, so no watchdog runs and the erase always
+has a clean chip. Firmware `v0.4.3` and newer also freezes the watchdog under
+any debugger on its own, so boards flashed with it do not need any of this.
+
 The app's **Recover Board** button is target-aware. With **Board target** set
 to **H743 WeAct DroneCAN**, it uses ST-Link/SWD, removes H743 RDP Level 1 with
 the H743 RDP-only path, mass-erases flash, verifies `0x08000000` is blank, and
@@ -329,6 +369,15 @@ the H743, and retry with only `3V3`, `GND`, `SWDIO`, and `SWCLK` connected.
 If you do use ST-Link `RST/NRST`, connect it only to the WeAct `NRST/RST` pin.
 Do not hold RESET continuously while clicking **Activate**, **Update**, or
 **Recover Board**.
+
+NRST wiring note: the 4-wire hookup above is the supported default. A
+*correctly* wired ST-Link `RST` -> WeAct `NRST` is also fine and even helps —
+it lets CubeProgrammer connect "under reset", which stops the installed
+firmware (and its watchdog) from running before an erase. Remove the wire only
+when it causes `DEV_TARGET_HELD_UNDER_RESET` (wrong pin, damaged wire, or the
+probe holding reset low). The generic F401 advice in
+[10_self_install.md](10_self_install.md) to "wire NRST when connection fails"
+applies to H743 only with this caveat.
 
 If STM32CubeProgrammer GUI connects with **Mode = Normal** and
 **Reset mode = Software reset**, use app `2026.06.23.10` or newer. That build
@@ -376,6 +425,18 @@ installed.
 
 ## 6) Flight controller setup
 
+For **ArduPlane 4.6.3 on CAN1**, the recommended starting point is
+`presets/arduplane_FC_4.6.3_h743_dronecan_CAN1_core.param` in the
+[AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod).
+Load it into the **flight controller (normally SYSID 1), never node 42**. On a
+fresh disabled-CAN setup, Mission Planner exposes enable-dependent parameters
+in stages: Load/Write, reboot, reconnect/refresh, and load the same file again
+until there is no missing-parameter popup and all ten values read back exactly.
+This may require three imports. The core file deliberately preserves CAN2,
+camera S1, airspeed, optional compass, EKF, arming, SR streams, and `GPS_AUTO_CONFIG`;
+complete every manual safety check written inside it. The tables below remain
+the reference for deliberate CAN2 or optional-accessory configurations.
+
 Configure the ArduPilot CAN port connected to the H743 transceiver:
 
 | Parameter | CAN1 example | CAN2 example |
@@ -405,10 +466,34 @@ prefix below with `CAN_D2_`:
 | Filter port baud | `CAN_D1_UC_S2_BD` | `115` (115200) |
 | Filter port protocol | `CAN_D1_UC_S2_PRO` | `2` (MAVLink2) |
 
+**The index-`1` (filter) tunnel, plus a live `EKF_STATUS_REPORT` on it, is a
+HARD PRECONDITION for any GPS output from node `42`.** It is not a camera
+convenience, an optional enrichment, or a logging nicety. The filter is
+fail-closed on flight-controller telemetry freshness: it publishes
+`Fix2`/`Auxiliary` only while it is receiving BOTH a FC `HEARTBEAT` (within
+3000 ms) and a FC `EKF_STATUS_REPORT` within its own freshness window. If
+either message is missing, the filter suppresses BOTH `Fix2` AND `Auxiliary`,
+so the flight controller receives NO GPS at all from this node - not degraded
+GPS, not unfiltered GPS, none. Configure `CAN_D1_UC_S2_*` even if you never
+intend to read filter status messages, and confirm the FC is actually streaming
+`EKF_STATUS_REPORT` on that channel.
+
+**`SYSID_THISMAV = 1` is also a hard requirement.** The filter accepts FC
+safety telemetry only from MAVLink system ID `1` and component ID `1`
+(`MAV_COMP_ID_AUTOPILOT1`). Both values are compile-time constants in the
+firmware; no filter parameter can change them. With any other
+`SYSID_THISMAV`, the FC `HEARTBEAT` and `EKF_STATUS_REPORT` frames still cross
+the tunnel and are still parsed, but they are discarded before they can refresh
+the safety evidence. The result is a permanent GPS block on a perfectly working
+CAN tunnel: node `42` is present, tunnel byte counters increase, camera
+MAVLink2 works, and GPS never appears. ArduPilot's own default is `1`; this
+failure shows up on aircraft where `SYSID_THISMAV` was changed for a
+multi-vehicle GCS setup.
+
 Port S1/index `0` is a transparent bidirectional path between the OpenIPC
 camera UART and ArduPilot. Port S2/index `1` is separate: it carries MAVLink2
 generated by the H743 filter and returns FC telemetry used by its existing
-EKF, barometer, arm-state, parameter, and status logic. Keeping separate serial
+EKF, arm-state, parameter, and status logic. Keeping separate serial
 IDs prevents camera bytes from being interleaved with filter-owned MAVLink.
 ArduPilot's `_PRO = 2` value is its serial-protocol setting; the standard
 Targetted DSDL encodes MAVLink2 as on-wire protocol value `1`.
@@ -419,10 +504,45 @@ waits five seconds after FC boot (older ArduPilot versions may call this
 `TELEM_DELAY`). Reboot the flight controller after changing CAN or DroneCAN
 serial parameters.
 
-### ArduPilot airspeed and compass setup
+### Stream rates on the filter's tunnel channel
 
-The FC sees both I2C sensors as DroneCAN devices from node `42`; do not select
-the FC's local I2C MS4525 backend. After the H743 node and sensors are powered:
+ArduPlane compiles every stream group to a `1 Hz` default on EVERY MAVLink
+channel, including DroneCAN tunnel channels, so a correct installation normally
+needs no `SRn_*` write at all. The filter additionally asks the FC for
+`EKF_STATUS_REPORT` at 2 Hz using `SET_MESSAGE_INTERVAL` after binding, and
+retries while the field is stale.
+
+- **Never set the filter tunnel channel's `SRn_EXTRA3` to `0`.** `EXTRA3` is the
+  stream group that carries `EKF_STATUS_REPORT`. Setting that group to `0` on
+  the filter's channel removes the message, and the filter then blocks GPS
+  permanently while everything else on the tunnel keeps working.
+- **`SRn` is a MAVLink CHANNEL ordinal, not a `SERIALn` number.** There is no
+  `SERIAL8`/`SERIAL9` behind the DroneCAN tunnels, and `SR2_` does not mean
+  "`SERIAL2`". To find the right group, count every `SERIAL0`..`SERIAL7` whose
+  `SERIALn_PROTOCOL` is a MAVLink variant (MAVLink1 or MAVLink2), and include
+  the second USB port in that count - it occupies a MAVLink channel even on
+  boards where the default parameter table shows `None` for it. Call that count
+  P. The camera tunnel is then `SR(P)` and the filter tunnel is `SR(P+1)`: the
+  DroneCAN serial ports are appended after the physical MAVLink channels, and
+  the filter port is always the last one.
+- **Only `SR0_` through `SR6_` exist.** If the filter's channel lands beyond
+  `SR6`, it has no parameter group at all and no `SRn_*` write can reach it;
+  only `SET_MESSAGE_INTERVAL` from a GCS or script can. The compiled `1 Hz`
+  default still applies to that channel, which is why the standard setup works
+  with no `SRn` editing whatsoever.
+- **If you raise `EXTRA3` for margin, change ONE candidate group at a time,
+  reboot the FC, and check whether the block clears.** Never blanket-set several
+  `SRn_EXTRA3` values hoping that one of them is the right channel. `SR*`
+  parameters raise whole message GROUPS rather than single messages, so a wrong
+  guess can saturate a `57600` telemetry radio or flood the camera UART and the
+  CAN bus.
+
+### ArduPilot airspeed and optional compass setup
+
+The production/default build exposes the MS4525 as a DroneCAN device from node
+`42`; do not select the FC's local I2C MS4525 backend. Only a direct-flash
+`*_dronecan_mag` build also exposes the HMC5983. After the H743 node and fitted
+sensors are powered:
 
 1. Set the chosen FC airspeed instance to DroneCAN: normally
    `ARSPD_TYPE = 8`. If another airspeed sensor already occupies instance 1,
@@ -431,19 +551,19 @@ the FC's local I2C MS4525 backend. After the H743 node and sensors are powered:
    strategy. For Plane this is normally enabled only after a successful bench
    check and airspeed calibration; follow the current ArduPilot airspeed setup
    procedure for offset, ratio, tube order and pre-arm validation.
-3. Allow ArduPilot to discover the DroneCAN compass. In Mission Planner open
+3. **`*_dronecan_mag` only:** allow ArduPilot to discover the DroneCAN compass. In Mission Planner open
    `Setup -> Mandatory Hardware -> Compass`, confirm a compass from node `42`
    appears, mark/use it as external as appropriate, and assign its priority.
-4. Set or auto-detect the HMC5983 orientation, then perform a complete compass
+4. **`*_dronecan_mag` only:** set or auto-detect the HMC5983 orientation, then perform a complete compass
    calibration in the installed vehicle. Never copy offsets from another
    airframe or sensor. Confirm all compass axes respond in the correct direction
    while rotating the aircraft and inspect motor-current interference before
    relying on it for yaw.
 
-ArduPilot automatically identifies DroneCAN airspeed and compass publishers;
-there is no extra virtual-serial mapping for these sensors. A healthy MS4525
-sample is published as `uavcan.equipment.air_data.RawAirData` at up to 20 Hz.
-A healthy HMC5983 sample is published as
+ArduPilot automatically identifies the DroneCAN airspeed publisher; there is
+no extra virtual-serial mapping for it. A healthy MS4525 sample is published as
+`uavcan.equipment.air_data.RawAirData` at up to 20 Hz. On a
+`*_dronecan_mag` build only, a healthy HMC5983 sample is published as
 `uavcan.equipment.ahrs.MagneticFieldStrength2` with sensor ID `0` at up to
 25 Hz. The sensor messages share the existing node ID and CAN transceiver with
 GPS and both MAVLink tunnels.
@@ -457,10 +577,16 @@ sensor, tubing, mounting, orientation, wiring, or nearby power equipment.
 
 Classic CAN carries only seven payload bytes in each multi-frame transport
 frame. Keep ArduPilot stream rates modest: camera full duplex plus a chatty
-filter port and the 20/25 Hz sensor publications can approach the capacity of a
-1 Mbps bus. GPS and NodeStatus have higher priority, while bounded MAVLink
-queues shed overload. A red `MAV` row or nonzero `ERR` row indicates
+filter port and the 20 Hz airspeed publication can approach the capacity of a
+1 Mbps bus; a `*_dronecan_mag` build adds the 25 Hz compass publication. GPS
+and NodeStatus have higher priority, while bounded MAVLink queues shed
+overload. A red `MAV` row or nonzero `ERR` row indicates
 loss/overload; reduce stream rates before flight.
+**Carve-out: never reduce the filter tunnel channel's `EXTRA3` below its
+compiled `1 Hz` default, and never set it to `0`.** That group carries
+`EKF_STATUS_REPORT`, which the filter requires for any GPS output at all, so
+"trimming" it turns a bandwidth concern into a total GPS block. Trim the other
+stream groups, and the camera channel, instead.
 A yellow `MAV` row means queued data expired after a stalled link.
 Partial camera data is batched for at most 10 ms to limit CAN framing overhead.
 If either camera direction makes no progress for 500 ms, bytes still in the
@@ -477,12 +603,99 @@ It publishes native DroneCAN GPS messages:
 - `uavcan.equipment.air_data.RawAirData` for MS4525 differential pressure and
   sensor temperature, up to 20 Hz
 - `uavcan.equipment.ahrs.MagneticFieldStrength2` for HMC5983 magnetic field,
-  sensor ID `0`, up to 25 Hz
+  sensor ID `0`, up to 25 Hz — `*_dronecan_mag` builds only
 - `uavcan.tunnel.Targetted` for the two MAVLink2 virtual serial ports
+- `uavcan.equipment.ice.reciprocating.Status` at 1 Hz, the engine fuel estimate
+  (H743 DroneCAN `v0.5.28+`)
 
 The MAVLink2 streams are tunneled; raw GNSS NMEA, UBX, and SBF receiver streams
 are not. GPS remains native `Fix2/Auxiliary`, and the physical FC GPS UART stays
 disabled.
+
+### Engine fuel estimation (EFI)
+
+The filter estimates fuel burn from the engine RPM the flight controller
+already streams to it, and publishes the result as
+`uavcan.equipment.ice.reciprocating.Status` (data type `1120`) at 1 Hz. This is
+an ESTIMATE computed from a propeller model, not a measurement: there is no
+flow sensor and no tank sensor anywhere in the path.
+
+To consume it:
+
+| Purpose | ArduPilot parameter | Value |
+|---------|---------------------|-------|
+| EFI backend | `EFI_TYPE` | the DroneCAN option for your ArduPilot version |
+| RPM source the filter reads | `RPM1_TYPE` | whatever matches your pickup |
+| RPM scaling | `RPM1_SCALING` | **see the warning below** |
+
+ArduPilot decodes the message into `EFI_STATUS`, which gives a GCS fuel display
+and a dataflash record with no side channel. The consumed-volume field is
+monotonic and is what the FC's EFI battery-monitor mapping uses; the sensors
+this engine does not have - oil pressure, coolant temperature and the rest -
+are published as NaN rather than zero, because zero is a measurement and a
+false one is alarming.
+
+**`RPM1_SCALING` is the one setting that can make this dangerous.** The filter
+has a single RPM source, so nothing on the aircraft can contradict it. A twin
+CDI gives two pulses per revolution; configure it for one and every reading
+halves, which drops the propeller term eightfold and under-reports the burn.
+The filter puts a floor under the estimate from throttle position and
+annunciates `Fuel held up by throttle - check RPM_SCALING` when that floor
+binds - **if you see that message, check the scaling against a hand tachometer
+before flying again.** Verify it once at a known idle RPM during bring-up.
+
+**On an airframe with no fuel-level sensor this estimate is the ONLY fuel
+indication the pilot has**, so it is deliberately biased to over-report and is
+advisory until calibrated. Set the eight `PROP_*`/`FUEL_*`/`ENG_PMAXKW`
+parameters on the FILTER (node `42`, not the FC), load an engine preset if one
+matches your combination, and follow "Calibrating the fuel estimate" in
+[06_tuning.md](06_tuning.md). Writing `FUEL_CAPG` zeroes the running total, so
+write it after every refuel.
+
+Fuel accounting is deliberately independent of the GNSS output gate. It keeps
+running through complete FC-link loss and an unknown/unsupported FC-version
+block. Every boot starts with the conservative engine-may-be-running latch set;
+link silence cannot clear it, and missing RPM is charged at rated power until
+fresh disarmed state, zero RPM, and closed throttle all confirm a stop. Writing
+`FUEL_CAPG` is accepted only after those same three inputs are fresh; the write
+itself does not clear that latch.
+
+If any boot has no trustworthy V2 backup record (including a normal power-on, a
+warm reset, or any legacy V1 record), the total is marked LOST and the filter
+sends **no DroneCAN ICE Status**. A missing, corrupt, or otherwise invalid H743
+tune journal also invalidates a surviving fuel total because the capacity,
+density, and model settings under which it accumulated have unknown provenance.
+POR/PDR cannot prove a refuel or mechanical engine stop. ArduPilot's EFI backend
+therefore ages stale/unhealthy instead of accepting a false zero/full tank. The
+filter repeats `Fuel total LOST - write FUEL_CAPG to restart it` every 60 s.
+Land or remain on the ground, verify the complete fuel configuration, wait for
+fresh stopped-engine quorum (disarmed + valid zero RPM + closed throttle), and
+rewrite `FUEL_CAPG` for the fuel aboard even if its numerical value is unchanged.
+Disarmed alone is rejected. If the numerical capacity changed, the accepted
+write zeroes the runtime counter but leaves TOTAL LOST and EFI silent until the
+asynchronous tune-journal save reports `Tune saved`; `Tune save failed` leaves
+the lockout in place. A valid V2 restore receives a bounded conservative
+25-second rated-power reset-gap charge, not an exact measurement of
+reset/startup burn. An accepted write establishing a new total cancels any
+pending charge belonging to the old restored total.
+
+`FUEL_DENS` requires the same fresh stopped-engine quorum. An actual density
+change marks the total LOST before runtime assignment, cancels any older CAPG
+commit intent, and blocks capacity writes with
+`FUEL_CAPG blocked: wait for FUEL_DENS save` until verified journal save. Failure stays blocked/LOST;
+`Tune saved` clears the density latch but not the lost total. Only then can a
+subsequent stopped-quorum `FUEL_CAPG` write establish a fresh zero.
+
+Factory reset marks the fuel total LOST in backup SRAM before flash work starts.
+A failed attempt may conservatively leave it LOST too. After any attempt,
+recheck every fuel-model parameter and perform the stopped-engine `FUEL_CAPG`
+recovery; after a changed capacity, wait for `Tune saved`.
+
+**Never perform Phase-C maintenance with the engine running.** A connected
+maintenance session can exceed that fixed 25-second bound.
+
+The estimate needs no extra stream configuration: RPM, throttle and air density
+all arrive on the filter tunnel channel that the GPS path already requires.
 
 ### Septentrio Mosaic X5 SBF input
 
@@ -537,6 +750,34 @@ FC can select filter system ID `42` where its interface supports MAVLink system
 selection. The DroneCAN node Params window remains the most direct on-aircraft
 configuration path.
 
+> ### The filter's parameters are NOT in Mission Planner's Full Parameter List
+>
+> This is the single most common way to waste an afternoon, so it is stated
+> before the procedures rather than after them.
+>
+> The filter is a **separate MAVLink node: system ID 42, component ID 191** - the
+> same identity printed on every filter status line in the Messages tab. Mission
+> Planner's Full Parameter List and Full Parameter Tree edit the **connected
+> vehicle, system ID 1**, which is the flight controller.
+>
+> Typing a filter parameter name there and pressing **Write Params** sends the
+> write to the flight controller. The filter never receives it. There is **no
+> error and no rejection**, because nothing arrived to be refused - the value
+> simply never changes, through any number of retries and reboots.
+>
+> Use one of the three options below. All of them address node 42 directly.
+
+> ### `ARM=1` in the filter's status line does not mean the FC is armed
+>
+> Mutations are fail-closed on the FC being disarmed, so it is natural to read
+> `ARM=1` as the blocker. It is not. That field is `guard_armed` - the spoof
+> guard having completed warm-up - and it is a **healthy** indication that says
+> nothing about the flight controller.
+>
+> When a write really is refused for arming, the filter says so explicitly:
+> `Write blocked: FC armed/unknown`. If you see silence instead, the write did
+> not reach the filter; re-read the box above.
+
 Reads are available at any time, but every mutation is fail-closed unless the
 filter has received a fresh, positive **FC disarmed** report. This includes
 parameter writes, `UBX_RESET`, **Commit Params**, and factory reset. The FC must
@@ -558,6 +799,44 @@ Use this while the board is on the aircraft CAN bus:
 7. Allow up to 65 seconds if another storage operation was attempted during the
    preceding minute, then reboot and re-open node `42` Params to confirm the
    value persisted.
+
+### Option C: Scripted, from a PC on the FC's USB port
+
+Use this when you want the values recorded, diffable, or applied repeatably -
+and when you would rather not depend on the GCS addressing node 42 correctly.
+`tools/mission_planner/filter_params.py` talks to system ID 42 directly through
+the flight controller's MAVLink link.
+
+Disconnect Mission Planner first; it holds the COM port exclusively.
+
+```bash
+# what does the filter actually expose?
+python tools/mission_planner/filter_params.py --port COM25 --list
+
+# read and write single values; every write is read back and confirmed
+python tools/mission_planner/filter_params.py --port COM25 --get LOG_MS
+python tools/mission_planner/filter_params.py --port COM25 --set LOG_MS=2000
+
+# capture the whole tune before changing anything, and put it back later
+python tools/mission_planner/filter_params.py --port COM25 --backup before.params
+python tools/mission_planner/filter_params.py --port COM25 --restore before.params
+
+# make Mission Planner's DroneCAN parameter screen usable (see Option A)
+python tools/mission_planner/filter_params.py --port COM25 --enable-dronecan-ui
+```
+
+The script refuses to report success on anything it cannot read back, and it
+surfaces the filter's own refusal messages rather than failing silently. Values
+commit to flash a couple of seconds after the ack - the filter logs
+`Tune saved` - and survive a power cycle.
+
+`--enable-dronecan-ui` checks `CAN_SLCAN_CPORT`, and sets `CAN_SLCAN_TIMOUT` to
+30 s if it is 0. Zero means SLCAN never reverts to MAVLink, so if it is ever
+engaged and anything goes wrong the link stays dead until a power cycle. It
+deliberately leaves `CAN_SLCAN_SERNUM` at `-1`: Mission Planner sets that itself
+when you enter SLCAN mode, and pinning it hands a serial port away permanently.
+Prefer `MAVLink - CAN1` in the DroneCAN screen over SLCAN for exactly that
+reason - it cannot take the serial link away from you.
 
 ### Option B: Direct USB-C to the H743
 
@@ -604,7 +883,7 @@ are fixed-wing production values, not universal airframe
 recommendations: validate them against maximum speed and flight logs.
 
 On the first fixed-wing-profile update, H743 migrates a stored value only when
-it still exactly matches the released default (`0.8/500/1000/0`). A custom
+it still exactly matches the legacy migration sentinel (`0.8/500/1000/0`). A custom
 operator value survives unchanged. Read the four rows back after updating; to
 replace custom values intentionally, load `airdroper_filter_field_safe.param`
 or perform a factory-parameter reset while the FC is freshly and positively
@@ -616,16 +895,18 @@ disarmed.
 - set `UBX_RESET=2` for a u-blox cold start
 - set `UBX_RESET=3` to clear u-blox config and reinitialize
 
-H743 DroneCAN keeps only the raw FC GPS UART settings locked off:
+H743 DroneCAN keeps the raw FC GPS UART settings locked off:
 
 - `FCGPS_UART = 0`
 - `FCGPS_FWD = 0`
 
-`RJ_REQEKF` defaults to enabled and remains active in `PT_ONLY=1` because
-S2/index `1` supplies fresh flight-controller MAVLink2. Rejoin therefore still
-requires the configured EKF-good window in addition to the internal reference,
-altitude, quality, stability, and spoof-confidence gates. `PT_ONLY=1` disables
-synthetic output/blending/nudge only; it does not bypass those rejoin checks.
+In H743 v0.5.5+, `RJ_REQEKF` and `EKF_OKRJMS` are also locked to `0`; writes
+are ignored, including non-zero values retained by older journals. Their former EKF rejoin
+gate was unsatisfiable/circular and has been replaced on H743 by independent
+multi-evidence recovery (barometric rate, pitot, attitude/course, SNR, UTC, and
+the dead-reckoned anchor). `PT_ONLY=1` disables synthetic output/blending/nudge
+only; it does not bypass geometry, quality, stability, confidence, or evidence
+checks.
 
 The firmware auto-saves accepted values after a short debounce. A single
 60-second wear limiter covers auto-save, explicit commit, and factory reset;
@@ -673,7 +954,7 @@ across four automatic pages:
 | Page | Information shown |
 |------|-------------------|
 | **Overview** | Fresh GPS fix/satellites, FC node health and generic UAVCAN node mode, ArduPilot `NotifyState`, arm state, and safety state |
-| **Sensors** | MS4525 and HMC5983 freshness, differential pressure, sensor temperature, and magnetic-field magnitude |
+| **Sensors** | MS4525 freshness, differential pressure, and sensor temperature; `*_dronecan_mag` builds also show HMC5983 freshness and magnetic-field magnitude |
 | **Links** | CAN and aggregate camera/filter MAVLink TX/RX counters, CAN errors, and MAVLink dropped/expired counters |
 | **System** | I2C error/recovery counters, firmware version/build, uptime, or Mosaic SBF accepted/bad-CRC counters |
 
@@ -714,8 +995,8 @@ independent of what the display currently shows.
 Treat the screen as a convenient local diagnostic, not as authoritative flight
 instrumentation. Its counters and freshness indicators do not replace
 Mission Planner pre-arm checks, DroneCAN inspection, sensor calibration, or
-flight-log review. In particular, magnetic-field magnitude is not a calibrated
-heading, and a `FILTER ONLINE` display does not prove correct compass
+flight-log review. In particular, on a `*_dronecan_mag` build magnetic-field
+magnitude is not a calibrated heading, and a `FILTER ONLINE` display does not prove correct compass
 orientation, pitot plumbing, CAN termination, or MAVLink routing.
 
 By default `FILTER_DRONECAN_FC_NODE_ID=0`. The tunnel requires two valid
@@ -761,17 +1042,89 @@ states keep `NodeStatus` health `OK` and report the output block only through
 vendor status bits and the onboard screen. This avoids ArduPilot
 `PreArm: DroneCAN: Node 42 unhealthy!` while the GPS is simply not ready yet.
 
+The inverse is equally important: `FC_LINK` and the other fault reasons DO
+report DroneCAN warning health. So `PreArm: DroneCAN: Node 42 unhealthy!` is the
+EXPECTED companion message of `GNSS BLOCKED #1: FC LINK STALE`, not a second,
+separate CAN fault to chase. Do not start re-checking CAN wiring, termination,
+or bitrate because that pre-arm line appeared alongside a `FCLINK` block.
+
 Both MAVLink2 virtual ports remain active in DR0 and DR1. DR1 blocks only the
 native GPS `Fix2/Auxiliary` output; it does not cut the OpenIPC camera tunnel or
 the filter-owned MAVLink2 stream. S2/index `1` preserves FC telemetry input,
-EKF-status and barometer comparisons, filter `STATUSTEXT`/`NAMED_VALUE`
+EKF-status evidence, filter `STATUSTEXT`/`NAMED_VALUE`
 logging, parameter traffic, and the other existing MAVLink behavior. The
 physical `FCGPS_FWD` raw UART bypass remains unavailable.
 
+There is one deliberate `v0.5.29+` exception: private Mission Planner
+spoof-position records named `SP_*` are **USB-only** and never enter S2. While
+DR1 is latched, the USB device is configured, and the core's CDC transmit-ready
+latch is set, the H743 emits a 2 Hz transaction:
+
+| Record | Meaning |
+|--------|---------|
+| `SP_BEGIN` | Transaction sequence and unambiguous assembler reset |
+| `SP_G_LAT`, `SP_G_LON` | Receiver-reported/untrusted latitude and longitude, signed degrees x 1e7 |
+| `SP_R_LAT`, `SP_R_LON` | Wind-blind DR reference latitude and longitude, signed degrees x 1e7 |
+| `SP_FLAGS` | Raw bounds/freshness, reference validity/motion, and DR1 bits |
+| `SP_SEQ` | Transaction sequence and final commit record |
+
+All seven are standard MAVLink `NAMED_VALUE_INT` messages from system 42,
+component 191 and share one `time_boot_ms`. `SP_BEGIN` is first and `SP_SEQ` is
+last with the same sequence; consumers must discard an incomplete, mismatched,
+or expired transaction. The navigation north fence is not
+applied to this private diagnostic because a south-jump attack must remain
+visible, but finite WGS84 bounds and freshness are explicit in `SP_FLAGS`. Raw
+freshness has a fixed 1.5-second ceiling and is not extended by the
+operator-tunable navigation age.
+The encoder runs only in DR1 and its sole production output sink is direct USB
+CDC. It does not call the generic MAVLink sender, CAN tunnel, DroneCAN
+publisher, or FC UART.
+
+Mission Planner must keep the FC as the primary link and add the H743 USB COM
+port as a secondary connection at 115200. This direct cable is a bench/tethered
+GCS path, not an in-flight radio path. See the live spoofing-map procedure in
+the operation guide. Beginning with firmware `v0.5.30`, the CDC path accepts
+Mission Planner's default secondary-link behavior, which opens without
+asserting DTR; no
+global **Reset APM on connect** workaround is required. The core latch may
+remain ready after the host closes the COM port until USB is unplugged or a
+transmit timeout occurs; unplug USB when private telemetry must stop
+immediately. USB/COMM2 and FC/S2/COMM0 use independent MAVLink sequence
+counters, so adding or losing the USB link cannot punch holes in the FC stream.
+This does not create any FC, S2, or CAN output path.
+
+The GNSS-altitude versus FC-barometer cross-check is **not currently active**,
+and no `ALTITUDE` stream is required from the flight controller. ArduPilot has
+no `MSG_ALTITUDE` stream entry, so the MAVLink `ALTITUDE` message can never be
+provided at all, and the cross-check has therefore never run in this product's
+life. It remains wired but disabled behind a build flag. Treat barometric
+altitude cross-checking as a future feature, not as a working guard, and do not
+try to configure a stream for it. The FC messages that actually matter for GPS
+output are `HEARTBEAT` and `EKF_STATUS_REPORT`.
+
+H743 DroneCAN `v0.5.30+` also explicitly requests `AUTOPILOT_VERSION`. Until a
+supported ArduPilot version (4.6.1 or newer) is known, `Fix2/Auxiliary` are
+suppressed immediately; an older reported version is suppressed the same way.
+The 15-second startup/rebind grace delays only warnings and hard fault
+processing, never GNSS publication. After that delay, an unknown version emits
+`FC VERSION UNKNOWN` and `AUTOPILOT_VERSION REQUIRED`; an old version emits
+`FIRMWARE TOO OLD` and `UPDATE TO ARDUPILOT 4.6.1+`.
+
 The filter-owned S2/index `1` safety stream is fail-closed. After startup and
 boot-guard grace, node 42 requires fresh decoded FC `HEARTBEAT` and
-`EKF_STATUS_REPORT` messages. If either ages out, it enters `DR1/FCLINK` and
-suppresses `Fix2/Auxiliary`; empty tunnel keepalives alone are not sufficient.
+`EKF_STATUS_REPORT` messages; empty tunnel keepalives alone are not sufficient.
+
+Suppression and the DR1 latch are two separate decisions, and the difference
+matters when you are diagnosing a marginal link:
+
+- **Suppression is immediate.** The moment either message ages out
+  (`HEARTBEAT` > 3 s, `EKF_STATUS_REPORT` > 4 s) `Fix2/Auxiliary` stop. That is
+  the fail-closed guarantee and it has no debounce.
+- **The latch waits 10 s** of continuous staleness before entering `DR1/FCLINK`.
+  A brief tunnel stall therefore costs a few seconds of GPS, not the full
+  recovery cycle described above. The link must then be continuously fresh for
+  5 s before the staleness timer resets, so a link that flaps every few seconds
+  still latches rather than withholding GPS silently and indefinitely.
 No DR1 auto-recovery or normal rejoin can restore GPS publication until both
 messages are fresh again and the configured lock/rejoin gates pass.
 
@@ -788,9 +1141,9 @@ layout:
 
 Consumers should mask these fields; bit 6 is the sensor flag, not bit 7.
 
-The MS4525 `RawAirData` and HMC5983 `MagneticFieldStrength2` publications are
-also independent of DR0/DR1. A spoofing decision suppresses only GNSS
-`Fix2/Auxiliary`; it does not intentionally remove airspeed, compass,
+The MS4525 `RawAirData` publication is also independent of DR0/DR1; the same is
+true of HMC5983 `MagneticFieldStrength2` when a `*_dronecan_mag` build is used.
+A spoofing decision suppresses only GNSS `Fix2/Auxiliary`; it does not intentionally remove airspeed, an enabled optional compass,
 NodeStatus, camera MAVLink, or filter MAVLink. A failed or disconnected I2C
 sensor stops producing its own valid sensor publication. After the five-second
 sensor startup grace, node 42 also reports DroneCAN warning health and sets
@@ -801,38 +1154,216 @@ GNSS-only guards remain active: no-fix, low satellites, position jumps,
 altitude rate/jump, SNR, hemisphere, geofence, heading reversal, GPS time
 sanity, velocity-position consistency, and receiver clock jump when available.
 
+### Leaving DR1: recovery requires evidence, never time
+
+`DR1_MAX_DURATION_MS` is `0`. DR1 does **not** expire. The only ways out are the
+evidence quorum, ground release, or a power cycle.
+
+The quorum needs at least three evidence rows agreeing, **zero** contradicting,
+held continuously, **and at least one independent witness**. A row counts as a
+witness only when its operands were physically excited:
+
+| Witness | Needs |
+|---------|-------|
+| Ground speed vs pitot | real airspeed, IAS >= 12 m/s and ground speed >= 6 m/s |
+| Vertical rate | a real climb or descent >= 3 m/s |
+| Course vs yaw | a real turn >= 12 deg/s, scored on that pass only |
+
+All three require **motion**. That is deliberate: a stationary airframe has no
+physical reference that can contradict a spoofer, so agreement while parked
+proves nothing.
+
+**In flight this needs no manoeuvre.** With a working pitot, level cruise holds
+the ground-speed witness continuously. Budget `DR_LOCK` 120 s + 60 s hold =
+**~180 s** after a fix-loss trip, doubled to ~240 s for a spoof-integrity trip,
+plus 30 s per earlier contradicted attempt.
+
+**On the ground no witness is reachable at all**, so a unit that trips during
+pre-flight would be stuck until a power cycle. Ground release covers that case.
+It replaces the witness with position agreement over a dwell, and it is
+confined to a parked, disarmed airframe:
+
+| Condition | Value |
+|-----------|-------|
+| FC disarmed, positively and recently reported | fail-closed; unknown or stale is not disarmed |
+| FC ground speed / climb | < 4 m/s / < 1 m/s (the speed bound sits above the FC's measured dead-reckoning drift, mean 1.95 / max 2.84 m/s on a stationary unit) |
+| Filter's own pitot, if fitted and live | < 12 m/s (above the sensor's ~10.6 m/s apparent zero offset) |
+| Fix agreement | 30 m horizontal, 30 m vertical |
+| Receiver's own spoof indicator | below warning for loss trips; strictly clear for integrity trips |
+| Named parked evidence | every available row is non-FAIL; GNSS-time is PASS; receiver speed is finite, nonnegative, fresh within 1500 ms, and at most 4 m/s; speed and location share an epoch generation with at most 1500 ms skew |
+| Optional GSV/SNR | may be unavailable; absence does not block release, but an explicit FAIL remains a veto |
+| Held continuously for | 90 s loss / 240 s integrity, +60 s per earlier release |
+
+The parked path does **not** use the airborne generic pass count. That distinction
+lets a passive GGA/RMC receiver recover honestly while stationary without
+inventing three PASS rows or requiring optional GSV. The airborne witness
+quorum and its pass floor are unchanged.
+
+What the fix must agree **with** depends on why DR1 tripped. For a signal-loss
+trip (`NO FIX`, `LOW SATS`, `FC LINK`) the reference is the position held
+*before* the trip. For a detected spoof (`SNR`, `JUMP`, `ALT`, `CONF`,
+`HEADING`, ...) that pre-trip anchor cannot be trusted - a slow-walk attacker
+was already moving it - so the returning signal must instead stay
+**self-consistent**, horizontally and vertically, against a reference captured
+when the dwell starts, through the longer 240 s dwell and with the altitude
+check mandatory. Integrity releases additionally draw on a separate allowance
+of **one per power cycle**. `SOUTH` is never released automatically at any
+dwell: a south-hemisphere fix on this airframe is physically impossible and
+always costs a deliberate human action.
+
+`DR_LOCK` is not bypassed, so the floor is 120 + 90 + a 10 s blend, about
+**3.5 minutes** from a loss trip to `DR0`, and about **6 minutes** for an
+integrity trip.
+
+After a ground release the radius keeps binding while the aircraft stays parked
+and disarmed. If the fix wanders out of it, node 42 re-enters DR1 with reason
+`PARKED_MOVE` (15). This is expected if you physically move a disarmed airframe
+more than 30 m - walking pace is below the "parked" threshold, so the filter
+cannot tell that apart from a fix being walked away. It is not a fault: the unit
+re-releases from its new position after the next dwell, and `PARKED_MOVE` does
+not consume the one-per-power-cycle integrity allowance, so repositioning after
+an integrity release cannot strand the unit. Ground release is limited to four
+times per power cycle in total. Operator status names this reason `PARKED MOVE`;
+the shorter board-screen label is `PARKED`.
+
+**Reading the recovery banner.** The 1 Hz debug line names exactly what is
+blocking recovery:
+
+```
+RJ ev3/3F0W0/1p hold=0/60s gnd=45/90s -
+```
+
+| Field | Meaning |
+|-------|---------|
+| `ev3/3` | airborne evidence rows passing/required; not the parked-release contract |
+| `F0` | airborne rows contradicting; ground release separately vetoes every available FAIL |
+| `W0/1` | airborne independent witnesses present/required |
+| `p` / `a` | airborne speed row using the weak pre-spoof envelope / the pitot |
+| `hold=0/60s` | airborne evidence hold banked vs required |
+| `gnd=45/90s` | ground-release dwell banked vs required; `0/N` means conditions are not currently met |
+| final tag | `-` means no named block; `EVM` means required parked evidence is missing, `EVF` means a contradiction, and `EVPg` is a bounded short missing-evidence lapse |
+
+On a stationary bench, the airborne `W0/1` is normal and does not prevent the
+separate named parked path. Watch `gnd=` and the final tag for the recovery that
+will actually happen; do not wait for the displayed airborne pass count to
+change.
+
 ## 10) Bring-up checklist
 
 1. Flash `weact_mini_h743vitx_dronecan_usb` or `weact_mini_h743vitx_dronecan`.
+   Only a deliberately magnetometer-equipped direct-flash board should use the
+   corresponding `*_dronecan_mag` environment.
 2. Wire GNSS to `PA2/PA3`.
 3. Cross the 3.3 V OpenIPC UART: camera TX -> `PA10`, `PA9` -> camera RX, plus
    common ground and an appropriately rated separate camera supply.
-4. On a separate keyed connector, wire both sensors to shared `PB10` SCL,
-   `PB11` SDA, 3.3 V and ground. Confirm the MS4525 complete ordering code and
-   HMC5983 identity before power-up.
+4. On a separate keyed connector, wire the MS4525 to shared `PB10` SCL,
+   `PB11` SDA, 3.3 V and ground, and confirm its complete ordering code. For a
+   `*_dronecan_mag` build only, wire the HMC5983 in parallel and confirm its
+   identity before power-up.
 5. Wire `PB9/PB8` through the CAN transceiver to the FC CAN port.
 6. Configure ArduPilot CAN driver, DroneCAN protocol, 1 Mbps bitrate, and
    `GPS1_TYPE=9`.
 7. Enable DroneCAN serial, mapping S1 to node `42`/index `0`/115/MAVLink2 and
    S2 to node `42`/index `1`/115/MAVLink2.
-8. Set the FC airspeed instance to DroneCAN (`ARSPD_TYPE=8` for instance 1),
-   confirm the node-42 compass appears, and reboot the flight controller.
+8. Set the FC airspeed instance to DroneCAN (`ARSPD_TYPE=8` for instance 1)
+   and reboot the flight controller. For a `*_dronecan_mag` build only,
+   confirm the node-42 compass also appears.
 9. Confirm the H743 screen lights and shows `GNSS FILTER`.
 10. Confirm the DroneCAN node appears as node ID `42` in DroneCAN/SLCAN tooling.
-11. Confirm ArduPilot reports a DroneCAN GPS and airspeed instance, a node-42
-    compass, camera MAVLink2 reaches
+11. Confirm ArduPilot reports a DroneCAN GPS and airspeed instance, camera MAVLink2 reaches
     the FC, and filter system ID `42` is visible through MAVLink routing.
+    For a `*_dronecan_mag` build only, also confirm the node-42 compass.
+    Then confirm the **return** direction as well: the filter must show no
+    `FCLINK` block (hero card not `BLOCK`/`FCLINK`, and no
+    `GNSS BLOCKED #1: FC LINK STALE`). Everything else in this step only proves
+    the filter -> FC direction, which succeeds even when the FC never streams
+    `EKF_STATUS_REPORT`; the absence of `FCLINK` is the only check that proves
+    the FC -> filter direction is actually carrying `EKF_STATUS_REPORT`.
+    Beware one trap here: a normal filter `STATUSTEXT` arriving in the GCS proves
+    nothing about the tunnel while the filter's USB-C is plugged into the PC,
+    because normal diagnostics are written to both the DroneCAN tunnel and USB
+    CDC. (`SP_*` position diagnostics are the deliberate USB-only exception.)
+    Unplug the filter's USB before using normal GCS messages as tunnel evidence.
 12. With the pitot still and both ports at equal pressure, calibrate zero;
     gently apply differential pressure and verify positive, stable airspeed.
-13. Calibrate the compass after final installation, check axis/orientation and
+13. **`*_dronecan_mag` only:** calibrate the compass after final installation, check axis/orientation and
     motor-current interference, and verify it remains healthy for several
     minutes with the camera/LTE transmitter active.
 14. Trigger a bench DR1 condition and confirm `Fix2/Auxiliary` stop while
     `NodeStatus` stays online.
-15. Confirm airspeed, compass and both MAVLink2 paths remain online during DR1,
-    then clear the condition and confirm GPS publishing resumes after rejoin.
+15. Confirm airspeed and both MAVLink2 paths remain online during DR1; on a
+    `*_dronecan_mag` build also confirm the compass. Then clear the condition
+    and confirm GPS publishing resumes after rejoin.
 
 ## 11) Troubleshooting
+
+### FC LINK STALE: one cause, four messages
+
+A missing FC `EKF_STATUS_REPORT` on the index-`1` tunnel produces all four of
+these AT ONCE:
+
+- `GNSS BLOCKED #1: FC LINK STALE`
+- `PreArm: DroneCAN: Node 42 unhealthy!`
+- `PreArm: Selected GPS Node 42 not set as instance 1`
+- `EKF3 waiting for GPS config data`
+
+These are ONE fault, not four. The filter is fail-closed on FC telemetry
+freshness, so without `EKF_STATUS_REPORT` it suppresses `Fix2` and `Auxiliary`;
+the filter then reports DroneCAN warning health (hence `Node 42 unhealthy!`),
+ArduPilot never binds a GPS instance to the node (hence
+`not set as instance 1`), and the EKF never gets GPS configuration (hence
+`EKF3 waiting for GPS config data`). All four clear themselves once `Fix2` flows
+again. Do not chase them separately.
+
+Do not "fix" the symptoms:
+
+- Clearing `GPS1_CAN_OVRIDE` hides the `not set as instance 1` line without
+  restoring GPS.
+- Adding `GPS1_DELAY_MS` does not help either: there is no timing problem to
+  compensate here, and no delay value can make an absent message arrive.
+
+Neither touches the cause, which is that the FC is not delivering
+`EKF_STATUS_REPORT` to the filter. Work the checklist in this order: `EXTRA3`
+stream rate on the filter's MAVLink channel, `SYSID_THISMAV = 1`, MAVLink
+channel budget (`SR0_`..`SR6_` only), then CAN wiring last.
+
+Firmware `v0.4.8+` names which half of the evidence is missing. The DR1 trigger
+message carries the ages as `DR: FC telemetry stale (hb=... ekf=...)`, and a
+periodic line reports `FC rx=... hb=... ekf=... nack=N`:
+
+- `hb=never` means no FC MAVLink is reaching the filter at all. That is a
+  tunnel, protocol, or sysid problem: check `CAN_D1_UC_S2_*`, `_PRO = 2`, and
+  `SYSID_THISMAV = 1`.
+- `hb=0s ekf=never` means the tunnel works and the FC is talking, but the FC is
+  not streaming `EKF_STATUS_REPORT`. That is a stream-rate/channel problem, not
+  a wiring problem.
+
+Airborne recovery is not instant, and it is not only a matter of waiting. Three
+things have to happen in order:
+
+1. the 120 s DR lock expires (`DR_LOCK_MS`);
+2. the evidence quorum then has to be held **continuously for 60 s**
+   (`REJOIN_EV_HOLD_MS`) - any contradiction restarts that window;
+3. at least one **independent witness** has to be present for the whole of it.
+
+So the airborne floor is about three minutes plus blend, not two. A witness
+needs a climb/descent of at least 3 m/s, a genuine turn, or a live pitot at or
+above 12 m/s. Straight-and-level cruise **does** satisfy the witness when that
+pitot is live and above threshold; without a pitot it does not. See the witness
+table in `04_setup_and_flash.md`.
+
+On a stationary bench the separate H743 parked path can now recover after its
+own dwell. It requires the named GNSS-time plus fresh same-epoch receiver-speed
+contract in the table above, not the airborne witness/pass count, and does not
+require optional GSV. A power cycle skips the dwell but is no longer a recovery
+prerequisite.
+
+**If you fly with no airspeed sensor**, the pitot row is
+permanently unavailable and the only witnesses left are the barometric vertical
+rate and the GNSS-course-versus-FC-yaw comparison. Recovery is still reachable,
+but it needs a deliberate sustained climb or a steady turn - an autopilot loiter
+is ideal. Intermittent hand-flown manoeuvring is not enough, because each dip
+below the excitation floor restarts the 60 s window.
 
 ### Node does not appear on DroneCAN
 
@@ -847,6 +1378,10 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 ### Node appears but FC does not get GPS
 
 - Confirm `GPS1_TYPE=9` or the matching GPS instance type is set to DroneCAN.
+- On `v0.5.30+`, check for `FC VERSION UNKNOWN` / `AUTOPILOT_VERSION REQUIRED`
+  or `FIRMWARE TOO OLD` / `UPDATE TO ARDUPILOT 4.6.1+`. The filter explicitly
+  requests `AUTOPILOT_VERSION` and suppresses GPS immediately until a supported
+  reply arrives; the 15-second grace delays only the warnings.
 - Confirm `GPS_AUTO_CONFIG=1` on firmware older than H743 DroneCAN `v0.1.2`.
 - If there are multiple DroneCAN GPS nodes, set `GPS1_CAN_OVRIDE=42` or the
   matching GPS instance override.
@@ -856,8 +1391,10 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 - `PUB?` means the publication gate is open but no recent Fix2 was accepted
   into the local DroneCAN transmit queue; check GPS freshness and CAN readiness
   before flight. `PUB+` still is not proof that the FC received the transfer.
-- Confirm the hero card is not `BLOCK` with `GNSSCFG`, `GPS`, `SOUTH`, `FENCE`,
-  `NOFIX`, `SATS`, `JUMP`, or another DR1 cause label.
+- Confirm the hero card is not `BLOCK` with `FCLINK`, `GNSSCFG`, `GPS`, `SOUTH`,
+  `FENCE`, `NOFIX`, `SATS`, `JUMP`, or another DR1 cause label. `FCLINK` is not a
+  GNSS-side fault at all - see **FC LINK STALE: one cause, four messages** at the
+  top of this section.
 
 ### Camera or filter MAVLink2 does not cross DroneCAN
 
@@ -871,11 +1408,20 @@ sanity, velocity-position consistency, and receiver clock jump when available.
   `MAV_TELEM_DELAY=5` and verify camera power integrity.
 - Do not diagnose a DR1 GPS block as a tunnel failure: the MAVLink2 virtual
   ports intentionally stay active while `Fix2/Auxiliary` are suppressed.
+  **This holds for every DR1 reason EXCEPT `FCLINK`.** A `FCLINK` block is
+  caused by the FC -> filter direction of the index-`1` tunnel, and the tunnel
+  itself is usually perfectly healthy while one required message is simply not
+  being streamed. For `FCLINK`, check the `EXTRA3` stream rate on the filter's
+  MAVLink channel, `SYSID_THISMAV = 1`, and the MAVLink channel budget
+  (`SR0_`..`SR6_` only) FIRST, and check CAN wiring, termination and bitrate
+  LAST.
 
-### Airspeed or compass is missing/unhealthy
+### Airspeed or optional compass is missing/unhealthy
 
-- Confirm the sensor firmware options are enabled in the H743 DroneCAN build,
-  then confirm `PB10 -> SCL`, `PB11 <-> SDA`, 3.3 V power and common ground.
+- Confirm the expected sensor firmware option is enabled, then confirm
+  `PB10 -> SCL`, `PB11 <-> SDA`, 3.3 V power and common ground. The
+  production/default build enables MS4525 only; HMC5983 requires a
+  direct-flash `*_dronecan_mag` build.
 - Measure idle SCL/SDA. Both must pull up to approximately 3.3 V, never 5 V.
   Disconnect power immediately if either line exceeds the H743 I/O voltage.
 - Check for one sensible effective set of pull-ups, shorts, swapped SCL/SDA,
@@ -884,16 +1430,17 @@ sanity, velocity-position consistency, and receiver clock jump when available.
   Equalize both ports for zero calibration, then apply a small known pressure
   and confirm the indicated sign and magnitude. Do not compensate for the wrong
   sensor range using only `ARSPD_RATIO`.
-- HMC5983: confirm address `0x1E` and identity `H43`. If a cheap module is not
+- **`*_dronecan_mag` only:** confirm HMC5983 address `0x1E` and identity `H43`. If a cheap module is not
   accepted or calibrates inconsistently, assume it may be a clone rather than
   weakening the identity check.
 - Confirm `ARSPDx_TYPE=8` selects DroneCAN on the FC. Do not use type `1`, which
   is the FC's own local-I2C MS4525 driver.
-- For the compass, inspect Mission Planner's detected compass list and device
+- **`*_dronecan_mag` only:** inspect Mission Planner's detected compass list and device
   IDs, remove stale missing devices if necessary, set the correct priority and
   orientation, then recalibrate in the final installed position.
-- A DR1 GPS block does not disable these sensors. If airspeed or compass stops
-  in DR1, diagnose I2C integrity, CAN load/errors and sensor health separately.
+- A DR1 GPS block does not disable airspeed or an enabled optional compass. If
+  either stops in DR1, diagnose I2C integrity, CAN load/errors and sensor
+  health separately.
 
 ### Screen does not show FC arm or safety state
 
@@ -901,6 +1448,27 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 - If the bus has many nodes, rebuild with `FILTER_DRONECAN_FC_NODE_ID=<fc id>`.
 - Some FC status rows depend on ArduPilot broadcasts. GPS publishing does not
   require those rows to be present.
+
+### Writing filter params in Mission Planner does nothing, with no error
+
+The write went to the flight controller, not to the filter. The filter is system
+ID 42 / component 191; Mission Planner's Full Parameter List edits the connected
+vehicle, system ID 1. Nothing reaches the filter, so nothing refuses it - hence
+the silence rather than a failure.
+
+Confirm the filter is reachable and its parameter service is alive:
+
+```bash
+python tools/mission_planner/filter_params.py --port COM25 --list
+```
+
+A healthy node returns its full parameter set. If that works but Mission Planner
+still will not write, use Option A (DroneCAN node Params) or Option C (script)
+instead of the Full Parameter List.
+
+Do not be misled by `ARM=1` in the filter's status line - that is `guard_armed`,
+not the FC's arming state. A genuinely arming-blocked write announces itself as
+`Write blocked: FC armed/unknown`.
 
 ### Node 42 Params only shows GPS_TYPE/GPS1_TYPE
 
@@ -915,8 +1483,12 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 - Do not hold `BOOT0`; USB-C parameter editing works only in the normal app,
   not in ROM DFU mode.
 - Select the H743 USB COM port directly in Mission Planner at `115200`.
-- If Mission Planner is already connected to the flight controller telemetry
-  link, disconnect that session first, then connect to the H743 USB COM port.
+- For direct parameter editing, make the H743 COM port the active connection.
+  For the `v0.5.29+` spoofing overlay, keep the FC active and add H743 USB as a
+  secondary link in **Connection Options** instead.
+- If that secondary port opens with DTR deasserted but no telemetry arrives,
+  update to `v0.5.30+`; this is the first version that supports Mission
+  Planner's default DTR-low secondary-link sequence.
 
 ### Screen turns off after boot
 

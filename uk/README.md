@@ -9,7 +9,7 @@
 - оберіть систему STM32 (`SYSID 42`)
 - `Refresh Params` -> змініть значення -> `Write Params`
 - на завантаженому MAVLink-лінку запис може потребувати 1-2 спроби; завжди робіть `Refresh Params` для підтвердження
-- Необов'язково, але рекомендовано: встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), щоб Mission Planner показував описи, діапазони, одиниці та підписи варіантів.
+- Необов'язково, але рекомендовано: встановіть [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod), щоб отримати плагін карти телеметрії спуфінгу, описи параметрів, діапазони, одиниці, підписи варіантів і пресети.
 
 H743 DroneCAN note: ця збірка не має фізичних FC MAVLink або FC GPS UART.
 Firmware `v0.2.0+` натомість передає OpenIPC camera через DroneCAN virtual port
@@ -19,9 +19,10 @@ Mission Planner `DroneCAN/UAVCAN -> node 42 -> Params`, MAVLink2 index `1` аб�
 напряму через H743 USB-C COM port на `115200`. Див. окремий guide:
 [WeAct H743 DroneCAN](13_h743_dronecan.md), включно з HD-15 D-sub box pinout
 для FC CAN, живлення бокса, GNSS UART/power та optional DR1 status. H743 також
-приймає MS4525DO airspeed і HMC5983 compass через shared I2C2 `PB10/PB11`;
-оскільки HD-15 повністю зайнятий, sensors мають окремий keyed 4-pin connector
-і передаються до FC як native DroneCAN sensor messages.
+публікує MS4525DO airspeed зі shared I2C2 `PB10/PB11`. Production/default
+build компілює HMC5983 driver out; цей compass приймають і публікують лише
+optional direct-flash `weact_mini_h743vitx_dronecan_mag` variants. Оскільки
+HD-15 повністю зайнятий, встановлені I2C sensors мають окремий keyed 4-pin connector.
 
 Для штатного польоту на платі має бути встановлена звичайна робоча збірка.
 
@@ -69,8 +70,8 @@ Mission Planner `DroneCAN/UAVCAN -> node 42 -> Params`, MAVLink2 index `1` аб�
 3. `03_wiring_debug.md` - діагностика проблем підключення GNSS/GPS/MAVLink.
 4. `04_setup_and_flash.md` - налаштування та конфігурація UART на FC.
 5. `04_recovery.md` - коротка сторінка відновлення та дані для звернення в підтримку.
-6. `05_operation.md` - поведінка під час роботи (DR0/DR1, блокування GNSS, імпульс події).
-7. `06_tuning.md` - параметри тюнінгу та робота через Mission Planner.
+6. `05_operation.md` - поведінка під час роботи (DR0/DR1, блокування GNSS, імпульс події, підсумок палива крізь перезавантаження, live/post-flight оцінка напрямку на джерело завад).
+7. `06_tuning.md` - параметри тюнінгу, робота через Mission Planner і процедура калібрування оцінки палива.
 8. `07_cheat_sheet.md` - коротка довідка для швидких перевірок.
 9. `08_lab_validation.md` - безпечна лабораторна валідація перед реальними польотами.
 10. `09_receiver_config.md` - конфігурація GNSS-приймача для u-blox, UM980 та Mosaic X5 (профілі, налаштування GPS-типу ArduPilot).

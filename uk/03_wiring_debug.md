@@ -87,7 +87,7 @@ USB-C COM port на `115200`.
   1. `Config/Tuning` -> `Full Parameter List`
   2. виберіть STM32 (`SYSID 42`)
   3. натисніть `Refresh Params` і перевірте, що параметри зчитуються.
-- Якщо параметри STM32 показані лише сирими назвами, встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod) перед діагностикою значень тюнінгу.
+- Якщо параметри STM32 показані лише сирими назвами, встановіть [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod) перед діагностикою значень тюнінгу.
 
 ## 4) Типові помилки
 
@@ -133,7 +133,7 @@ USB-C COM port на `115200`.
 Якщо читання/запис параметрів нестабільний:
 
 1. Залиште тільки один GCS на COM-порту.
-2. Встановіть [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod), якщо відсутні описи, діапазони, одиниці або підписи варіантів.
+2. Встановіть [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod), якщо відсутні описи, діапазони, одиниці або підписи варіантів.
 3. У `Full Parameter List` натисніть `Refresh Params` перед редагуванням.
 4. Змініть значення, натисніть `Write Params`, потім `Refresh Params`.
 5. Якщо значення не збереглося, повторіть `Write Params`.

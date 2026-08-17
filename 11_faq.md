@@ -23,6 +23,13 @@ DroneCAN GPS and has no physical FC serial ports. Instead, `v0.2.0+` carries
 OpenIPC camera MAVLink2 on DroneCAN S1/index `0` and the filter's MAVLink2 plus
 returning FC telemetry on S2/index `1`.
 
+H743 DroneCAN `v0.5.30+` explicitly requests `AUTOPILOT_VERSION` and fails
+closed if the FC does not answer or reports a version older than 4.6.1:
+`Fix2/Auxiliary` are suppressed immediately. The 15-second grace period delays
+only `FC VERSION UNKNOWN` / `AUTOPILOT_VERSION REQUIRED` (or `FIRMWARE TOO OLD`
+/ `UPDATE TO ARDUPILOT 4.6.1+`) and hard fault processing; it never permits GPS
+while identity is unknown or unsupported.
+
 ### Which GNSS receivers work?
 
 - **u-blox**: M8, M9, M10, F9, F10 families (`GNSS_TYPE=0`)
@@ -35,19 +42,23 @@ Not currently. The filter's MAVLink integration is designed for ArduPilot.
 
 ### Which EW systems does it protect against?
 
-All of them. The filter detects GPS spoofing and jamming based on signal
-anomalies (position jumps, SNR patterns, altitude divergence, satellite
-count drops), not by identifying specific EW hardware.
+Protection is determined by the anomaly an installation can observe, not the
+name of the transmitting system. The filter can react to position/time jumps,
+receiver spoof verdicts, SNR patterns, altitude-rate divergence, and fix or
+satellite loss when those inputs are available. It does **not** guarantee
+detection of every EW system, a gradual internally consistent takeover, or an
+attack already present when the boot anchor is established.
 
-**Tested/designed against:**
+The following systems illustrate relevant threat classes; inclusion is not a
+claim that every model/configuration has been reproduced in a controlled test:
 
 - **Ukrainian:** Lima, Patelnia, Pokrova (GPS spoofing); Bukovel, Nota, Damba, Enclave (GNSS jamming); Dandelion, PARASOL, Piranha AVD 360 (drone suppression)
 - **Russian:** Pole-21/Field-21, Shipovnik-Aero (GPS spoofing); R-330Zh Zhitel (GNSS jamming+spoofing); Krasukha-2/4 (radar jamming); Borisoglebsk-2, Leer-3, Murmansk-BN, Palantin (comms jamming); Repellent-1, Infauna (drone/IED suppression)
 - **Belarusian:** Groza (GNSS jamming)
 
-It also works against any future EW system that affects GNSS signals.
 See [Device Overview — EW Systems Compatibility](#device-overview) for
-a full table with frequencies and capabilities.
+a threat-reference table, and complete the lab-validation checklist for the
+actual receiver and airframe before flight.
 
 ---
 
@@ -120,7 +131,7 @@ not, also check `CAN_Dx_UC_SER_EN=1`, S1 node `42`/index `0`/baud `115`/protocol
 - If your receiver is Unicore UM980, UM981, or UM982: `GNSS_TYPE=1`
 - If your receiver is Septentrio Mosaic X5: `GNSS_TYPE=2`. Use the SBF profile on H743 DroneCAN `v0.1.9+`; use NMEA on UART builds.
 
-See [Setup & Flash](#setup-flash) for how to change this parameter.
+See [Setup & Flash](04_setup_and_flash.md) for how to change this parameter.
 
 ### Do I need to configure my UM980 receiver?
 
@@ -150,11 +161,14 @@ See the [Device Overview](#device-overview) for more details.
 ### How fast does DR1 trigger?
 
 Depends on the trigger type:
-- **No fix / low satellites**: immediate
+- **No fix**: at least 3 distinct invalid epochs spanning at least 600 ms
+- **Low satellites**: 3 distinct low-count epochs spaced at least 200 ms
+  apart, using the peak count from a rolling approximately 3-second window
 - **Position jump**: immediate on detection
-- **EKF trip**: generic horizontal-validity loss uses `EKF_TRIPMS` (H743
-  DroneCAN default 500 ms; released F401 default 0); explicit
-  `GPS_GLITCHING` is immediate after the safety inhibition window
+- **EKF trip**: every bad category, including `GPS_GLITCHING` and post-healthy
+  `UNINITIALIZED`, needs at least 2 newly decoded reports spanning
+  `EKF_TRIPMS`; both released targets default to 500 ms, and a tuned zero still
+  keeps the two-report minimum
 - **SNR anomaly**: after `SNR_HOLDMS` hold time
 
 See [Tuning](#tuning) to adjust these thresholds.
@@ -166,9 +180,13 @@ The filter checks:
 2. HDOP <= `RJ_MAX_HD`
 3. Conditions held for `RJ_STAB_MS`
 4. Minimum DR1 time `DR_LOCK_MS` elapsed
-5. (Optional) EKF healthy for `EKF_OKRJMS`
+5. On H743, the independent multi-evidence recovery quorum passes
 
 When all pass, DR0 is restored and GPS data flows again. See [Tuning](#tuning) for details on each parameter.
+
+Legacy parameters `RJ_REQEKF` and `EKF_OKRJMS` are retained only for schema
+compatibility. F401 v1.6.26+ and H743 v0.5.5+ report them as zero and ignore
+writes, including non-zero values saved by older releases; they do not gate recovery.
 
 ### What happens if the plane loses GPS for a long time?
 
@@ -194,9 +212,9 @@ arm/safety state when broadcast, `STATE` from ArduPilot NotifyState when
 available, GPS fix, publish gate, CAN counters, and firmware version. Camera
 S1/index `0` and filter S2/index `1` remain active in DR1.
 
-### Where do I download the Mission Planner parameter patch?
+### Where do I download the Mission Planner plugin and parameter package?
 
-Download [AirDroper Mission Planner Params](https://gps.airdroper.org/download/mission-planner-mod). It installs parameter descriptions, ranges, units, option labels, and ready `.param` presets for the STM32 filter. Close Mission Planner before running the installer, then reopen Mission Planner and refresh the parameter list.
+Download [AirDroper Mission Planner Mod](https://gps.airdroper.org/download/mission-planner-mod). It installs the spoofing-telemetry map plugin plus descriptions and ready `.param` presets for the STM32 filter and flight controller. Close Mission Planner before running the installer, then reopen it and refresh the parameter list. Live red/orange positions and the three-axis intersection require a second direct USB-C connection to the H743; the open purple RF axis can use normal FC telemetry.
 
 ### What does the B5 pin do?
 
@@ -207,21 +225,31 @@ indication when protection mode activates. See the [Wiring Guide](#wiring) for c
 ### What is the spoofing confidence score (DR_CONF)?
 
 Starting with v1.5.5, the filter computes a 0–100 confidence score from up to
-8 independent detection signals. Higher = more evidence of spoofing. The score
+10 distinct evidence rows. Higher = more evidence of spoofing. Only the
+receiver `SEC-SIG` verdict and barometric vertical-rate row are independent of
+attacker-shaped GNSS content. The score
 is sent as `DR_CONF` in MAVLink telemetry and logged in each spoofing event.
 
-u-blox receivers use all 8 signals (SNR, pseudorange residual, SNR temporal
-correlation, heading, GDOP, time, velocity-position, clock bias). Passive
-NMEA receivers such as UM980 and Mosaic X5 use the signals available via NMEA
-(~5 of 8). H743 DroneCAN Mosaic SBF adds C/N0 temporal and clock-bias inputs,
-but still excludes pseudorange residual and GDOP-jump scoring. The score adapts
-automatically — unavailable signals are excluded from the weighted average.
+| Signal | Weight | Availability |
+|--------|--------|--------------|
+| Barometer-vs-GNSS vertical-rate divergence | 20 | DroneCAN build with fresh FC barometer telemetry and GNSS vertical velocity |
+| SNR span anomaly | 20 | All supported receiver modes with fresh SNR/C/N0 |
+| Receiver spoof verdict (`SEC-SIG`) | 25 | H743 with a supported u-blox only |
+| Pseudorange residual stddev | 15 | u-blox `NAV-SAT` only |
+| SNR temporal correlation | 12 | u-blox, partial passive NMEA, Mosaic SBF |
+| Heading reversal | 12 | All supported receiver modes |
+| GDOP sudden change | 8 | u-blox `NAV-DOP` only |
+| GPS time sanity | 12 | All supported receiver modes |
+| Velocity-position consistency | 10 | All; partial on passive NMEA |
+| Clock bias jump | 11 | u-blox and Mosaic SBF |
+
+The score adapts automatically: unavailable target-, transport-, and
+protocol-specific rows are excluded from the weighted average.
 
 ### Do all detection features work with NMEA receivers?
 
 Most features work with u-blox and passive NMEA receivers such as
-UM980/UM981/UM982 and Mosaic X5. In UART/NMEA builds, three advanced signals
-are **u-blox only** because they require UBX binary protocol data:
+UM980/UM981/UM982 and Mosaic X5. Three advanced rows use UBX binary data:
 
 - **Pseudorange residual analysis** (from NAV-SAT)
 - **GDOP sudden change detection** (from NAV-DOP)
@@ -229,6 +257,11 @@ are **u-blox only** because they require UBX binary protocol data:
 
 H743 DroneCAN Mosaic SBF restores binary C/N0 temporal and clock-bias coverage,
 but not pseudorange residual or GDOP-jump confidence scoring.
+
+The receiver-spoof verdict is a separate H743-only `SEC-SIG` row and therefore
+requires a supported u-blox. Barometric vertical-rate divergence is a
+DroneCAN-build row and instead depends on fresh FC barometer telemetry plus
+GNSS vertical velocity, regardless of receiver protocol.
 
 The core protections (position jump, altitude, SNR, heading, time, geo-fence)
 work with both receiver classes.
@@ -269,7 +302,11 @@ Most likely causes:
 ### What messages does ArduPilot need from the UM980?
 
 Only three: **GNGGA**, **GNRMC**, and **AGRICA** — all at 5 Hz (period 0.2).
-The driver does not parse GPGSA, GPGSV, GPGST, or any binary messages.
+ArduPilot's driver does not parse GPGSA, GPGSV, GPGST, or UM980 binary
+diagnostics. The STM32 parser is separate: it parses GGA/RMC, ignores AGRICA
+and proprietary binary diagnostics, and can optionally parse GSV for SNR.
+The documented GGA/RMC/AGRICA deployment profile therefore shows `SNR=NA`;
+optional GSV is additional evidence and is not required for DR1 recovery.
 
 ### Do I need to configure the UM980 every time I power it on?
 
@@ -298,14 +335,18 @@ that board's unique hardware ID.
 
 For H743 DroneCAN, use the CLI target `h743_dronecan` or the desktop app
 **Board target -> H743 WeAct DroneCAN** for production provisioning/update.
-App version `2026.06.23.10+` can also update an already activated H743 through
-**Update transport -> USB-C ROM DFU**. Readable boards get app+metadata updates;
-RDP1-protected boards go through UID-short confirmation, USB DFU RDP removal,
-mass erase, app+metadata+bootloader rewrite, and RDP1 relock. For unlocked
-development boards, USB-C ROM DFU can flash `weact_mini_h743vitx_dronecan_usb`
-or `weact_mini_h743vitx_dronecan_phaseb_app_usb`.
+App version `2026.08.02.1+` can also update an already activated H743 through
+**Update transport -> USB-C ROM DFU**. It validates the RDP option byte and
+always mass-erases and installs the complete validated app+metadata+bootloader
+bundle. RDP1 boards also require UID-short confirmation, verified RDP0 after
+unlock, and a physical UID re-read. Success is reported only after an independent
+option-byte read verifies final RDP1. For unlocked
+development boards, USB-C ROM DFU can directly flash only the standalone
+`weact_mini_h743vitx_dronecan_usb` environment. Phase-B environments are
+build-only templates and intentionally refuse direct upload; use the
+provisioning app for a UID-bound secure update.
 
-Wire an ST-Link V2 to the 4-pin SWD header (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), open the **AirDroper GNSS Filter** app, enter your license key, choose the firmware version if support asked you to test a specific build, and click **Update**. The app handles RDP removal, flashing, and re-protection automatically. See the update section in the [Self-Install Guide](#self-install).
+Wire an ST-Link V2 to the 4-pin SWD header (3V3 → 3V3, GND → GND, SWCLK → A14, SWDIO → A13), open the **AirDroper GNSS Filter** app, enter your license key, confirm the active qualified firmware shown for the selected board target, and click **Update**. The app handles RDP removal, flashing, and re-protection automatically. Inactive candidates and revoked releases are never offered. See the update section in the [Self-Install Guide](#self-install).
 
 ### Can I re-provision a board that already has firmware?
 
@@ -322,9 +363,135 @@ use the same license on a new board.
 
 ### Can someone steal my firmware?
 
-The flash is protected by readout protection — reading it back via the debug port triggers
-a mass erase. The firmware is also encrypted with a per-board key, so even
-if extracted, it wouldn't work on a different board.
+RDP Level 1 makes a normal debug-port read attempt trigger mass erase, and the
+production application is signed and bound to the board's full hardware UID.
+Encrypted update packages are also device-specific where that update path is
+supported. These controls make casual extraction and copying fail closed and
+raise the cost of analysis; they do not make advanced physical reverse
+engineering impossible.
+
+---
+
+## Fuel estimation
+
+### Can the filter tell me how much fuel I have left?
+
+It can estimate it, from H743 DroneCAN `v0.5.28+`. It works out what your
+propeller must be absorbing from the engine RPM your flight controller already
+sends, and reports that to ArduPilot as an EFI device — so the figure shows up
+in your GCS and your logs with no extra sensor and no extra wiring.
+
+It is an estimate, not a measurement. There is no flow meter and no tank
+sensor anywhere in the path. On an aircraft with no fuel gauge it will be the
+only fuel indication you have, so it is deliberately built to read HIGH rather
+than low, and it stays advisory until you calibrate it against one weighed
+flight. See "Calibrating the fuel estimate" in [Tuning](06_tuning.md).
+
+### Why does my fuel figure read far too high?
+
+Because it is supposed to, until calibrated. Uncalibrated it reads roughly
+1.2–2x high by design — the underlying propeller coefficient carries deliberate
+margin, because under-reporting fuel is what stops an engine and over-reporting
+only lands you early. One weighed flight and one `FUEL_TRIM` value brings it to
+10–20%. Expect to end up around 0.5–0.9.
+
+### My fuel total did not reset after refuelling
+
+Write `FUEL_CAPG`. That is the only thing that zeroes the running total, and
+it is intentional — the total now survives a mid-flight reboot, so it cannot
+also reset itself whenever the board restarts. Write it after every refuel,
+even if the tank size has not changed. You will see
+`FUEL_CAPG written - fuel total zeroed`. The write is accepted only after fresh
+stopped-engine quorum: disarmed, valid zero RPM, and closed throttle. If the
+numerical capacity changed, that message confirms only the runtime reset: EFI
+remains silent until the asynchronous journal save reports `Tune saved`.
+`Tune save failed` leaves the total LOST and must not be treated as recovery.
+
+Set `FUEL_DENS` before `FUEL_CAPG`. Density writes require the same fresh
+stopped-engine quorum. An actual change marks the total LOST, cancels any older
+pending capacity commit, and blocks capacity writes with
+`FUEL_CAPG blocked: wait for FUEL_DENS save` until the density journal save is verified. A failed
+save stays blocked/LOST. `Tune saved` clears that block but does not restore EFI;
+then a subsequent stopped-quorum `FUEL_CAPG` write establishes a fresh zero.
+
+### What happens if FC telemetry or the saved fuel total is lost?
+
+Fuel accounting continues through FC-link loss and the FC-version output
+block. Every boot starts with the conservative engine-may-be-running latch set;
+link silence cannot clear it, and missing RPM is charged at rated power until
+fresh disarmed state, zero RPM, and closed throttle all say it is stopped. A
+`FUEL_CAPG` write is accepted only after those same three inputs are fresh; the
+write itself does not clear the engine latch.
+
+If any boot has no trustworthy V2 backup record (including a normal power-on, a
+warm reset, or a legacy V1 record), the total is unknown and the filter sends no
+DroneCAN ICE Status at all. The same fail-closed result applies when the H743
+tune journal is missing, corrupt, or has no valid record: a surviving numeric
+total cannot be trusted when the capacity, density, and model settings under
+which it accumulated have unknown provenance. POR/PDR cannot prove a refuel.
+ArduPilot's EFI backend therefore ages stale/unhealthy instead of accepting a
+false zero. The filter repeats `Fuel total LOST - write FUEL_CAPG to restart
+it` every 60 s. Land or remain on the ground, verify the fuel configuration,
+wait for fresh stopped-engine quorum (disarmed + valid zero RPM + closed
+throttle), and rewrite `FUEL_CAPG` for the fuel aboard—even if its numerical
+value is unchanged. A changed value clears the lockout only after `Tune saved`;
+disarmed alone is rejected. A valid restore also receives a bounded
+conservative 25-second rated-power reset-gap charge; it is not an exact
+measurement of the fuel consumed during reset/startup. An accepted write that
+establishes a new total cancels any pending charge attached to the old restored
+total.
+
+A factory-reset attempt writes TOTAL LOST to backup SRAM before flash work can
+start. Even a failed attempt can therefore conservatively leave EFI silent.
+After any attempt, verify all fuel-model settings and perform the stopped-engine
+`FUEL_CAPG` recovery; if the capacity changed, wait for `Tune saved`.
+
+### What does `Fuel held up by throttle - check RPM_SCALING` mean?
+
+The throttle position implies more power than the RPM reading does, so the
+filter is propping the estimate up rather than believing an RPM that looks too
+low. The usual cause is `RPM1_SCALING` set for the wrong number of pulses per
+revolution — a twin CDI gives two, and configuring one halves every reading.
+
+**Check it against a hand tachometer before flying again.** The filter has a
+single RPM source, so nothing else on the aircraft can catch this.
+
+---
+
+## Finding the source of interference
+
+### Can I find out where a jammer is?
+
+Roughly. From `v0.5.27+` the filter emits and logs the RF measurements needed
+to estimate a bearing. Mission Planner plugin `v0.3.0+` shows a provisional
+live two-way axis; after the flight, run `python tools/df_analyze.py flight.bin`
+on the flight controller's log. Expected accuracy when the fit answers is
+roughly ±20–45°, but the displayed fit sigma does not include FC heading age.
+
+You must **fly a full orbit** through the interference for it to work. The
+method reads how interference power changes with your heading, so a straight
+pass gives it nothing and the tool will tell you so rather than guess.
+
+One bearing is an axis, not a position. Plugin `v0.3.0+` can show a purple
+**UNVALIDATED advisory intersection**, but only after three finalized axes
+captured at separated positions. Requiring three lets it reject an inconsistent
+segment; any two nonparallel mathematical lines would always appear to
+intersect. Until polarity is checked against a transmitter you control, treat
+each bearing as a line rather than an arrow.
+
+The live plugin needs at least 20 samples and a real turn; 90° is the minimum
+and a full orbit is better. It says `COLLECTING` or `ABSTAIN` instead of
+guessing. The RF axis arrives through normal FC telemetry. The source
+intersection needs the private USB cable because it anchors each saved axis to
+the moving DR reference; it never uses the attacker-controlled red position.
+Capture three qualified 20–120 second segments within three minutes. **Every
+pair** of anchors must be at least 500 m apart and every pair of axis directions
+must differ by at least 30°. The newest axis expires
+after 30 seconds. The purple target and dotted sensitivity circle assume one
+stationary emitter and are not ground truth, an accuracy radius, or a waypoint.
+
+Nothing about this feeds back into spoof detection or aircraft control. The
+firmware only emits/logs observables; all fitting is in the GCS/offline tool.
 
 ---
 

@@ -145,11 +145,13 @@ enter ROM DFU with `BOOT0` + reset/power-cycle over USB-C, then click
 **Update**. If the board is protected, keep `BOOT0` held during the required
 power-cycle prompt so it returns to ROM DFU after RDP removal.
 
-After the first H743 DroneCAN `v0.5.30+` promotion, the update service
-permanently refuses to promote or deliver any pre-`v0.5.30` H743 firmware.
-Older fuel readers cannot safely preserve the new lost/known fuel provenance,
-so this global boundary also applies to owner-authorized rollback. Use a
-forward-versioned recovery build instead.
+The update service has nested permanent H743 fuel-safety boundaries. A
+`v0.5.30+` promotion permanently excludes pre-`v0.5.30` readers because they
+cannot preserve lost/known fuel provenance. After the first `v0.5.31+`
+promotion, `v0.5.30` is also permanently excluded because it can publish fresh
+zero-consumption EFI for zero capacity. Owner-authorized rollback cannot cross
+either boundary. Recovery after that cutover must be a forward-versioned
+`v0.5.31+` build.
 
 ## 4) H743 DroneCAN MAVLink2 virtual ports
 

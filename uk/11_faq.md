@@ -386,6 +386,10 @@ stopped-engine quorum: disarmed, valid zero RPM і closed throttle. Якщо ч�
 місткість змінилася, це повідомлення підтверджує лише runtime reset: EFI
 лишається silent, доки asynchronous save journal не повідомить `Tune saved`.
 `Tune save failed` лишає total LOST і не є відновленням.
+Використовуйте позитивну зважену масу; ніколи не записуйте нуль як placeholder.
+H743 DroneCAN v0.5.31+ suppresses ICE Status за zero/non-finite capacity, тоді
+як firmware до v0.5.30 включно могла expose fresh zero-consumption EFI після
+zero write.
 
 Встановлюйте `FUEL_DENS` до `FUEL_CAPG`. Запис густини потребує того самого
 fresh stopped-engine quorum. Фактична зміна позначає total як LOST, скасовує
@@ -415,7 +419,9 @@ backend ArduPilot стає stale/unhealthy замість прийняти хи�
 stopped-engine quorum (disarmed + valid zero RPM + closed throttle) і повторно
 запишіть `FUEL_CAPG` для палива на борту, навіть якщо його числове значення не
 змінилося. Змінене значення очистить lockout лише після `Tune saved`; disarmed
-alone відхиляється. Valid restore також отримує обмежене консервативне
+same-value path не планує нового save, тому accepted-write message і точний
+readback є completion evidence. Disarmed alone відхиляється. Valid restore
+також отримує обмежене консервативне
 25-секундне reset-gap нарахування за номінальною потужністю; це не точне
 вимірювання витрати під час reset/startup. Прийнятий запис, що встановлює новий
 total, скасовує pending charge старого відновленого total.
@@ -429,11 +435,16 @@ total, скасовує pending charge старого відновленого t
 
 Положення газу передбачає більшу потужність, ніж показання обертів, тож фільтр
 підпирає оцінку замість того, щоб повірити підозріло низьким обертам. Звична
-причина — `RPM1_SCALING`, налаштований на хибну кількість імпульсів на оберт:
-здвоєний CDI дає два, а налаштування на один зменшує кожне показання вдвічі.
+причина — `RPM1_SCALING`, налаштований на хибну кількість імпульсів на оберт.
+Не визначайте її за кількістю циліндрів: DLE не вказує імпульси tach lead
+DLE120 на оберт колінвала. Виміряйте реальний pickup; для GPIO pulse source
+використовуйте scaling `1 / імпульси на оберт`.
 
-**Звірте це з ручним тахометром, перш ніж летіти знову.** У фільтра одне
-джерело обертів, тож більше ніщо на літаку цього не виявить.
+**Звірте це з ручним тахометром або осцилоскопом, перш ніж летіти знову.** Не
+використовуйте FC `RPM1_TYPE=3` або `RPM2_TYPE=3` (EFI) для instance, який
+вибирає filter: EFI RPM цього filter-а походить від FC RPM і створить циклічне
+джерело. Перевірте обидва instances live. У filter-а зрештою одне selected RPM
+source, тож більше ніщо на aircraft цього не виявить.
 
 ---
 

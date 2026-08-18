@@ -632,7 +632,15 @@ To consume it:
 
 The package includes
 `presets/arduplane_FC_4.6.3_h743_dronecan_CAN1_5L_EFI.param` for this aircraft.
-It keeps the existing electrical BATT1 monitor, uses a verified-free BATT2,
+It requires node-42 H743 DroneCAN firmware **v0.5.31 or later**; do not import
+it with public v0.5.25 or any v0.5.30-or-older build. On a fresh setup, first
+fully load/reboot/read back the separate non-EFI CAN1 core FC preset so CAN/S2
+can deliver stopped-engine evidence, then configure and verify the real RPM
+pickup. Next configure node 42, require a positive weighed `FUEL_CAPG` readback
+and its accepted-write message, and wait for `Tune saved` if the numerical
+value changed. Only then import the FC EFI/BATT2 file.
+It keeps the existing electrical BATT1 monitor and requires the operator to
+confirm from a live readback that BATT2 is unused,
 and makes the gauge reach zero after 4000 mL estimated consumption so the
 filter's 1000 mL (20%) estimator-error reserve remains. The EFI backend uses a
 synthetic 1.0 V and reports fuel flow through a field Mission Planner labels as
@@ -643,6 +651,39 @@ aircraft. Until node 42 has a trustworthy total and publishes ICE Status,
 BATT2 is unhealthy and may block arming; fix the filter configuration instead
 of weakening `ARMING_CHECK`.
 
+Here `EFI_TYPE=5` names ArduPilot's DroneCAN engine-telemetry backend. It does
+not mean the mechanically carbureted DLE120 has electronic fuel injection.
+
+For the stated DLE120/Walbro, user-installed wooden CW 27x12, and 5 L tank,
+load the paired node-42 starting file
+`presets/airdroper_filter_aircraft_dle120_walbro_27x12_wood_cw_5L.param` into
+the **filter**, not the FC. It deliberately omits `FUEL_CAPG` because every
+capacity write is a state-changing refuel/reset action. After its model rows
+are saved, separately write measured density and weighed loaded mass. Exactly
+5000 mL at `0.75 g/mL` is only the 3750 g example. Match the FC gauge using
+`BATT2_CAPACITY = 0.8 * FUEL_CAPG / FUEL_DENS` (numeric mL); 4000 is valid only
+for that exact full-load example. The file uses DLE's published 12 hp rating
+(`ENG_PMAXKW=8.95`), while v0.5.30 and v0.5.31 firmware retain the 8.6 kW
+compiled fallback. The 8.95 kW value is active only after the profile is loaded
+and exact `ENG_PMAXKW` readback confirms it.
+DLE publishes 26x10, 26x12, 27x10, and 28x10 for the DLE120, not 27x12, so the
+file records the installed geometry but is not propeller approval. Verify
+wide-open RPM, temperatures, clearance, balance, fastening, and airframe load
+before flight, and confirm it is the two-blade fixed-pitch propeller assumed by
+the model. If density changes, wait for its `Tune saved`, then write the
+weighed `FUEL_CAPG` separately and always require its accepted-write message.
+If the numerical capacity changed, also require the **second** `Tune saved`
+before trusting persistence or EFI/BATT2 health. If the value was unchanged,
+the firmware schedules no new journal save; the accepted-write message and
+exact readback are the expected completion.
+Never write `FUEL_CAPG=0`: it is a state-changing reset, not a placeholder.
+Firmware through v0.5.30 could publish fresh zero-consumption EFI while a fixed
+FC capacity made the gauge look falsely full. Required v0.5.31+ suppresses ICE
+Status at zero, but a positive weighed value remains mandatory.
+The source specifications are DLE's
+[DLE120 product page](https://www.dlengine.com/en/rcengine/dle120) and
+[manufacturer manual](https://cdn.dlengine.com/pdf/DLE120%20USER%20MANUAL%20.pdf).
+
 ArduPilot decodes the message into `EFI_STATUS`, which gives a GCS fuel display
 and a dataflash record with no side channel. The consumed-volume field is
 monotonic and is what the FC's EFI battery-monitor mapping uses; the sensors
@@ -650,14 +691,27 @@ this engine does not have - oil pressure, coolant temperature and the rest -
 are published as NaN rather than zero, because zero is a measurement and a
 false one is alarming.
 
-**`RPM1_SCALING` is the one setting that can make this dangerous.** The filter
-has a single RPM source, so nothing on the aircraft can contradict it. A twin
-CDI gives two pulses per revolution; configure it for one and every reading
-halves, which drops the propeller term eightfold and under-reports the burn.
+**RPM scaling is an especially dangerous setting.** The filter
+has a single RPM source, so nothing on the aircraft can contradict it. DLE's
+DLE120 documentation does not specify the tach lead's electrical interface or
+pulses per crank revolution; twin-cylinder count is not proof of either. For a
+separate GPIO pulse pickup, ArduPilot computes RPM from pulse frequency times
+`RPM1_SCALING`, so scaling is `1 / measured pulses per revolution`.
+Configuring the wrong pulse count can divide every RPM reading and reduce the
+propeller power term cubically, under-reporting burn.
 The filter puts a floor under the estimate from throttle position and
 annunciates `Fuel held up by throttle - check RPM_SCALING` when that floor
 binds - **if you see that message, check the scaling against a hand tachometer
-before flying again.** Verify it once at a known idle RPM during bring-up.
+before flying again.** Verify it at idle and a higher safe bench RPM with a
+hand tachometer or oscilloscope. Neither selected FC backend may use
+`RPM1_TYPE=3` nor `RPM2_TYPE=3` (EFI): node 42's EFI RPM is derived from FC RPM
+and would create a circular source. Inspect both RPM instances live. The pickup
+type, FC pin, voltage/interface, and measured pulse count remain
+aircraft-specific and are deliberately absent from the preset.
+ArduPilot's Plane 4.6.3
+[RPM parameter definition](https://github.com/ArduPilot/ardupilot/blob/Plane-4.6.3/libraries/AP_RPM/AP_RPM_Params.cpp#L16-L29)
+and [GPIO implementation](https://github.com/ArduPilot/ardupilot/blob/Plane-4.6.3/libraries/AP_RPM/RPM_Pin.cpp#L65-L78)
+define this scaling contract.
 
 **On an airframe with no fuel-level sensor this estimate is the ONLY fuel
 indication the pilot has**, so it is deliberately biased to over-report and is

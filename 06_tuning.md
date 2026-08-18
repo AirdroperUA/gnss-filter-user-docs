@@ -488,6 +488,23 @@ than we thought" from "the engine is thirstier than we thought" - that needs a
 dyno. So `FUEL_BSFC` and the propeller geometry stay at their book values, and
 `FUEL_TRIM` absorbs the difference.
 
+For the DLE120/Walbro + user-installed wooden CW 27x12 + 5 L aircraft, the
+Mission Planner package includes
+`airdroper_filter_aircraft_dle120_walbro_27x12_wood_cw_5L.param`. It uses the
+manufacturer's 12 hp rating (`ENG_PMAXKW=8.95`) and a nominal full-load
+3750 g example only when 5000 mL is actually loaded at `0.75 g/mL`; the preset
+deliberately omits state-changing `FUEL_CAPG`. Prefer weighed loaded mass and
+write it separately. Set the FC gauge to
+`BATT2_CAPACITY = 0.8 * FUEL_CAPG / FUEL_DENS` in numeric mL; otherwise a
+partial fill can look dangerously fuller than node 42 considers usable. DLE's
+published DLE120 propeller list does not
+include 27x12, and its documentation does not specify tach pulses per crank
+revolution; verify both the physical propeller installation and the real RPM
+pickup/scaling on the bench. Do not use FC `RPM1_TYPE=3` or `RPM2_TYPE=3`
+(EFI) as the selected filter RPM source because that would create a circular
+dependency. Here EFI is only ArduPilot's DroneCAN telemetry backend; the
+DLE120 remains mechanically carbureted.
+
 ### Procedure
 
 1. Set `PROP_DIA`, `PROP_PITCH`, `ENG_PMAXKW`, `FUEL_BSFC`, `FUEL_IDLE`, and
@@ -502,6 +519,13 @@ dyno. So `FUEL_BSFC` and the propeller geometry stay at their book values, and
 2. Fill the tank and **weigh the fuel you put in**. Set `FUEL_CAPG` to that
    figure in grams. Weight, not volume - the model integrates mass, and
    volume drifts with temperature.
+
+   **Never write `FUEL_CAPG=0`.** It is a state-changing reset, not a safe
+   placeholder. Firmware through v0.5.30 could allow fresh zero-consumption EFI
+   while a fixed FC `BATT2_CAPACITY` made the gauge look falsely full. H743
+   DroneCAN v0.5.31+ suppresses ICE Status when capacity is zero or non-finite,
+   but still requires a positive weighed mass. Keep the FC capacity matched
+   with `0.8 * FUEL_CAPG / FUEL_DENS`.
 
    **Writing `FUEL_CAPG` also zeroes the running total.** It is the only thing
    that does. The total now survives resets (see below), so telling the filter

@@ -6,6 +6,39 @@
 
 ---
 
+## H743 DroneCAN v0.5.31 — 2026-08-18 (corrective candidate)
+
+- Фільтр тепер не надсилає DroneCAN ICE Status, коли `FUEL_CAPG` дорівнює
+  нулю, від'ємне, NaN або infinite. Тому ArduPilot переводить EFI у
+  stale/unhealthy замість приймати fresh zero-consumption value поруч із fixed
+  FC fuel capacity. Це виправляє false-full шлях, наявний до v0.5.30 включно
+  після same-value запису `FUEL_CAPG=0`.
+- Positive finite capacity працює як раніше. Invalid або unconfigured capacity
+  має стан UNKNOWN і не публікується; GNSS/DR1 rules та parameter defaults не
+  змінені.
+- Перед першим production promotion service має встановити external H743
+  delivery floor packed v0.5.31
+  (`MIN_APP_VERSION_H743_DRONECAN=5151`, `0x0000141F`). Після будь-якого
+  promotion v0.5.31+ v0.5.30 і всі старіші builds назавжди ineligible;
+  recovery має бути forward-versioned v0.5.31+ build.
+- Mission Planner plugin `0.3.1` робить map legend opaque та тримає її ліворуч
+  від штатних zoom controls Mission Planner, прибираючи white-line repaint
+  flicker після resize або зміни DPI.
+- Mission Planner package додає aircraft-specific FC preset для 5-літрового
+  бака: BATT1 зберігається, DroneCAN EFI вмикається на BATT2, який operator має
+  підтвердити unused через live readback, а 4000 mL показуються як usable fuel
+  із 1000 mL estimator-error reserve. Парний aircraft preset node 42 описує
+  DLE120/Walbro, встановлений користувачем дерев'яний CW 27x12 та nominal full
+  load 5 л. Він використовує published DLE 12 hp (`8.95 kW`), але не містить
+  state-changing `FUEL_CAPG`: позитивну зважену масу operator записує окремо.
+  На fresh setup спочатку потрібні non-EFI CAN/S2 core і verified RPM pickup,
+  далі node 42/positive capacity, і лише потім EFI/BATT2. Generic DLE/RCGF
+  model files більше не пишуть `FUEL_CAPG=0`.
+- Цей candidate не uploaded, не promoted і не hardware/HIL-qualified. Public
+  production firmware не змінюється.
+
+---
+
 ## H743 DroneCAN v0.5.30 — 2026-08-17 (corrective candidate)
 
 - Фільтр тепер запитує і перевіряє `AUTOPILOT_VERSION` перед публікацією GPS.
@@ -54,16 +87,9 @@
 - Secondary H743 USB Mission Planner працює з default DTR-low open/reconnect і
   незалежними USB/FC packet counters. Сам private spoof-position stream
   лишається функцією v0.5.29+.
-- Mission Planner plugin `0.3.1` робить map legend opaque та тримає її ліворуч
-  від штатних zoom controls Mission Planner, прибираючи white-line repaint
-  flicker після resize або зміни DPI.
 - `PARKED_MOVE` тепер показується як `PARKED MOVE` (або `PARKED` на екрані
   плати); H743/UM980/build docs та parameter descriptions виправлено. Значення
-  firmware parameters/defaults не змінені. Mission Planner package додає
-  aircraft-specific FC preset для бака 5 л: BATT1 зберігається, DroneCAN EFI
-  вмикається на перевіреному вільному BATT2, а 4000 mL показуються як usable
-  fuel із 1000 mL estimator-error reserve. Automatic FC fuel failsafe actions
-  лишаються off до завершення HIL aircraft.
+  firmware parameters/defaults не змінені.
 
 v0.5.29 був лише inactive uploaded candidate і ніколи не promoted. v0.5.30 ще
 не має hardware/HIL qualification і не promoted publicly; v0.5.25 на момент
@@ -177,10 +203,11 @@ coordinates і нічого не надсилає у FC.
 - **Запис `FUEL_CAPG` обнуляє накопичений підсумок.** Це єдине, що його
   обнуляє. Робіть це після кожної заправки, навіть якщо число не змінилося.
 - **Один раз звірте `RPM1_SCALING` з ручним тахометром.** У фільтра одне
-  джерело обертів, тож ніщо не може йому заперечити. Здвоєний CDI дає два
-  імпульси на оберт; налаштуєте один — і оцінка буде значно заниженою. Якщо
-  колись побачите `Fuel held up by throttle - check RPM_SCALING` — зупиніться
-  й перевірте.
+  джерело обертів, тож ніщо не може йому заперечити. Виміряйте кількість
+  імпульсів установленого pickup на оберт колінвала, а не виводьте її з
+  кількості циліндрів: документація DLE120 не визначає pulse contract tach
+  lead. Якщо колись побачите `Fuel held up by throttle - check RPM_SCALING` —
+  зупиніться й перевірте.
 
 Накопичений підсумок тепер переживає перезавантаження в польоті — watchdog,
 збій або просідання живлення — замість того щоб почати з нуля й показати вам

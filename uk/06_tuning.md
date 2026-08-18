@@ -467,6 +467,22 @@ P    = Cp0 x shape(J) x rho x n^3 x D^5   n = об/с, D = діаметр, J = V
 Тому `FUEL_BSFC` і геометрія гвинта залишаються книжковими, а різницю вбирає
 `FUEL_TRIM`.
 
+Для aircraft DLE120/Walbro + встановлений користувачем дерев'яний CW 27x12 +
+бак 5 л у Mission Planner package є
+`airdroper_filter_aircraft_dle120_walbro_27x12_wood_cw_5L.param`. Він
+використовує published 12 hp (`ENG_PMAXKW=8.95`) і nominal full-load 3750 g
+example лише коли реально залито 5000 mL за `0.75 g/mL`. Preset навмисно не
+містить state-changing `FUEL_CAPG`; використайте зважену масу та запишіть її
+окремо. Для FC gauge встановіть
+`BATT2_CAPACITY = 0.8 * FUEL_CAPG / FUEL_DENS` у numeric mL, інакше partial
+fill може виглядати небезпечно повнішим, ніж usable fuel node 42. Published
+DLE120 propeller list не містить 27x12, а
+документація не визначає tach pulses на оберт колінвала; перевірте фізичне
+встановлення prop і реальний RPM pickup/scaling на стенді. Не використовуйте
+FC `RPM1_TYPE=3` або `RPM2_TYPE=3` (EFI) як selected RPM source filter-а: це
+створить циклічну залежність. Тут EFI — лише DroneCAN telemetry backend
+ArduPilot; DLE120 лишається механічно карбюраторним.
+
 ### Процедура
 
 1. Встановіть `PROP_DIA`, `PROP_PITCH`, `ENG_PMAXKW`, `FUEL_BSFC`, `FUEL_IDLE` і
@@ -480,6 +496,13 @@ P    = Cp0 x shape(J) x rho x n^3 x D^5   n = об/с, D = діаметр, J = V
    запишіть `FUEL_CAPG` за тим самим fresh quorum, щоб установити fresh zero.
 2. Заправте бак і **зважте залите паливо**. Встановіть `FUEL_CAPG` у грамах.
    Саме вага, не об'єм: модель інтегрує масу, а об'єм пливе з температурою.
+
+   **Ніколи не записуйте `FUEL_CAPG=0`.** Це state-changing reset, а не
+   безпечний placeholder. Firmware до v0.5.30 включно могла дозволити fresh
+   zero-consumption EFI, а fixed FC `BATT2_CAPACITY` показував хибно повний
+   gauge. H743 DroneCAN v0.5.31+ suppresses ICE Status, коли capacity нульова
+   або non-finite, але все одно потребує позитивної зваженої маси. Узгоджуйте
+   FC capacity за формулою `0.8 * FUEL_CAPG / FUEL_DENS`.
 
    **Запис `FUEL_CAPG` також обнуляє накопичений підсумок.** Це єдине, що його
    обнуляє. Підсумок тепер переживає перезавантаження (див. нижче), тому

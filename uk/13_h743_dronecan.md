@@ -513,8 +513,16 @@ MAVLink2 тунелюється, але raw GNSS NMEA, UBX та SBF не тун�
 
 У package є
 `presets/arduplane_FC_4.6.3_h743_dronecan_CAN1_5L_EFI.param` для цього aircraft.
-Він зберігає наявний електричний BATT1 monitor, використовує перевірений вільний
-BATT2 і доводить покажчик до нуля після 4000 mL оціненого споживання, залишаючи
+Він потребує H743 DroneCAN firmware node 42 **v0.5.31 або новішої**; не
+імпортуйте його з public v0.5.25 чи будь-якою v0.5.30 або старішою. На fresh
+setup спочатку повністю load/reboot/read back окремий non-EFI CAN1 core FC
+preset, щоб CAN/S2 передавав stopped-engine evidence, потім налаштуйте й
+перевірте реальний RPM pickup. Далі налаштуйте node 42, вимагайте positive
+weighed `FUEL_CAPG` readback і accepted-write message, а якщо числове значення
+змінилося — також `Tune saved`. Лише тоді імпортуйте FC EFI/BATT2 file.
+Він зберігає наявний електричний BATT1 monitor і вимагає, щоб operator за live
+readback підтвердив невикористаний BATT2, та доводить покажчик до нуля після
+4000 mL оціненого споживання, залишаючи
 1000 mL (20%) резерву похибки estimator-а filter-а. EFI backend використовує
 синтетичні 1.0 V і передає витрату через поле, яке Mission Planner підписує як
 струм, тому preset обнуляє BATT2 voltage, arming-voltage, watt-limit,
@@ -524,6 +532,39 @@ capacity-failsafe та automatic-action rows для початкового HIL. 
 BATT2 unhealthy і може блокувати arming; виправляйте конфігурацію filter-а, а
 не послаблюйте `ARMING_CHECK`.
 
+Тут `EFI_TYPE=5` означає DroneCAN backend engine telemetry в ArduPilot. Це не
+означає, що механічно карбюраторний DLE120 має electronic fuel injection.
+
+Для зазначених DLE120/Walbro, встановленого користувачем дерев'яного CW 27x12
+і бака 5 л завантажте парний стартовий файл node 42
+`presets/airdroper_filter_aircraft_dle120_walbro_27x12_wood_cw_5L.param` у
+**filter**, не у FC. Він навмисно не містить `FUEL_CAPG`, бо кожен capacity
+write є state-changing refuel/reset action. Після save model rows окремо
+запишіть виміряну густину та зважену масу. Рівно 5000 mL за `0.75 g/mL` — лише
+приклад 3750 g. Узгодьте FC gauge за формулою
+`BATT2_CAPACITY = 0.8 * FUEL_CAPG / FUEL_DENS` (numeric mL); 4000 чинне лише
+для цього exact full-load example. Файл використовує опубліковані DLE 12 hp
+(`ENG_PMAXKW=8.95`), тоді як firmware v0.5.30 і v0.5.31 зберігають compiled
+fallback 8.6 kW. Значення 8.95 kW активне лише після завантаження profile та
+точного readback `ENG_PMAXKW`. DLE наводить для DLE120 26x10,
+26x12, 27x10 і 28x10, але не 27x12, тому файл лише записує встановлену
+геометрію, а не схвалює гвинт. До польоту перевірте RPM на повному газі,
+температури, зазори, балансування, кріплення та навантаження airframe, а також
+підтвердьте two-blade fixed-pitch propeller, який припускає model. Якщо
+густина змінилася, дочекайтеся її `Tune saved`, тоді окремо запишіть зважений
+`FUEL_CAPG` і завжди вимагайте accepted-write message. Якщо числове значення
+місткості змінилося, перед довірою до persistence або EFI/BATT2 health також
+дочекайтеся **другого** `Tune saved`. Якщо значення не змінилося, firmware не
+планує новий journal save; accepted-write message і точний readback є очікуваним
+завершенням.
+Ніколи не записуйте `FUEL_CAPG=0`: це state-changing reset, а не placeholder.
+Firmware до v0.5.30 включно могла публікувати fresh zero-consumption EFI, а
+fixed FC capacity показував хибно повний gauge. Required v0.5.31+ suppresses
+ICE Status за нульової місткості, але позитивна зважена маса все одно
+обов'язкова.
+Джерела специфікацій: [сторінка DLE120](https://www.dlengine.com/en/rcengine/dle120)
+та [manual виробника](https://cdn.dlengine.com/pdf/DLE120%20USER%20MANUAL%20.pdf).
+
 ArduPilot декодує повідомлення в `EFI_STATUS`, що дає індикацію палива в
 наземній станції та запис у лог без окремого каналу. Поле спожитого об'єму
 монотонне — саме його використовує прив'язка EFI до монітора батареї; датчики,
@@ -531,15 +572,26 @@ ArduPilot декодує повідомлення в `EFI_STATUS`, що дає �
 тощо), публікуються як NaN, а не нулем: нуль є вимірюванням, і хибне
 вимірювання тривожить.
 
-**`RPM1_SCALING` — єдине налаштування, здатне зробити це небезпечним.** У
+**RPM scaling — особливо небезпечне налаштування.** У
 фільтра одне джерело обертів, тож ніщо на літаку не може йому заперечити.
-Здвоєний CDI дає два імпульси на оберт; налаштуйте один — і кожне показання
-зменшиться вдвічі, що вісімкратно занизить член гвинта й саму витрату. Фільтр
+Документація DLE120 не визначає електричний інтерфейс tach lead або кількість
+імпульсів на оберт колінвала; кількість циліндрів цього не доводить. Для
+окремого GPIO pulse pickup ArduPilot обчислює RPM як частоту імпульсів,
+помножену на `RPM1_SCALING`, тому scaling дорівнює `1 / виміряні імпульси на
+оберт`. Хибне значення може поділити всі RPM і кубічно зменшити propeller power
+term, занижуючи витрату. Фільтр
 підставляє «підлогу» під оцінку за положенням газу й видає
 `Fuel held up by throttle - check RPM_SCALING`, коли ця підлога спрацьовує —
 **побачивши це повідомлення, звірте масштаб із ручним тахометром, перш ніж
-летіти знову.** Перевірте його один раз на відомих обертах холостого ходу під
-час введення в експлуатацію.
+летіти знову.** Перевірте його на idle і вищих безпечних стендових RPM ручним
+тахометром або осцилоскопом. Жоден selected backend FC не може мати
+`RPM1_TYPE=3` або `RPM2_TYPE=3` (EFI): EFI RPM node 42 походить від FC RPM і
+створить циклічне джерело. Перевірте обидва RPM instances live. Тип pickup, пін
+FC, voltage/interface та виміряна кількість імпульсів залишаються
+aircraft-specific і навмисно відсутні у preset.
+Цей scaling contract визначають Plane 4.6.3
+[RPM parameter definition](https://github.com/ArduPilot/ardupilot/blob/Plane-4.6.3/libraries/AP_RPM/AP_RPM_Params.cpp#L16-L29)
+і [GPIO implementation](https://github.com/ArduPilot/ardupilot/blob/Plane-4.6.3/libraries/AP_RPM/RPM_Pin.cpp#L65-L78).
 
 **На літаку без датчика рівня палива ця оцінка — ЄДИНИЙ покажчик палива в
 пілота**, тому вона свідомо зміщена в бік завищення й лишається орієнтовною до

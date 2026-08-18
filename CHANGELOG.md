@@ -6,6 +6,39 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## H743 DroneCAN v0.5.31 — 2026-08-18 (corrective candidate)
+
+- The filter now sends no DroneCAN ICE Status when `FUEL_CAPG` is zero,
+  negative, NaN, or infinite. ArduPilot therefore ages EFI unhealthy instead
+  of accepting a fresh zero-consumption value beside a fixed FC fuel capacity.
+  This fixes the false-full path present through v0.5.30 after a same-value
+  `FUEL_CAPG=0` write.
+- Positive finite capacities behave as before. An invalid or unconfigured
+  capacity is UNKNOWN and silent; no GNSS/DR1 rule or parameter default changed.
+- Before the first production promotion, the service must set the external
+  H743 delivery floor to packed v0.5.31
+  (`MIN_APP_VERSION_H743_DRONECAN=5151`, `0x0000141F`). After any v0.5.31+
+  promotion, v0.5.30 and every older build are permanently ineligible;
+  recovery must use a forward-versioned v0.5.31+ build.
+- Mission Planner plugin `0.3.1` makes the map legend opaque and keeps it left
+  of Mission Planner's native zoom controls, removing the white-line repaint
+  flicker after resize or DPI changes.
+- The Mission Planner package adds an aircraft-specific 5 L FC preset that
+  preserves BATT1, enables DroneCAN EFI on a BATT2 the operator must prove
+  unused by live readback, and exposes 4000 mL usable fuel with the final
+  1000 mL retained as estimator-error reserve. A paired node-42 aircraft preset
+  records the DLE120/Walbro, user-installed wooden CW 27x12, and nominal full
+  5 L load. It uses DLE's published 12 hp (`8.95 kW`) rating while deliberately
+  omitting state-changing `FUEL_CAPG`; the operator must write a positive
+  weighed load separately. Fresh setups must establish the non-EFI CAN/S2 core
+  first, verify the real RPM pickup, configure node 42 and its positive
+  capacity, and only then enable EFI/BATT2. Generic DLE/RCGF model files no
+  longer write `FUEL_CAPG=0`.
+- This candidate is not uploaded, promoted, or hardware/HIL-qualified. The
+  public production firmware remains unchanged.
+
+---
+
 ## H743 DroneCAN v0.5.30 — 2026-08-17 (corrective candidate)
 
 - The filter now requests and verifies `AUTOPILOT_VERSION` before publishing
@@ -54,16 +87,9 @@ All notable firmware and tool changes are documented here.
 - Mission Planner's secondary H743 USB connection now works with its default
   DTR-low open/reconnect sequence, with independent USB and FC packet counters.
   The private spoof-position stream itself remains a v0.5.29+ feature.
-- Mission Planner plugin `0.3.1` makes the map legend opaque and keeps it left
-  of Mission Planner's native zoom controls, removing the white-line repaint
-  flicker after resize or DPI changes.
 - `PARKED_MOVE` is now shown as `PARKED MOVE` (or `PARKED` on the board screen),
   and the H743/UM980/build documentation and parameter descriptions were
-  corrected. No firmware parameter values or defaults changed. The Mission
-  Planner package adds an aircraft-specific 5 L FC preset that preserves BATT1,
-  enables DroneCAN EFI on a verified-free BATT2, and exposes 4000 mL usable
-  fuel with the final 1000 mL retained as estimator-error reserve. Automatic
-  FC fuel failsafe actions remain off until aircraft HIL is complete.
+  corrected. No firmware parameter values or defaults changed.
 
 v0.5.29 was uploaded only as an inactive candidate and was never promoted.
 v0.5.30 has not yet been hardware/HIL-qualified or publicly promoted; v0.5.25
@@ -180,9 +206,11 @@ Two things to know before the first flight:
 - **Writing `FUEL_CAPG` zeroes the running total.** It is the only thing that
   does. Write it after every refuel, even if the number has not changed.
 - **Check `RPM1_SCALING` against a hand tachometer once.** The filter has one
-  RPM source, so nothing can contradict it. A twin CDI gives two pulses per
-  revolution; configure it for one and the estimate reads far too low. If you
-  ever see `Fuel held up by throttle - check RPM_SCALING`, stop and check it.
+  RPM source, so nothing can contradict it. Measure the installed pickup's
+  pulses per crank revolution instead of inferring them from cylinder count;
+  the DLE120 documentation does not specify the tach lead's pulse contract. If
+  you ever see `Fuel held up by throttle - check RPM_SCALING`, stop and check
+  it.
 
 The running total now survives a mid-flight reboot — watchdog, fault or a
 brownout — instead of restarting at zero and showing you a full tank. If it

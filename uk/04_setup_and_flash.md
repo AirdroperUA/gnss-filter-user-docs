@@ -162,11 +162,12 @@ activation/update оберіть **Update transport -> ST-Link (SWD)**. Для �
 просить power-cycle після RDP removal, тримайте `BOOT0`, щоб плата повернулась
 у ROM DFU.
 
-Після першого promotion H743 DroneCAN `v0.5.30+` update service назавжди
-відмовляється promote або deliver будь-яку pre-`v0.5.30` H743 firmware. Старі
-fuel readers не можуть безпечно зберегти нову lost/known fuel provenance, тому
-ця global межа діє також для owner-authorized rollback. Для recovery
-використовуйте forward-versioned build.
+Update service має вкладені permanent H743 fuel-safety boundaries. Promotion
+`v0.5.30+` назавжди виключає pre-`v0.5.30` readers, бо вони не зберігають
+lost/known fuel provenance. Після першого promotion `v0.5.31+` також назавжди
+виключається `v0.5.30`, бо вона може публікувати fresh zero-consumption EFI за
+нульової capacity. Owner-authorized rollback не може перейти жодну boundary.
+Recovery після цього cutover має бути forward-versioned build `v0.5.31+`.
 
 ## 4) Режим CAN-ноди (UCAN serial transport)
 

@@ -406,6 +406,9 @@ stopped-engine quorum: disarmed, valid zero RPM, and closed throttle. If the
 numerical capacity changed, that message confirms only the runtime reset: EFI
 remains silent until the asynchronous journal save reports `Tune saved`.
 `Tune save failed` leaves the total LOST and must not be treated as recovery.
+Use a positive weighed mass; never write zero as a placeholder. H743 DroneCAN
+v0.5.31+ suppresses ICE Status for zero/non-finite capacity, while firmware
+through v0.5.30 could expose fresh zero-consumption EFI after a zero write.
 
 Set `FUEL_DENS` before `FUEL_CAPG`. Density writes require the same fresh
 stopped-engine quorum. An actual change marks the total LOST, cancels any older
@@ -435,7 +438,9 @@ it` every 60 s. Land or remain on the ground, verify the fuel configuration,
 wait for fresh stopped-engine quorum (disarmed + valid zero RPM + closed
 throttle), and rewrite `FUEL_CAPG` for the fuel aboard—even if its numerical
 value is unchanged. A changed value clears the lockout only after `Tune saved`;
-disarmed alone is rejected. A valid restore also receives a bounded
+the same-value path schedules no new save, so its accepted-write message and
+exact readback are the completion evidence. Disarmed alone is rejected. A
+valid restore also receives a bounded
 conservative 25-second rated-power reset-gap charge; it is not an exact
 measurement of the fuel consumed during reset/startup. An accepted write that
 establishes a new total cancels any pending charge attached to the old restored
@@ -451,10 +456,15 @@ After any attempt, verify all fuel-model settings and perform the stopped-engine
 The throttle position implies more power than the RPM reading does, so the
 filter is propping the estimate up rather than believing an RPM that looks too
 low. The usual cause is `RPM1_SCALING` set for the wrong number of pulses per
-revolution — a twin CDI gives two, and configuring one halves every reading.
+revolution. Do not infer that count from the number of cylinders: DLE does not
+specify the DLE120 tach lead's pulses per crank revolution. Measure the real
+pickup, then use scaling `1 / pulses per revolution` for a GPIO pulse source.
 
-**Check it against a hand tachometer before flying again.** The filter has a
-single RPM source, so nothing else on the aircraft can catch this.
+**Check it against a hand tachometer or oscilloscope before flying again.** Do
+not use FC `RPM1_TYPE=3` or `RPM2_TYPE=3` (EFI) for whichever instance the
+filter selects, because this filter's EFI RPM is derived from FC RPM and would
+create a circular source. Inspect both instances live. The filter ultimately
+has one selected RPM source, so nothing else catches a bad value.
 
 ---
 

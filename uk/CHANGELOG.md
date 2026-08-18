@@ -54,9 +54,16 @@
 - Secondary H743 USB Mission Planner працює з default DTR-low open/reconnect і
   незалежними USB/FC packet counters. Сам private spoof-position stream
   лишається функцією v0.5.29+.
+- Mission Planner plugin `0.3.1` робить map legend opaque та тримає її ліворуч
+  від штатних zoom controls Mission Planner, прибираючи white-line repaint
+  flicker після resize або зміни DPI.
 - `PARKED_MOVE` тепер показується як `PARKED MOVE` (або `PARKED` на екрані
   плати); H743/UM980/build docs та parameter descriptions виправлено. Значення
-  parameters, defaults і FC presets не змінені.
+  firmware parameters/defaults не змінені. Mission Planner package додає
+  aircraft-specific FC preset для бака 5 л: BATT1 зберігається, DroneCAN EFI
+  вмикається на перевіреному вільному BATT2, а 4000 mL показуються як usable
+  fuel із 1000 mL estimator-error reserve. Automatic FC fuel failsafe actions
+  лишаються off до завершення HIL aircraft.
 
 v0.5.29 був лише inactive uploaded candidate і ніколи не promoted. v0.5.30 ще
 не має hardware/HIL qualification і не promoted publicly; v0.5.25 на момент

@@ -505,9 +505,24 @@ MAVLink2 тунелюється, але raw GNSS NMEA, UBX та SBF не тун�
 
 | Призначення | Параметр ArduPilot | Значення |
 |-------------|--------------------|----------|
-| Бекенд EFI | `EFI_TYPE` | варіант DroneCAN для вашої версії ArduPilot |
+| Бекенд EFI | `EFI_TYPE` | `5` (DroneCAN у full ArduPlane 4.6.3) |
+| Бекенд покажчика палива | `BATT2_MONITOR` | `27` (EFI), лише якщо battery instance 2 вільний |
+| Usable capacity покажчика для цього бака 5 л | `BATT2_CAPACITY` | `4000` (числові mL попри підпис `mAh` у Mission Planner) |
 | Джерело обертів, яке читає фільтр | `RPM1_TYPE` | відповідно до вашого датчика |
 | Масштаб обертів | `RPM1_SCALING` | **див. попередження нижче** |
+
+У package є
+`presets/arduplane_FC_4.6.3_h743_dronecan_CAN1_5L_EFI.param` для цього aircraft.
+Він зберігає наявний електричний BATT1 monitor, використовує перевірений вільний
+BATT2 і доводить покажчик до нуля після 4000 mL оціненого споживання, залишаючи
+1000 mL (20%) резерву похибки estimator-а filter-а. EFI backend використовує
+синтетичні 1.0 V і передає витрату через поле, яке Mission Planner підписує як
+струм, тому preset обнуляє BATT2 voltage, arming-voltage, watt-limit,
+capacity-failsafe та automatic-action rows для початкового HIL. Не вмикайте
+автоматичний RTL/Land, доки estimator не відкалібрований і не перевірений на
+цьому aircraft. Доки node 42 не має надійного total і не публікує ICE Status,
+BATT2 unhealthy і може блокувати arming; виправляйте конфігурацію filter-а, а
+не послаблюйте `ARMING_CHECK`.
 
 ArduPilot декодує повідомлення в `EFI_STATUS`, що дає індикацію палива в
 наземній станції та запис у лог без окремого каналу. Поле спожитого об'єму

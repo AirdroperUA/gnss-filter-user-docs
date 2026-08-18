@@ -624,9 +624,24 @@ To consume it:
 
 | Purpose | ArduPilot parameter | Value |
 |---------|---------------------|-------|
-| EFI backend | `EFI_TYPE` | the DroneCAN option for your ArduPilot version |
+| EFI backend | `EFI_TYPE` | `5` (DroneCAN in full ArduPlane 4.6.3) |
+| Fuel gauge backend | `BATT2_MONITOR` | `27` (EFI), only if battery instance 2 is unused |
+| Usable gauge capacity for this 5 L tank | `BATT2_CAPACITY` | `4000` (numeric mL despite Mission Planner's `mAh` label) |
 | RPM source the filter reads | `RPM1_TYPE` | whatever matches your pickup |
 | RPM scaling | `RPM1_SCALING` | **see the warning below** |
+
+The package includes
+`presets/arduplane_FC_4.6.3_h743_dronecan_CAN1_5L_EFI.param` for this aircraft.
+It keeps the existing electrical BATT1 monitor, uses a verified-free BATT2,
+and makes the gauge reach zero after 4000 mL estimated consumption so the
+filter's 1000 mL (20%) estimator-error reserve remains. The EFI backend uses a
+synthetic 1.0 V and reports fuel flow through a field Mission Planner labels as
+current, so the preset zeros BATT2 voltage, arming-voltage, watt-limit,
+capacity-failsafe, and automatic-action rows for initial HIL. Do not enable an
+automatic RTL/Land action until the estimator is calibrated and tested on this
+aircraft. Until node 42 has a trustworthy total and publishes ICE Status,
+BATT2 is unhealthy and may block arming; fix the filter configuration instead
+of weakening `ARMING_CHECK`.
 
 ArduPilot decodes the message into `EFI_STATUS`, which gives a GCS fuel display
 and a dataflash record with no side channel. The consumed-volume field is

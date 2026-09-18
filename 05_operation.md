@@ -9,6 +9,32 @@
 
 This prevents suspect live GNSS data from reaching FC navigation input while DR1 is active.
 
+**What that demands of the aircraft.** DR1 is a deliberate, sudden, clean GPS
+loss, and the flight controller must be able to fly through one. On ArduPlane
+that means a **used, calibrated airspeed sensor** (`ARSPD_USE=1`) and a compass
+in use for yaw. The instant `Fix2` stops, EKF3 stops fusing GPS; with an
+airspeed sensor in use it dead-reckons on airspeed and its wind estimate and
+stays the primary estimator. Without one, EKF3 loses horizontal velocity
+within seconds, `AP_AHRS` falls back to DCM, and DCM with neither GPS nor
+airspeed has no centripetal correction - its attitude estimate drifts in every
+turn and the autopilot "corrects" the phantom error with a real nose-down. That
+is ArduPlane's designed GPS-denied behaviour, not a fault in either firmware,
+and it is the failure to expect from an aircraft flown with `ARSPD_USE=0`. An
+aircraft that cannot fly GPS-denied must not fly where DR1 can trip. Note that
+the abrupt cut is the safe direction: a fading or blended GPS would feed the
+estimator bad data, which is worse than none.
+
+What to expect in the flight controller's log after a DR1 cut, from ArduPlane's
+source. `EKF variance` will repeat: `ekf_check` reports position variance
+crossing `FS_EKF_THRESH` as dead-reckoning uncertainty grows, and on a
+fixed-wing it prints and does nothing else. What must *not* appear with a used
+pitot is `EKF3 IMUx stopped aiding`; that means the airspeed was not being
+fused. And `AHRS: DCM active` followed within seconds by `AHRS: EKF3 active`
+is the DCM excursion described in the [H743 DroneCAN Guide](13_h743_dronecan.md),
+removed by `AHRS_OPTIONS` bit 0 once `ARSPD_USE=1`.
+`tools/analyze_dr1_transition.py` lays all of this out from a `.bin` or
+`.tlog`, anchored on the filter's `GNSS BLOCKED` message.
+
 On H743 DroneCAN firmware, replace "FC GPS UART" with DroneCAN GPS output:
 `Fix2/Auxiliary` messages are published in DR0 and suppressed in DR1, while
 `uavcan.protocol.NodeStatus` remains online. Spoof/fault DR1 reasons report
@@ -191,13 +217,50 @@ tune journal is missing, corrupt, or has no valid record: without the durable
 capacity, density, and model settings, its numeric total has unknown
 provenance. There is no automatic "cold boot means a fresh full tank" shortcut.
 
+H743 DroneCAN v0.5.32 adds one narrow, explicit exception for a manually
+started engine whose GPIO pulse pickup cannot report a healthy stopped zero.
+ArduPilot sends the exact MAVLink pair `RPM1=-1, RPM2=-1` in that state. The
+pair remains **invalid/unavailable everywhere in the normal fuel model**; it is
+never globally converted to zero and it cannot clear a running-engine latch
+later in the session. It can authorize a one-shot cold manual-start
+declaration only when all of the following hold continuously for at least
+3 seconds:
+
+- this is a genuine cold POR after all-power removal (a valid retained backup
+  may exist; it controls fuel-total provenance, not physical-stop eligibility);
+- the FC has been positively identified as a supported ArduPilot family and
+  version;
+- the FC freshly reports **DISARMED**;
+- fresh RPM messages remain exactly `-1/-1`; and
+- throttle is freshly closed.
+
+The firmware still does nothing automatically. With a LOST/unconfigured total,
+readiness reports `Cold manual-start ready: write positive FUEL_CAPG`. With a
+trustworthy retained total it instead reports `Cold OFF ready; write FUEL_CAPG only if refuelled`;
+do not erase a surviving total merely to clear the latch.
+A deliberate **positive** `FUEL_CAPG` write after a real refuel, or while
+re-establishing a LOST/unconfigured total from positively known fuel aboard, is
+the operator's declaration that the hand-started engine has not yet been started.
+That accepted write clears only the RAM engine latch,
+zeroes the fuel total, and consumes the one-shot. `FUEL_DENS` may be written
+while the same cold evidence is ready, but it does not consume the one-shot;
+after a real density change, wait for `Tune saved` and then write positive
+`FUEL_CAPG`. Zero is rejected with `Cold FUEL_CAPG must be positive weighed fuel`.
+Any armed report, any RPM at or above 1, any open-throttle
+observation, or an observed FC peer/session reset permanently revokes the
+one-shot for that power session. Every H743 reset restores the conservative
+engine-may-be-running latch. A reset button, watchdog reset, brownout, or warm
+reboot does not recreate eligibility; remove all power and satisfy the cold
+conditions again.
+
 With a lost total the filter emits **no DroneCAN ICE Status packets**:
 ArduPilot's EFI backend must age stale/unhealthy instead of accepting a false
 numeric total. The filter repeats `Fuel total LOST - write FUEL_CAPG to restart
 it` every 60 s and mutes the warning ladder. Land or remain on the ground and
-wait for the fresh stopped-engine quorum: the FC must freshly report disarmed,
-RPM must be freshly valid and zero, and throttle must be freshly closed. Only
-then deliberately write `FUEL_CAPG` for the fuel actually loaded. This is
+wait for either the normal fresh stopped-engine quorum (FC freshly disarmed,
+RPM freshly valid and zero, throttle freshly closed) or the cold manual-start
+declaration described above. Only then deliberately write a positive
+`FUEL_CAPG` for the fuel actually loaded. This is
 required after a normal power-on with no valid retained record **even when the
 numerical `FUEL_CAPG` value has not changed**. A disarmed indication by itself
 is not enough, and the write is rejected with `FUEL_CAPG blocked: engine not confirmed stopped`
@@ -211,13 +274,16 @@ alone does not prove persistence or EFI recovery. `Tune save failed` leaves the
 total lost while the save remains pending for retry. A fabricated zero would
 look like a full tank, which is the one thing this path must never send.
 
-`FUEL_DENS` uses the same fresh stopped-engine quorum. An actual density change
+`FUEL_DENS` uses the same normal stopped-engine quorum or the ready cold
+manual-start declaration. A density write does not consume the cold one-shot;
+only an accepted positive `FUEL_CAPG` does. An actual density change
 marks the total LOST before applying the new value, cancels any older pending
 capacity commit, and keeps EFI silent. Until the verified density-journal save
 succeeds, capacity writes are rejected with
 `FUEL_CAPG blocked: wait for FUEL_DENS save`; a failed save stays blocked and LOST. `Tune saved` clears that
 pending-density block but does not restore fuel. Only then can a subsequent
-stopped-quorum `FUEL_CAPG` write establish a fresh zero under the new density.
+stop-authorized positive `FUEL_CAPG` write establish a fresh zero under the new
+density.
 
 A factory-reset attempt marks the fuel total LOST in backup SRAM **before** its
 first flash operation can start. Even an attempt that reports storage failure
@@ -227,8 +293,11 @@ write `FUEL_CAPG` for the fuel actually aboard; a successful changed-capacity
 write still needs `Tune saved` before EFI resumes.
 
 Every boot also begins with the conservative assumption that the engine may be
-running. Only fresh disarmed state together with fresh valid zero RPM and fresh
-closed throttle clears that latch; writing `FUEL_CAPG` does not. When a valid V2 record is
+running. Normally only fresh disarmed state together with fresh valid zero RPM
+and fresh closed throttle clears that latch. The sole exception is the
+explicit positive `FUEL_CAPG` declaration in the one-shot cold manual-start
+window above; an ordinary write, an unavailable RPM sentinel after the engine
+has run, and link silence do not clear it. When a valid V2 record is
 restored, the firmware adds a fixed **25-second rated-power reset-gap charge**.
 That bound covers up to 2 seconds of backup-save staleness, the roughly
 11.5-second longest UM980 setup path, other startup overhead, and margin. H743
@@ -243,7 +312,8 @@ as TOTAL LOST before risky setup begins. A successful boot replaces that marker
 with a known record only after both the fixed 25-second charge and the first
 measured interval have been integrated. If another reset happens before that
 known commit completes, the next boot remains LOST and EFI stays suppressed
-until the stopped-engine quorum permits a `FUEL_CAPG` write. This prevents
+until normal stopped quorum or newly eligible cold authorization permits a
+positive `FUEL_CAPG` write. This prevents
 repeated setup resets from reusing one stale known total while charging its
 unobserved time only once.
 
@@ -276,6 +346,8 @@ state, running RPM, or an open-throttle observation establishes that the engine
 may be running, silence cannot clear that latch. With RPM gone, the estimator
 charges rated-power burn and keeps the cumulative total advancing. Only fresh,
 explicit agreement on disarmed + zero RPM + closed throttle clears the latch.
+The cold `-1/-1` declaration is no longer available once any running evidence
+has appeared, so it cannot turn a failed pickup into a false stop after start.
 The same update runs while an FC-version hard block is active, so a navigation
 fail-closed state cannot silently freeze the fuel clock.
 

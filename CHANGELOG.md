@@ -6,7 +6,194 @@ All notable firmware and tool changes are documented here.
 
 ---
 
-## H743 DroneCAN v0.5.31 — 2026-08-18 (corrective candidate)
+## H743 DroneCAN v0.5.37 — 2026-09-18 (instant GPS cut, far fewer false blocks)
+
+- **The flight controller now loses GPS the moment the filter blocks it.** The
+  filter always stopped sending GPS instantly when it entered DR1, but ArduPilot
+  kept showing the last 3D fix, frozen, for 4 more seconds. The filter now
+  also sends three short "no fix" messages, so Mission Planner shows `No Fix`
+  immediately. They contain no position, speed, time or satellite count, and
+  are never sent while GPS output is allowed. (ArduPilot never shows `No GPS`
+  for a CAN GPS it has already detected; `No Fix` is the correct final state.)
+- **DR1 is triggered far less often by ordinary speed and altitude changes.**
+
+  | Check | Before | Now |
+  |---|---|---|
+  | Speed implied between two fixes (`SP_JMP_MPS`) | 200 m/s | 1000 m/s |
+  | Position step (`SP_ABS_M`) | 400 m | 2000 m |
+  | Altitude jump (`ALT_JMP_M`) | 80 m | 300 m |
+  | Altitude rate (`ALT_RMPS`) | 40 m/s | 100 m/s, sustained 2 s and 100 m |
+  | GPS vs barometer climb rate | 4 m/s, alone after 12 s | 10 m/s, alone after 30 s |
+  | Heading reversal | held 1.5 s | held 10 s |
+  | Spoof confidence (`CONF_TRIP`) | 70 for 1.5 s | 85 for 5 s |
+
+  The new values are also the minimums: a board with older saved values is
+  raised automatically on its first boot, and lower values written from
+  Mission Planner are clamped.
+- Unchanged: loss of fix, low satellites, EKF, SNR, the receiver's own spoofing
+  report, the hemisphere and geo fences, GNSS time and flight-controller link.
+- Trade-off, accepted by the owner: an attacker who jams first and then spoofs
+  can move the reported position further before these particular checks trip.
+- The Mission Planner presets and parameter descriptions use the new values.
+
+---
+
+## H743 Airspeed Node 1.0.0 — 2026-09-17 (new product)
+
+- A separate, cut-down firmware for the same WeAct H743 board: MS4525 airspeed
+  over DroneCAN (node 43), the OpenIPC camera serial link to the flight
+  controller, and the flight controller's status on the display.
+- **No GPS filter and no spoofing protection.** Choose it only for aircraft
+  that do not need them from this board.
+- Installed with provisioning application **2026.09.17.1 or later**, target
+  `[!] H743 Airspeed Node (NO GPS filter)`, on the same license as the filter.
+  A board can be switched between the filter and the Airspeed Node and back
+  without using a second activation.
+- Flight-controller preset `arduplane_FC_4.6.3_h743_airspeed_node_CAN1.param`
+  and a full guide: [H743 Airspeed Node](14_h743_airspeed_node.md).
+
+---
+
+## Provisioning service — 2026-09-17
+
+- The firmware list in the provisioning application now offers older releases
+  too. The newest release is the default; picking an older one installs it,
+  even below the fuel-safety boundaries of v0.5.30-v0.5.32. Those older builds
+  can report a false full tank or misread newer fuel settings, so pick them only
+  deliberately.
+
+---
+
+## H743 DroneCAN v0.5.36 — 2026-09-17 (activation works again)
+
+- Fixes `APP_CMD_KEY sentinel found 2 times`: v0.5.33, v0.5.34 and v0.5.35
+  could not be activated or updated on any board. v0.5.36 and later install
+  normally, and the server now refuses such an image when it is uploaded, not
+  only when a board tries to use it. Those three versions are never offered for
+  installation.
+
+---
+
+## H743 DroneCAN v0.5.35 — 2026-09-08 (fuel defaults)
+
+- `FUEL_CAPG` now defaults to 7500 g, the shipped airframe's tank. The fuel
+  gauge still stays muted until you confirm how much fuel is aboard.
+- New `FUEL_AUTOF` (off by default): at power-on the node assumes a full tank,
+  but only while the aircraft is disarmed with the engine stopped. Enable it
+  only on an airframe that is always fuelled before power is applied.
+- A brief error in the hardware random generator no longer disables operator
+  recovery for the whole flight; if it does fail, a warning asks you to reboot.
+- Could not be installed because of the v0.5.36 defect above; use v0.5.36 or
+  later.
+
+---
+
+## H743 DroneCAN v0.5.34 — 2026-09-07 (airspeed found at boot)
+
+- ArduPilot now finds the DroneCAN airspeed at startup. Before, it sometimes
+  appeared only after an unrelated `ARSPD_*` parameter was changed.
+- Airspeed only counts as recovery evidence between 18 and 60 m/s, and a
+  saturated or broken MS4525 reading is rejected instead of being extended into
+  an impossible value.
+- Could not be installed because of the v0.5.36 defect above; use v0.5.36 or
+  later.
+
+---
+
+## H743 DroneCAN v0.5.33 — 2026-09-01 (CAN reliability fix)
+
+- Fixes the defect that made the board reset over and over as soon as a flight
+  controller was connected on CAN. The board ran perfectly with the CAN bus
+  unplugged and then reset-looped roughly every 170 ms the moment the flight
+  controller was attached, so it presented as dead hardware, a bad CAN
+  transceiver, or a power brownout. The real cause was a memory-alignment
+  defect in the firmware, exposed after v0.5.25 when unrelated fuel-estimator
+  additions shifted the memory layout: every received CAN frame faulted the
+  processor. Nothing was wrong with the board, the wiring, or the supply.
+- The fix is verified on real hardware, not only in tests. On the same wiring
+  and the same supply that previously reset-looped, node 42 comes online, its
+  uptime climbs, and it publishes GPS fix and auxiliary data to the flight
+  controller. The defect is silent and depends on memory layout, so it could
+  come back unnoticed; an automated test now pins the alignment in place.
+- v0.5.32 is RETIRED and must not be used. A v0.5.32 image carrying the
+  reset-loop defect was flashed to the owner's bench and faulted there, and a
+  behaviorally different image now exists under that same version label.
+  Exactly as with v0.5.31, it must never be tagged, uploaded, promoted, or used
+  as release evidence. The correction is forward-versioned to v0.5.33.
+- The first production delivery floor moves to packed v0.5.33
+  (`MIN_APP_VERSION_H743_DRONECAN=5153`, `0x00001421`). The historical 5150 and
+  5151 boundaries remain documented and remain non-eligible.
+- New operator command: "block GNSS now". It puts the filter straight into the
+  protective dead-reckoning state on demand, for example when you have reason
+  to distrust GPS before the filter has decided for itself. It works in one
+  direction only: it can enter the protective state and can never leave it. It
+  needs no authentication and works armed or disarmed, because the worst it can
+  do is deny GPS — a condition the aircraft already flies through — and it
+  never forwards suspect GPS. It is addressed to node 42 specifically, so a
+  broadcast cannot trip it by accident. Afterwards the filter returns to normal
+  GPS only through its ordinary evidence checks; there is no operator "unblock".
+- Operator commands now work over both links. A command may arrive through the
+  flight controller or over the direct USB connection to the filter, and both
+  pass through exactly the same checks, so USB is only a transport and never a
+  way around a rule. Previously released builds accepted no operator commands
+  at all, and the USB link handled parameter writes only.
+- Authenticated field recovery is groundwork only and is NOT enabled in
+  released firmware; no shipped build contains it. If it is ever turned on it
+  will require a per-board signing key, a positively disarmed aircraft, a
+  single use, and an automatic expiry, and it will relax only the requirement
+  for an independent witness — the contradiction veto, the repeated passes, and
+  the hold window all still apply. It is intended to assist a stalled ground
+  recovery and can never clear the protective state while there is live
+  evidence of spoofing.
+- Mission Planner plugin `0.4.0` adds a signing-key field and two buttons,
+  "Block GNSS now" and "Authenticated recovery". These are the plugin's first
+  features that send anything to the board instead of only displaying it. Both
+  go only to the filter (system 42) over the direct USB link, never to the
+  flight controller, and no GNSS or coordinate data is transmitted. The plugin
+  builds and signs the command itself rather than relying on Mission Planner's
+  own per-link signing, which is not consistent across Mission Planner
+  versions. Note that "Authenticated recovery" has no effect on released
+  firmware.
+
+---
+
+## H743 DroneCAN v0.5.32 — 2026-08-18 (corrective candidate) — RETIRED, see v0.5.33
+
+- The exact stopped GPIO RPM sentinel `RPM1=-1,RPM2=-1` remains invalid
+  globally. In v0.5.32, a genuine cold POR plus 3 continuous seconds of fresh
+  exact `-1/-1` + DISARMED + closed throttle can ready a one-shot manual-start
+  declaration after supported ArduPilot family/version is positively
+  identified, whether or not a trustworthy backup survived. LOST totals say
+  `Cold manual-start ready: write positive FUEL_CAPG`; retained totals say
+  `Cold OFF ready; write FUEL_CAPG only if refuelled`. Only an explicit positive
+  CAPG after a real refuel or LOST-total re-establishment clears the RAM latch
+  and consumes the one-shot; density does not consume it, zero is rejected,
+  running evidence/peer reset revokes it, and every board reset restores
+  conservative may-run.
+- A pre-manual-start v0.5.31 image was flashed to the owner's bench before this
+  correction was complete. Because two behaviorally different images briefly
+  shared that identity, v0.5.31 is retired and must never be tagged, uploaded,
+  promoted, or used for this setup. The correction is v0.5.32.
+- Before the first production promotion, the service must set the external
+  H743 delivery floor to packed v0.5.32
+  (`MIN_APP_VERSION_H743_DRONECAN=5152`, `0x00001420`). After any v0.5.32+
+  promotion, v0.5.31 and every older build are permanently ineligible;
+  recovery must use a forward-versioned v0.5.32+ build.
+- The Mission Planner 5 L DLE120/Walbro setup now requires v0.5.32 or later.
+  Node presets still omit state-changing `FUEL_CAPG`; write the positive
+  weighed fuel load separately. Firmware v0.5.31 introduced zero/non-finite
+  capacity ICE suppression, which v0.5.32 retains.
+- A new opt-in ArduPlane 4.7.0 SITL pre-flash check compiles the production ICE
+  payload packer and verifies that the FC changes from unhealthy to healthy
+  stopped/running EFI/BATT2, preserves increasing consumption, then becomes
+  unhealthy after ICE silence. This checks the FC consumer boundary, not the
+  physical board or DR1.
+- This candidate is not uploaded, promoted, or exact-artifact
+  hardware/HIL-qualified. Public production remains v0.5.25.
+
+---
+
+## H743 DroneCAN v0.5.31 — 2026-08-18 (superseded development build)
 
 - The filter now sends no DroneCAN ICE Status when `FUEL_CAPG` is zero,
   negative, NaN, or infinite. ArduPilot therefore ages EFI unhealthy instead
@@ -15,11 +202,6 @@ All notable firmware and tool changes are documented here.
   `FUEL_CAPG=0` write.
 - Positive finite capacities behave as before. An invalid or unconfigured
   capacity is UNKNOWN and silent; no GNSS/DR1 rule or parameter default changed.
-- Before the first production promotion, the service must set the external
-  H743 delivery floor to packed v0.5.31
-  (`MIN_APP_VERSION_H743_DRONECAN=5151`, `0x0000141F`). After any v0.5.31+
-  promotion, v0.5.30 and every older build are permanently ineligible;
-  recovery must use a forward-versioned v0.5.31+ build.
 - Mission Planner plugin `0.3.1` makes the map legend opaque and keeps it left
   of Mission Planner's native zoom controls, removing the white-line repaint
   flicker after resize or DPI changes.
@@ -34,8 +216,10 @@ All notable firmware and tool changes are documented here.
   first, verify the real RPM pickup, configure node 42 and its positive
   capacity, and only then enable EFI/BATT2. Generic DLE/RCGF model files no
   longer write `FUEL_CAPG=0`.
-- This candidate is not uploaded, promoted, or hardware/HIL-qualified. The
-  public production firmware remains unchanged.
+- This image was never tagged, uploaded, or promoted. It is superseded and
+  permanently ineligible because the same version label briefly identified
+  binaries with different manual-start behavior. Public production remains
+  unchanged.
 
 ---
 

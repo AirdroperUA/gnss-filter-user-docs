@@ -166,8 +166,10 @@ Update service має вкладені permanent H743 fuel-safety boundaries. Pr
 `v0.5.30+` назавжди виключає pre-`v0.5.30` readers, бо вони не зберігають
 lost/known fuel provenance. Після першого promotion `v0.5.31+` також назавжди
 виключається `v0.5.30`, бо вона може публікувати fresh zero-consumption EFI за
-нульової capacity. Owner-authorized rollback не може перейти жодну boundary.
-Recovery після цього cutover має бути forward-versioned build `v0.5.31+`.
+нульової capacity. Перший production-eligible release — v0.5.32: після
+будь-якого promotion `v0.5.32+` ambiguous v0.5.31 і всі старіші builds
+виключаються. Owner-authorized rollback не може перейти жодну boundary.
+Recovery після цього cutover має бути forward-versioned build `v0.5.32+`.
 
 ## 4) Режим CAN-ноди (UCAN serial transport)
 
@@ -264,7 +266,7 @@ Airborne quorum потребує щонайменше одного незале�
 | Row | Коли стає independent witness |
 |-----|-------------------------------|
 | Barometric vertical rate | реальний набір або зниження щонайменше 3 м/с |
-| Ground speed проти airspeed | live pitot щонайменше 12 м/с |
+| Ground speed проти airspeed | live pitot щонайменше 18 м/с |
 | GNSS course проти FC yaw | справжній розворот планера |
 
 На нерухомому столі жоден із них недоступний, тому airborne quorum правильно

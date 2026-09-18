@@ -66,8 +66,8 @@ positively disarmed.
 | `BLEND_MS` | Blend duration DR1 to DR0 (ms) | 10000 | 1000 | 120000 |
 | `DR_LOCK_MS` | Minimum DR1 lockout window (ms) | 120000 | 1000 | 600000 |
 | `DR1_MAXMS` | Maximum DR1 latch duration before forced exit after `DR_LOCK_MS` (ms, 0=disabled) | 0 | 0 | 3600000 |
-| `SP_JMP_MPS` | Maximum implied travel speed between fixes (m/s) | 200 | 50 | 20000 |
-| `SP_ABS_M` | Spoof guard absolute step limit (m) | 400 | 100 | 50000 |
+| `SP_JMP_MPS` | Maximum implied travel speed between fixes (m/s) | 1000 | 1000 | 20000 |
+| `SP_ABS_M` | Spoof guard absolute step limit (m) | 2000 | 2000 | 50000 |
 | `ARM_MIN_S` | Guard arming minimum satellites | 6 | 4 | 30 |
 | `ARM_MAX_HD` | Guard arming max HDOP | 4 | 0.5 | 10 |
 | `ARM_STABMS` | Guard arming stability window (ms) | 2000 | 200 | 10000 |
@@ -75,12 +75,12 @@ positively disarmed.
 | `ALT_BHDOP` | Alt-bias calibration max HDOP | 2.5 | 0.5 | 10 |
 | `ALT_CALM_V` | Alt-bias max climb rate for calm window (m/s) | 2 | 0.1 | 20 |
 | `ALT_BCMS` | Alt-bias calm window (ms) | 2000 | 200 | 30000 |
-| `ALT_JMP_M` | Altitude absolute jump trip (m) | 80 | 5 | 500 |
-| `ALT_RMPS` | Altitude rate trip threshold (m/s) | 40 | 1 | 200 |
-| `ALT_RDTMS` | Altitude rate minimum dt window (ms) | 600 | 100 | 5000 |
-| `ALT_RDH_M` | Altitude rate minimum delta-H (m) | 20 | 1 | 200 |
-| `ALT_BSEP_M` | Inactive absolute alt-vs-baro compatibility threshold (m) | 100 | 10 | 500 |
-| `ALT_BSEPMS` | Inactive absolute alt-vs-baro compatibility hold (ms) | 1500 | 100 | 20000 |
+| `ALT_JMP_M` | Altitude absolute jump trip (m) | 300 | 300 | 500 |
+| `ALT_RMPS` | Altitude rate trip threshold (m/s) | 100 | 100 | 200 |
+| `ALT_RDTMS` | Altitude rate minimum dt window (ms) | 2000 | 2000 | 5000 |
+| `ALT_RDH_M` | Altitude rate minimum delta-H (m) | 100 | 100 | 200 |
+| `ALT_BSEP_M` | Inactive absolute alt-vs-baro compatibility threshold (m) | 400 | 400 | 500 |
+| `ALT_BSEPMS` | Inactive absolute alt-vs-baro compatibility hold (ms) | 10000 | 10000 | 20000 |
 | `ALT_RJSEP` | Inactive absolute alt-vs-baro rejoin compatibility limit (m) | 50 | 5 | 500 |
 | `RJ_REQEKF` | Retired compatibility slot (no runtime effect) | 0 | 0 | 0 |
 | `NUDGE_EN` | Enable DR1 nudge toward GNSS (0/1) | 1 | 0 | 1 |
@@ -114,15 +114,16 @@ positively disarmed.
 | `FENCE_RAD` | Geo-fence radius from first fix (m, 0=disabled) | 0 | 0 | 2000000 |
 | `HEMI_EN` | Northern hemisphere hard fence (locked on) | 1 | 1 | 1 |
 | `LOG_LOC` | Include coordinates in periodic DR0 status text only (0/1) | 0 | 0 | 1 |
-| `CONF_TRIP` | Weighted spoof-confidence score that latches DR1 | 70 | 30 | 100 |
+| `CONF_TRIP` | Weighted spoof-confidence score that latches DR1 | 85 | 85 | 100 |
 | `PROP_DIA` | Propeller diameter (in) | 27 | 6 | 40 |
 | `PROP_PITCH` | Propeller pitch (in) | 12 | 2 | 30 |
 | `FUEL_BSFC` | Engine brake specific fuel consumption (g/kWh) | 700 | 200 | 1500 |
 | `FUEL_IDLE` | Idle fuel flow (g/h) | 250 | 0 | 3000 |
 | `ENG_PMAXKW` | Rated shaft power (kW) | 8.6 | 0.2 | 60 |
 | `FUEL_TRIM` | Fuel estimate calibration multiplier | 1 | 0.2 | 5 |
-| `FUEL_CAPG` | Fuel loaded, by weight (g) — not the usable figure | 0 | 0 | 200000 |
+| `FUEL_CAPG` | Fuel loaded, by weight (g) — not the usable figure | 7500 | 0 | 200000 |
 | `FUEL_DENS` | Fuel density (g/ml) | 0.75 | 0.5 | 1.2 |
+| `FUEL_AUTOF` | Auto full tank on cold start (0 = off) | 0 | 0 | 1 |
 
 ## Parameter Reference (detailed)
 
@@ -170,8 +171,8 @@ positively disarmed.
 
 ### Spoof guard (position jump)
 
-- **SP_JMP_MPS**: Maximum implied position-travel speed between consecutive fresh fixes. It is not a delta in the receiver's reported speed. If `distance / elapsed_time` exceeds this value, DR1 triggers once armed. The H743 fixed-wing default of 200 m/s is six times a 120 km/h cruise speed; validate against the aircraft's full speed envelope and logs before lowering it.
-- **SP_ABS_M**: Absolute distance limit between consecutive fresh fixes. The guard uses an **OR**: exceeding either `SP_ABS_M` or `SP_JMP_MPS * elapsed_time` triggers DR1. The H743 default of 400 m still covers about 167 m of legitimate travel at 120 km/h across the full default 5 s NAV-validity window while rejecting a larger recovered-fix teleport.
+- **SP_JMP_MPS**: Maximum implied position-travel speed between consecutive fresh fixes. It is not a delta in the receiver's reported speed. If `distance / elapsed_time` exceeds this value, DR1 triggers once armed. The H743 default is 1000 m/s (100 m between 10 Hz fixes), relaxed from 200 m/s in v0.5.37 so ordinary manoeuvring and GNSS noise do not trip DR1; it is also the minimum, so it cannot be set lower.
+- **SP_ABS_M**: Absolute distance limit between consecutive fresh fixes. The guard uses an **OR**: exceeding either `SP_ABS_M` or `SP_JMP_MPS * elapsed_time` triggers DR1. The H743 default and minimum is 2000 m (400 m before v0.5.37). The trade-off: after a jamming gap, a spoofer can place the returning fix up to this far away before this particular check trips; the receiver's own spoofing report and the other checks still apply.
 
 ### Guard arming (when spoof checks start)
 
@@ -184,10 +185,10 @@ positively disarmed.
 - **ALT_BSATS**, **ALT_BHDOP**, **ALT_CALM_V**, **ALT_BCMS**: Retained
   calibration settings for the disabled absolute altitude-vs-baro path; they
   do not arm a live guard in released builds.
-- **ALT_JMP_M**: Absolute altitude jump threshold. Large single-step changes beyond this trigger DR1.
-- **ALT_RMPS**: Altitude rate threshold (m/s). Sustained rate above this can trigger DR1 when combined with other rate settings.
-- **ALT_RDTMS**: Minimum time window used for altitude rate detection.
-- **ALT_RDH_M**: Minimum altitude delta required inside the rate window. Prevents false triggers from noise.
+- **ALT_JMP_M**: Absolute altitude jump threshold between GNSS samples less than `ALT_RDTMS` apart. H743 default and minimum 300 m (80 m before v0.5.37).
+- **ALT_RMPS**: Altitude rate threshold (m/s). Sustained rate above this can trigger DR1 when combined with other rate settings. H743 default and minimum 100 m/s (40 m/s before v0.5.37).
+- **ALT_RDTMS**: Minimum time window used for altitude rate detection. H743 default and minimum 2000 ms (600 ms before v0.5.37).
+- **ALT_RDH_M**: Minimum altitude delta required inside the rate window. Prevents false triggers from noise. H743 default and minimum 100 m (20 m before v0.5.37).
 - **ALT_BSEP_M**, **ALT_BSEPMS**, **ALT_RJSEP**: Inactive compatibility
   settings. `ALT_BARO_GUARD_ENABLE` remains false because the absolute
   pressure-altitude comparison is not flight-qualified. They neither trip DR1
@@ -240,7 +241,7 @@ active.
 ### GNSS handling and logging
 
 - **LOG_MS**: Status log period (ms). Lower values give more frequent logs but add traffic.
-- **CONF_TRIP**: Threshold on the weighted spoof-confidence score (0-100) that latches DR1. This score is **not** the primary detector, and the default is not a compromise between sensitivity and false alarms. The score divides by the weight of the indicators that are *available*, so an indicator that is present and reads clean is a pure divisor. An attacker who keeps his broadcast internally self-consistent reads clean on every indicator except the receiver's own UBX-SEC-SIG verdict and the barometric-vs-GNSS climb-rate divergence - the two he can neither observe nor shape - which caps the score at 31. That is why those two trip **standalone**, independently of this threshold, and why no setting of `CONF_TRIP` catches a competent attacker. What this threshold governs is the naive and mid-effort attacker, who does leave dirty signal statistics. Lower it only with flight evidence: below about 35 it approaches the range a clean flight can reach on its own.
+- **CONF_TRIP**: Threshold on the weighted spoof-confidence score (0-100) that latches DR1. This score is **not** the primary detector, and the default is not a compromise between sensitivity and false alarms. The score divides by the weight of the indicators that are *available*, so an indicator that is present and reads clean is a pure divisor. An attacker who keeps his broadcast internally self-consistent reads clean on every indicator except the receiver's own UBX-SEC-SIG verdict and the barometric-vs-GNSS climb-rate divergence - the two he can neither observe nor shape - which caps the score at 31. That is why those two trip **standalone**, independently of this threshold, and why no setting of `CONF_TRIP` catches a competent attacker. What this threshold governs is the naive and mid-effort attacker, who does leave dirty signal statistics. On H743 it is 85, held for 5 s, since v0.5.37 (70 for 1.5 s before), and 85 is also the minimum, so the score has to be both higher and more persistent before it latches DR1.
 - **LOG_LOC**: At `1`, coordinates may appear only in filter-generated
   periodic status while the output is fully in DR0 (not latched, synthetic, or
   blending). Trip/transition text and every message sent while DR1 is active
@@ -376,27 +377,28 @@ Will not trigger DR1:
 
 Settings:
 
-- `SP_ABS_M=400`
-- `SP_JMP_MPS=200`
+- `SP_ABS_M=2000`
+- `SP_JMP_MPS=1000`
 
 Will trigger DR1:
 
-- One fix jumps 500 m in ~1 s (`500 m > 400 m` and `500 m/s > 200 m/s`).
+- One fix jumps 2500 m in ~1 s (`2500 m > 2000 m` and `2500 m/s > 1000 m/s`).
+- One 10 Hz fix jumps 150 m (`1500 m/s > 1000 m/s`).
 
 Will not trigger DR1:
 
-- 50 m movement in 1 s.
+- A 50 m multipath jump between 10 Hz fixes (`500 m/s`).
 - About 167 m of normal travel over a 5 s GNSS gap at 120 km/h.
 
 ### Altitude absolute jump trigger
 
 Settings:
 
-- `ALT_JMP_M=80`
+- `ALT_JMP_M=300`
 
 Will trigger DR1:
 
-- GNSS altitude step from `120 m` to `230 m` in one update (`+110 m`).
+- GNSS altitude step from `120 m` to `450 m` in one update (`+330 m`).
 
 Will not trigger DR1:
 
@@ -406,17 +408,17 @@ Will not trigger DR1:
 
 Settings:
 
-- `ALT_RMPS=40`
-- `ALT_RDTMS=600`
-- `ALT_RDH_M=20`
+- `ALT_RMPS=100`
+- `ALT_RDTMS=2000`
+- `ALT_RDH_M=100`
 
 Will trigger DR1:
 
-- ~30 m altitude change in 600 ms (`50 m/s` and delta-H >= 20 m).
+- ~250 m altitude change over 2 s (`125 m/s` and delta-H >= 100 m).
 
 Will not trigger DR1:
 
-- 10 m change over 1 s (`10 m/s`) or short/noisy movement below `ALT_RDH_M`.
+- 60 m change over 2 s (`30 m/s`), or short/noisy movement below `ALT_RDH_M`.
 
 ### Absolute altitude vs baro path (disabled)
 
@@ -505,12 +507,37 @@ pickup/scaling on the bench. Do not use FC `RPM1_TYPE=3` or `RPM2_TYPE=3`
 dependency. Here EFI is only ArduPilot's DroneCAN telemetry backend; the
 DLE120 remains mechanically carbureted.
 
+**GPIO RPM at hand-start power-up.** ArduPilot's GPIO pulse backend sends the
+exact MAVLink pair `RPM1=-1, RPM2=-1` while the stopped pickup has no pulses.
+That pair remains unavailable, not zero, in all normal selection, burn, and
+stop logic. H743 DroneCAN v0.5.32 permits it only for a one-shot manual-start
+declaration after a genuine cold POR, whether or not a valid fuel-backup record
+survived. Backup provenance controls the accounting total, not physical-stop
+eligibility. Keep
+the FC positively identified as a supported ArduPilot family/version, then keep
+fresh `DISARMED`, exact `-1/-1`, and fresh closed throttle continuous for at
+least 3 seconds. Explicitly write a **positive** `FUEL_CAPG` only when declaring
+an actual refuel or re-establishing a LOST/unconfigured total from positively
+known fuel aboard. That write
+clears the RAM engine latch and consumes the declaration. `FUEL_DENS` is also
+allowed while the declaration is ready but does not consume it. Armed, RPM
+`>=1`, open throttle, or an observed FC peer reset revokes it. Every board
+reset restores the may-run latch; a warm reset requires full power removal and
+a new eligible cold session.
+
+Readiness text depends on total provenance: LOST/unconfigured reports
+`Cold manual-start ready: write positive FUEL_CAPG`; a trustworthy retained total
+reports `Cold OFF ready; write FUEL_CAPG only if refuelled`. Do not reset a
+surviving total merely to clear the conservative latch. Zero is rejected with
+`Cold FUEL_CAPG must be positive weighed fuel`.
+
 ### Procedure
 
 1. Set `PROP_DIA`, `PROP_PITCH`, `ENG_PMAXKW`, `FUEL_BSFC`, `FUEL_IDLE`, and
    `FUEL_DENS` from your engine, propeller, and fuel, or load an engine preset.
-   Set density **before** capacity: an actual `FUEL_DENS` change requires fresh
-   stopped-engine quorum, marks the total LOST before applying the new value,
+   Set density **before** capacity: an actual `FUEL_DENS` change requires the
+   normal fresh stopped-engine quorum or the ready cold manual-start
+   declaration above, marks the total LOST before applying the new value,
    cancels any older pending capacity commit, and cannot resume EFI by itself.
    Wait for the verified density save to report `Tune saved`; until then every
    capacity write is rejected with `FUEL_CAPG blocked: wait for FUEL_DENS save`,
@@ -524,8 +551,9 @@ DLE120 remains mechanically carbureted.
    placeholder. Firmware through v0.5.30 could allow fresh zero-consumption EFI
    while a fixed FC `BATT2_CAPACITY` made the gauge look falsely full. H743
    DroneCAN v0.5.31+ suppresses ICE Status when capacity is zero or non-finite,
-   but still requires a positive weighed mass. Keep the FC capacity matched
-   with `0.8 * FUEL_CAPG / FUEL_DENS`.
+   but v0.5.31 itself is a retired ambiguous development identity; use v0.5.32
+   or later. A positive weighed mass is still required. Keep the FC capacity
+   matched with `0.8 * FUEL_CAPG / FUEL_DENS`.
 
    **Writing `FUEL_CAPG` also zeroes the running total.** It is the only thing
    that does. The total now survives resets (see below), so telling the filter
@@ -533,9 +561,10 @@ DLE120 remains mechanically carbureted.
    every refuel, even if the number has not changed. You must also rewrite it
    after an ordinary power-on that reports TOTAL LOST because no valid retained
    record exists, again even when the numerical value is unchanged. Before the
-   write, wait until the FC's stopped-engine quorum is all fresh: positively
-   disarmed, valid zero RPM, and closed throttle. A disarmed report alone is
-   insufficient; a rejected write reports `FUEL_CAPG blocked: engine not confirmed stopped`.
+   write, obtain either the normal fresh stopped-engine quorum (positively
+   disarmed, valid zero RPM, and closed throttle) or the exact cold `-1/-1`
+   declaration above. A disarmed report alone is insufficient; a rejected
+   write reports `FUEL_CAPG blocked: engine not confirmed stopped`.
    You will see `FUEL_CAPG written - fuel total zeroed` only after the write is
    accepted. If the numerical capacity changed, that message confirms the
    runtime reset only: the fuel total deliberately remains TOTAL LOST and EFI
@@ -589,6 +618,7 @@ make it under-report, and both are listed at the end of the table - read them.
 | Situation | Behaviour |
 |---|---|
 | RPM sensor dies while the engine runs | Charges the engine's RATED power and announces `RPM sensor lost - fuel charged at max burn`. A large over-report, deliberately. |
+| GPIO RPM reports exact `-1/-1` before the first hand start | On v0.5.32+, it remains invalid globally while a genuine cold POR can open the one-shot declaration whether or not a valid backup survived: backup provenance and physical-stop eligibility are separate. After 3 continuous seconds of fresh DISARMED + exact `-1/-1` + closed throttle, explicit positive `FUEL_CAPG` confirms OFF. It cannot be reused after armed/RPM/open-throttle evidence, peer reset, or any board reset. |
 | RPM reads zero with the throttle open | Treated as a failed sensor, not a stopped engine - a failed pickup reports a perfectly plausible zero. |
 | RPM reads zero with the throttle shut | Believed. This is a stopped or idling engine, and billing rated power through every glide would be absurd. |
 | No airspeed | Assumes static, which maximises absorbed power and therefore the burn. |
@@ -597,13 +627,13 @@ make it under-report, and both are listed at the end of the table - read them.
 | Throttle reading goes stale | Treated as unknown, so it can no longer hold the estimate down at idle. The propeller model carries it alone. |
 | FC telemetry disappears or its firmware version is unknown/unsupported | Fuel accounting keeps running even while the GPS output gate is closed. Once fresh RPM/throttle evidence has shown that the engine may be running, link silence cannot clear that latch; missing RPM is charged at rated power. Only fresh disarmed state together with zero RPM and closed throttle clears it. |
 | Main loop stalls past 10 s | The interval is charged at RATED power, not dropped, and announces `Main loop stalled - fuel charged at max burn`. Capped at 60 s per stall. |
-| Every boot | Starts with the conservative engine-may-be-running latch set. Only fresh disarmed state together with fresh valid zero RPM and fresh closed throttle clears it. A `FUEL_CAPG` write is accepted only after that same stopped-engine quorum exists; the write itself is not evidence of a mechanical stop. |
+| Every boot | Starts with the conservative engine-may-be-running latch set. Normally only fresh disarmed state together with fresh valid zero RPM and fresh closed throttle clears it. The sole exception is the explicit positive `FUEL_CAPG` declaration in the eligible one-shot cold manual-start window; no reset preserves that RAM-only OFF declaration. |
 | A trustworthy V2 record survives a reset | Restores the running total regardless of the reset-cause flag and reports `Fuel total kept: N g - re-set FUEL_CAPG if refuelled`. Before risky setup, the retained record is durably rewritten as TOTAL LOST. It becomes known again only after the fixed 25-second rated-power charge and the first measured interval have both been integrated and committed. The 25 seconds cover up to 2 s of backup-save staleness, the roughly 11.5 s longest UM980 setup path, other startup overhead, and margin; H743 has no Phase-C boot wait. This is a bounded conservative charge, not an exact consumption measurement. Because the integration clock starts during early backup initialization, any further setup elapsed time is charged too. If the operator establishes a new total first with an accepted `FUEL_CAPG` write, the pending charge associated with the old restored total is cancelled. |
-| Another reset occurs before the restored total is committed known again | The durable write-ahead marker remains LOST (or an interrupted commit is invalid), so the next boot suppresses EFI until stopped-engine quorum permits a `FUEL_CAPG` write. It never reuses the stale known record while silently omitting another startup gap. |
-| Any boot has no usable backup record, a corrupt backup record, or a legacy V1 backup record | The cumulative total is LOST. POR/PDR cannot prove a refuel or engine stop, so this applies to a normal power-on as well as a warm reset. The filter sends no DroneCAN ICE Status, so ArduPilot's EFI backend ages stale/unhealthy instead of accepting a false zero. It repeats `Fuel total LOST - write FUEL_CAPG to restart it` every 60 s and mutes the warning ladder. Land or remain on the ground, wait for fresh stopped-engine quorum (disarmed + valid zero RPM + closed throttle), and rewrite `FUEL_CAPG` even if its numerical value is unchanged. A same-value write can clear the current lockout immediately; a changed value resumes EFI only after `Tune saved`. Disarmed alone is rejected. |
-| H743 tune journal is missing, corrupt, or has no valid record | Any surviving numeric fuel total is invalidated and EFI stays silent. The retained total was accumulated under capacity, density, and model settings whose provenance is now unknown; compiled defaults are not evidence that those settings match. Verify the complete fuel configuration and re-establish the loaded fuel with stopped-quorum `FUEL_CAPG`. |
+| Another reset occurs before the restored total is committed known again | The durable write-ahead marker remains LOST (or an interrupted commit is invalid), so the next boot suppresses EFI until normal stopped quorum or a newly eligible cold manual-start declaration permits a positive `FUEL_CAPG` write. It never reuses the stale known record while silently omitting another startup gap. |
+| Any boot has no usable backup record, a corrupt backup record, or a legacy V1 backup record | The cumulative total is LOST. POR/PDR cannot prove a refuel or engine stop, so this applies to a normal power-on as well as a warm reset. The filter sends no DroneCAN ICE Status, so ArduPilot's EFI backend ages stale/unhealthy instead of accepting a false zero. It repeats `Fuel total LOST - write FUEL_CAPG to restart it` every 60 s and mutes the warning ladder. Land or remain on the ground, obtain normal stopped quorum or the narrowly eligible cold manual-start declaration, and rewrite positive `FUEL_CAPG` even if its numerical value is unchanged. A same-value write can clear the current lockout immediately; a changed value resumes EFI only after `Tune saved`. Disarmed alone is rejected. |
+| H743 tune journal is missing, corrupt, or has no valid record | Any surviving numeric fuel total is invalidated and EFI stays silent. The retained total was accumulated under capacity, density, and model settings whose provenance is now unknown; compiled defaults are not evidence that those settings match. Verify the complete fuel configuration and re-establish the loaded fuel with an authorized positive `FUEL_CAPG`. |
 | An accepted `FUEL_CAPG` write changes the numerical capacity | The running counter is zeroed and the old restore-gap charge is cancelled, but the total stays TOTAL LOST and no ICE Status is sent until the asynchronous tune-journal save succeeds. `FUEL_CAPG written - fuel total zeroed` confirms acceptance, not durability. Wait for `Tune saved`; `Tune save failed` leaves EFI silent and the dirty snapshot pending for retry. |
-| An actual `FUEL_DENS` change | The same fresh stopped-engine quorum is required; otherwise the write reports `FUEL_DENS blocked: engine not confirmed stopped`. Before runtime density changes, the total is marked LOST and any older CAPG commit intent is cancelled so FC-visible cumulative volume cannot move backwards. Until the verified journal save succeeds, every `FUEL_CAPG` write is rejected with `FUEL_CAPG blocked: wait for FUEL_DENS save`; failure stays blocked/LOST. `Tune saved` clears only the pending-density latch, not the lost total. Then make a subsequent stopped-quorum `FUEL_CAPG` write to establish a fresh zero under the new density. |
+| An actual `FUEL_DENS` change | Normal fresh stopped quorum or the ready cold manual-start declaration is required; otherwise the write reports `FUEL_DENS blocked: engine not confirmed stopped`. A density write does not consume the cold one-shot. Before runtime density changes, the total is marked LOST and any older CAPG commit intent is cancelled so FC-visible cumulative volume cannot move backwards. Until the verified journal save succeeds, every `FUEL_CAPG` write is rejected with `FUEL_CAPG blocked: wait for FUEL_DENS save`; failure stays blocked/LOST. `Tune saved` clears only the pending-density latch, not the lost total. Then make a subsequent authorized positive `FUEL_CAPG` write to establish a fresh zero under the new density. |
 | Factory reset is attempted | The firmware writes a durable TOTAL LOST marker before flash work can begin, because defaults can change capacity, density, or the model without proving a refuel. A failed start or interrupted reset may conservatively leave the total LOST too. After any attempt, verify every fuel-model setting and rewrite `FUEL_CAPG` with the engine stopped; after a changed value, wait for `Tune saved`. |
 | Phase-C maintenance | **Never perform it while the engine is running.** The fixed 25-second charge covers bounded reset/startup work, not an arbitrarily long connected maintenance session. |
 | Engine believed stopped, no RPM | Integrates nothing. There is no burn to account for. |

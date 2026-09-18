@@ -401,21 +401,60 @@ Write `FUEL_CAPG`. That is the only thing that zeroes the running total, and
 it is intentional — the total now survives a mid-flight reboot, so it cannot
 also reset itself whenever the board restarts. Write it after every refuel,
 even if the tank size has not changed. You will see
-`FUEL_CAPG written - fuel total zeroed`. The write is accepted only after fresh
-stopped-engine quorum: disarmed, valid zero RPM, and closed throttle. If the
+`FUEL_CAPG written - fuel total zeroed`. The write is normally accepted only
+after fresh stopped-engine quorum: disarmed, valid zero RPM, and closed
+throttle. A manually started engine whose GPIO pickup reports exact `-1/-1`
+before its first start may use the narrowly gated cold declaration described
+below. If the
 numerical capacity changed, that message confirms only the runtime reset: EFI
 remains silent until the asynchronous journal save reports `Tune saved`.
 `Tune save failed` leaves the total LOST and must not be treated as recovery.
 Use a positive weighed mass; never write zero as a placeholder. H743 DroneCAN
 v0.5.31+ suppresses ICE Status for zero/non-finite capacity, while firmware
 through v0.5.30 could expose fresh zero-consumption EFI after a zero write.
+Version v0.5.31 itself is a retired ambiguous development identity; use v0.5.32
+or later.
 
-Set `FUEL_DENS` before `FUEL_CAPG`. Density writes require the same fresh
-stopped-engine quorum. An actual change marks the total LOST, cancels any older
+Set `FUEL_DENS` before `FUEL_CAPG`. Density writes require the same normal
+quorum or a ready cold manual-start declaration; they do not consume that
+one-shot. An actual change marks the total LOST, cancels any older
 pending capacity commit, and blocks capacity writes with
 `FUEL_CAPG blocked: wait for FUEL_DENS save` until the density journal save is verified. A failed
 save stays blocked/LOST. `Tune saved` clears that block but does not restore EFI;
-then a subsequent stopped-quorum `FUEL_CAPG` write establishes a fresh zero.
+then a subsequent stop-authorized positive `FUEL_CAPG` establishes a fresh zero.
+
+### Why does an engine that is off at power-up show RPM `-1` and max burn?
+
+ArduPilot's GPIO pulse RPM backend sends the exact MAVLink pair
+`RPM1=-1,RPM2=-1` when a stopped pickup has no pulse quality. That means
+**unavailable**, not a measured zero. The filter deliberately keeps it invalid
+globally, because treating `-1` as zero after a sensor wire breaks could stop
+fuel accounting while the engine is running.
+
+For the pre-start case only, H743 DroneCAN v0.5.32 provides a one-shot operator
+declaration. Fully remove power, make a genuine cold POR, and keep the FC
+positively identified as a supported ArduPilot family/version, freshly
+DISARMED, both RPM fields exactly `-1`, and throttle
+freshly closed for at least 3 continuous seconds. Then write a **positive
+weighed** `FUEL_CAPG` when re-establishing a LOST/unconfigured total from
+positively known fuel aboard, or after an actual refuel. With a LOST or
+unconfigured total, readiness says `Cold manual-start ready: write positive FUEL_CAPG`.
+If a trustworthy total survived, it instead says
+`Cold OFF ready; write FUEL_CAPG only if refuelled`; do not destroy the retained total merely to
+silence the conservative latch. A valid retained backup controls the old total,
+not physical-stop eligibility. An accepted positive CAPG clears the RAM engine
+latch and consumes the one-shot. Zero is rejected with
+`Cold FUEL_CAPG must be positive weighed fuel`. You may write
+`FUEL_DENS` first under the same evidence; it does not consume the one-shot,
+but after a real change wait for `Tune saved` before CAPG.
+
+Do not arm, open throttle, or turn the engine before CAPG: any armed report,
+RPM `>=1`, or open-throttle evidence revokes the declaration. An observed FC
+peer/session reset also revokes it. Every H743 reset restores the conservative
+may-run latch; reset button, watchdog, brownout, or warm reboot is not enough
+to retry—perform a true all-power removal and satisfy cold eligibility again.
+After the engine has run, exact `-1/-1` remains sensor loss and rated-power
+charging, never proof that it stopped.
 
 ### What happens if FC telemetry or the saved fuel total is lost?
 
@@ -423,8 +462,9 @@ Fuel accounting continues through FC-link loss and the FC-version output
 block. Every boot starts with the conservative engine-may-be-running latch set;
 link silence cannot clear it, and missing RPM is charged at rated power until
 fresh disarmed state, zero RPM, and closed throttle all say it is stopped. A
-`FUEL_CAPG` write is accepted only after those same three inputs are fresh; the
-write itself does not clear the engine latch.
+normal `FUEL_CAPG` write is accepted only after those same three inputs are
+fresh. The only exception is the explicit positive CAPG in the eligible
+one-shot cold manual-start window; no reset preserves that RAM-only OFF result.
 
 If any boot has no trustworthy V2 backup record (including a normal power-on, a
 warm reset, or a legacy V1 record), the total is unknown and the filter sends no
@@ -435,8 +475,9 @@ which it accumulated have unknown provenance. POR/PDR cannot prove a refuel.
 ArduPilot's EFI backend therefore ages stale/unhealthy instead of accepting a
 false zero. The filter repeats `Fuel total LOST - write FUEL_CAPG to restart
 it` every 60 s. Land or remain on the ground, verify the fuel configuration,
-wait for fresh stopped-engine quorum (disarmed + valid zero RPM + closed
-throttle), and rewrite `FUEL_CAPG` for the fuel aboard—even if its numerical
+obtain fresh normal stopped quorum (disarmed + valid zero RPM + closed
+throttle) or the eligible cold declaration above, and rewrite positive
+`FUEL_CAPG` for the fuel aboard—even if its numerical
 value is unchanged. A changed value clears the lockout only after `Tune saved`;
 the same-value path schedules no new save, so its accepted-write message and
 exact readback are the completion evidence. Disarmed alone is rejected. A

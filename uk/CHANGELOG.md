@@ -6,7 +6,199 @@
 
 ---
 
-## H743 DroneCAN v0.5.31 — 2026-08-18 (corrective candidate)
+## H743 DroneCAN v0.5.37 — 2026-09-18 (миттєве відключення GPS, значно менше хибних блокувань)
+
+- **Польотний контролер втрачає GPS одразу, щойно фільтр його блокує.** Фільтр
+  і раніше миттєво припиняв надсилати GPS при переході в DR1, але ArduPilot ще
+  4 секунди показував останній 3D fix, замороженим. Тепер фільтр додатково
+  надсилає три короткі повідомлення «no fix», і Mission Planner одразу показує
+  `No Fix`. Вони не містять позиції, швидкості, часу чи кількості супутників і
+  ніколи не надсилаються, поки вихід GPS дозволено. (ArduPilot ніколи не показує
+  `No GPS` для CAN GPS, який уже виявив; `No Fix` — правильний кінцевий стан.)
+- **DR1 значно рідше спрацьовує від звичайних змін швидкості та висоти.**
+
+  | Перевірка | Було | Стало |
+  |---|---|---|
+  | Швидкість між двома фіксами (`SP_JMP_MPS`) | 200 м/с | 1000 м/с |
+  | Стрибок позиції (`SP_ABS_M`) | 400 м | 2000 м |
+  | Стрибок висоти (`ALT_JMP_M`) | 80 м | 300 м |
+  | Швидкість зміни висоти (`ALT_RMPS`) | 40 м/с | 100 м/с, 2 с і 100 м |
+  | Вертикальна швидкість GPS проти барометра | 4 м/с, самостійно через 12 с | 10 м/с, самостійно через 30 с |
+  | Розворот курсу | утримання 1,5 с | утримання 10 с |
+  | Spoof confidence (`CONF_TRIP`) | 70 протягом 1,5 с | 85 протягом 5 с |
+
+  Нові значення є також мінімумами: плата зі старими збереженими значеннями
+  автоматично підвищує їх при першому запуску, а менші значення з Mission
+  Planner обмежуються мінімумом.
+- Без змін: втрата фіксу, мало супутників, EKF, SNR, власне повідомлення
+  приймача про спуфінг, півкульна та гео-огорожі, час GNSS і зв'язок з FC.
+- Компроміс, прийнятий власником: атакувальник, що спершу глушить, а потім
+  спуфить, може зсунути позицію далі, перш ніж спрацюють саме ці перевірки.
+- Пресети Mission Planner та описи параметрів використовують нові значення.
+
+---
+
+## H743 Airspeed Node 1.0.0 — 2026-09-17 (новий продукт)
+
+- Окрема урізана прошивка для тієї самої плати WeAct H743: швидкість MS4525
+  через DroneCAN (node 43), послідовний канал камери OpenIPC до польотного
+  контролера і стан польотного контролера на дисплеї.
+- **Без GPS-фільтра і без захисту від спуфінгу.** Обирайте її лише для літаків,
+  яким від цієї плати цей захист не потрібен.
+- Встановлюється застосунком provisioning **2026.09.17.1 або новішим**, target
+  `[!] H743 Airspeed Node (NO GPS filter)`, за тією самою ліцензією, що й
+  фільтр. Плату можна перемикати між фільтром і Airspeed Node туди й назад без
+  другої активації.
+- Пресет для польотного контролера
+  `arduplane_FC_4.6.3_h743_airspeed_node_CAN1.param` і повний посібник:
+  [H743 Airspeed Node](14_h743_airspeed_node.md).
+
+---
+
+## Сервіс provisioning — 2026-09-17
+
+- Список прошивок у застосунку provisioning тепер пропонує й старіші релізи.
+  Найновіший реліз — типовий; вибір старішого встановлює його навіть нижче
+  меж безпеки палива v0.5.30-v0.5.32. Такі старі збірки можуть показати хибно
+  повний бак або неправильно прочитати новіші налаштування палива, тож обирайте
+  їх лише свідомо.
+
+---
+
+## H743 DroneCAN v0.5.36 — 2026-09-17 (активація знову працює)
+
+- Виправлено `APP_CMD_KEY sentinel found 2 times`: v0.5.33, v0.5.34 і v0.5.35
+  не можна було активувати чи оновити на жодній платі. v0.5.36 і новіші
+  встановлюються нормально, а сервер тепер відхиляє такий образ уже під час
+  завантаження, а не лише коли плата намагається його використати. Ці три
+  версії ніколи не пропонуються для встановлення.
+
+---
+
+## H743 DroneCAN v0.5.35 — 2026-09-08 (типові значення палива)
+
+- `FUEL_CAPG` тепер типово 7500 г — бак серійного планера. Покажчик палива все
+  одно мовчить, доки ви не підтвердите, скільки палива на борту.
+- Новий `FUEL_AUTOF` (типово вимкнено): при ввімкненні вузол вважає бак повним,
+  але лише поки літак роззброєний і двигун зупинено. Вмикайте тільки на
+  планері, який завжди заправляють до подачі живлення.
+- Короткий збій апаратного генератора випадкових чисел більше не вимикає
+  operator recovery на весь політ; якщо збій таки стався, попередження попросить
+  перезавантажити плату.
+- Не встановлювалася через дефект, виправлений у v0.5.36; використовуйте
+  v0.5.36 або новішу.
+
+---
+
+## H743 DroneCAN v0.5.34 — 2026-09-07 (швидкість знаходиться під час старту)
+
+- ArduPilot тепер знаходить DroneCAN airspeed під час старту. Раніше вона іноді
+  з'являлася лише після зміни не пов'язаного параметра `ARSPD_*`.
+- Швидкість зараховується як доказ для recovery лише між 18 і 60 м/с, а
+  насичене чи несправне значення MS4525 відкидається, а не екстраполюється до
+  неможливого значення.
+- Не встановлювалася через дефект, виправлений у v0.5.36; використовуйте
+  v0.5.36 або новішу.
+
+---
+
+## H743 DroneCAN v0.5.33 — 2026-09-01 (corrective candidate)
+
+- Виправлено головне: плата більше не перезавантажується по колу, щойно до неї
+  підключають польотний контролер по CAN. Симптом виглядав так — із
+  від'єднаною CAN шиною плата працювала бездоганно, а з приєднаним FC
+  ресетилась приблизно кожні 170 мс і не встигала вийти на шину. Це легко
+  сприймалось як мертва плата, несправний transceiver або brownout живлення,
+  хоча апаратура була справна.
+- Причина внутрішня і latent: memory pool, з якого DroneCAN stack бере блоки
+  для приймання frames, не мав гарантованого alignment, а додані після v0.5.25
+  fuel/ICE дані змістили його на непридатну адресу. Після цього кожен
+  отриманий CAN frame зупиняв прошивку hard fault. Тепер alignment заданий
+  явно й зафіксований перевіркою при збірці та окремим тестом: дефект
+  layout-dependent і без цього міг мовчки повернутися при будь-якій зміні
+  розкладки.
+- Перевірено на реальному обладнанні після виправлення: node 42 online, uptime
+  зростає, Fix2/Auxiliary публікуються у польотний контролер — на тій самій
+  проводці й тому самому живленні, які до того давали reset loop.
+- v0.5.32 retired. Image v0.5.32 із цим дефектом було flashed на bench
+  власника і там hard-faulted, а тепер під тією самою identity існує
+  behaviorally different image. Як і v0.5.31, v0.5.32 ніколи не може бути
+  tagged, uploaded, promoted або використана як release evidence. Correction
+  має version v0.5.33.
+- Перед першим production promotion service має встановити external H743
+  delivery floor packed v0.5.33
+  (`MIN_APP_VERSION_H743_DRONECAN=5153`, `0x00001421`). Історичні межі
+  5150/5151 лишаються задокументованими і так само non-eligible.
+- Нова operator-команда «Block GNSS now» (`MAV_CMD_USER_2` з magic у `param1`)
+  вмикає захист негайно. Вона працює лише в fail-closed напрямку: може ввести
+  плату в DR1 і ніколи не може його зняти. Тому вона свідомо unauthenticated і
+  діє armed або disarmed — примусовий захист у найгіршому разі відмовляє вам у
+  GPS (стан, у якому апарат і так літає) і ніколи не пропускає підозрілий GPS
+  далі. Команда адресна, тому broadcast її не вмикає. Знімається такий block
+  лише звичайним evidence quorum, як і будь-який інший DR1.
+- Обробка COMMAND_LONG тепер спільна для FC tunnel і прямого USB link: усі
+  перевірки живуть в одному місці, тому USB — це transport, а не trust
+  boundary. Раніше released builds взагалі не містили command handler, а USB
+  приймав тільки parameter writes.
+- Authenticated field recovery присутній лише як scaffolding і у released
+  firmware НЕ увімкнений (`FILTER_AUTH_OPERATOR_RECOVERY_ENABLE` за
+  замовчуванням `0`, жодне build env його не вмикає). Увімкнений, він вимагає
+  per-board MAVLink2 signature, позитивно DISARMED стан, одноразове
+  використання та auto-expiry TTL, а послаблює винятково вимогу до кількості
+  independent witnesses: contradiction veto, pass count і hold window
+  лишаються. Тобто він може допомогти застряглому наземному відновленню і
+  ніколи не зніме DR1 всупереч живим доказам спуфінгу. Unsigned COMMAND_LONG
+  відхиляється навмисно. Provisioning видає випадковий per-board command key,
+  зберігає його encrypted, повторно використовує при re-flash (щоб credential
+  operator'а лишався сталим) і друкує його оператору; builds без цього slot не
+  видають нічого.
+- Mission Planner plugin `0.4.0` отримав поле для signing key та кнопки
+  «Block GNSS now» і «Authenticated recovery» — це його перша вихідна
+  можливість. Plugin сам будує й підписує MAVLink2 frame (per-link signing
+  Mission Planner не гарантований між версіями), а алгоритм зафіксований
+  reference test проти власного парсера pymavlink. Команди йдуть лише на
+  sysid 42 прямим USB link, ніколи у польотний контролер, і жодні GNSS чи
+  координатні дані при цьому не передаються.
+
+---
+
+## H743 DroneCAN v0.5.32 — 2026-08-18 (corrective candidate) — RETIRED, див. v0.5.33
+
+- Exact stopped sentinel GPIO RPM `RPM1=-1,RPM2=-1` лишається invalid globally.
+  У v0.5.32 genuine cold POR і 3 безперервні секунди fresh exact `-1/-1` +
+  DISARMED + closed throttle можуть підготувати one-shot manual-start
+  declaration після positive identification supported ArduPilot family/version
+  незалежно від trustworthy backup. LOST total повідомляє
+  `Cold manual-start ready: write positive FUEL_CAPG`, retained total —
+  `Cold OFF ready; write FUEL_CAPG only if refuelled`. Лише explicit positive
+  CAPG після фактичної заправки або re-establishment LOST total очищає RAM
+  latch і витрачає one-shot; density його не витрачає, zero відхиляється,
+  running evidence/peer reset скасовує, а кожен reset плати повертає
+  conservative may-run.
+- Pre-manual-start image v0.5.31 було flashed на bench власника до завершення
+  correction. Оскільки два behaviorally different images коротко мали ту саму
+  identity, v0.5.31 retired і ніколи не може бути tagged, uploaded, promoted
+  або використана для цього setup. Correction має version v0.5.32.
+- Перед першим production promotion service має встановити external H743
+  delivery floor packed v0.5.32
+  (`MIN_APP_VERSION_H743_DRONECAN=5152`, `0x00001420`). Після будь-якого
+  promotion v0.5.32+ v0.5.31 і всі старіші builds назавжди ineligible;
+  recovery має бути forward-versioned v0.5.32+ build.
+- Mission Planner 5 L DLE120/Walbro setup тепер потребує v0.5.32 або новішої.
+  Node presets далі не містять state-changing `FUEL_CAPG`; positive weighed
+  load записуйте окремо. Firmware v0.5.31 додала zero/non-finite capacity ICE
+  suppression, і v0.5.32 його зберігає.
+- Новий opt-in pre-flash check ArduPlane 4.7.0 SITL compiles production ICE
+  payload packer і перевіряє, що FC переходить від unhealthy до healthy
+  stopped/running EFI/BATT2, зберігає increasing consumption, а після ICE
+  silence знову стає unhealthy. Це перевірка FC consumer boundary, а не
+  physical board або DR1.
+- Цей candidate не uploaded, не promoted і не exact-artifact
+  hardware/HIL-qualified. Public production лишається v0.5.25.
+
+---
+
+## H743 DroneCAN v0.5.31 — 2026-08-18 (superseded development build)
 
 - Фільтр тепер не надсилає DroneCAN ICE Status, коли `FUEL_CAPG` дорівнює
   нулю, від'ємне, NaN або infinite. Тому ArduPilot переводить EFI у
@@ -16,11 +208,6 @@
 - Positive finite capacity працює як раніше. Invalid або unconfigured capacity
   має стан UNKNOWN і не публікується; GNSS/DR1 rules та parameter defaults не
   змінені.
-- Перед першим production promotion service має встановити external H743
-  delivery floor packed v0.5.31
-  (`MIN_APP_VERSION_H743_DRONECAN=5151`, `0x0000141F`). Після будь-якого
-  promotion v0.5.31+ v0.5.30 і всі старіші builds назавжди ineligible;
-  recovery має бути forward-versioned v0.5.31+ build.
 - Mission Planner plugin `0.3.1` робить map legend opaque та тримає її ліворуч
   від штатних zoom controls Mission Planner, прибираючи white-line repaint
   flicker після resize або зміни DPI.
@@ -34,8 +221,9 @@
   На fresh setup спочатку потрібні non-EFI CAN/S2 core і verified RPM pickup,
   далі node 42/positive capacity, і лише потім EFI/BATT2. Generic DLE/RCGF
   model files більше не пишуть `FUEL_CAPG=0`.
-- Цей candidate не uploaded, не promoted і не hardware/HIL-qualified. Public
-  production firmware не змінюється.
+- Цей image не був tagged, uploaded або promoted. Він superseded та
+  permanently ineligible, бо однаковий version label коротко позначав binaries
+  із різною manual-start поведінкою. Public production не змінюється.
 
 ---
 

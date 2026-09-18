@@ -79,4 +79,5 @@ Reboot is not required after every parameter write.
 12. `11_faq.md` - frequently asked questions (hardware, setup, operation, receiver modes, licensing).
 13. `12_video_tutorials.md` - YouTube tutorial library with previews, embedded players, and related written guides.
 14. `13_h743_dronecan.md` - complete WeAct H743 DroneCAN wiring, HD-15 D-sub box pinout, flashing, FC setup (including EFI fuel reporting), display, and validation guide.
-15. `CHANGELOG.md` - full firmware version history and release notes.
+15. `14_h743_airspeed_node.md` - the H743 Airspeed Node: a separate firmware for the same board with MS4525 airspeed over DroneCAN, the camera tunnel and flight-controller status on the display, and no GPS filter.
+16. `CHANGELOG.md` - full firmware version history and release notes.

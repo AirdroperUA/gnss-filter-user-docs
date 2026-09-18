@@ -148,19 +148,46 @@ S2/index `1`, якщо цей virtual port налаштовано. Переві�
 - Fuel provenance і degraded operation: перевірте valid V2 records із warm та
   POR/PDR reset flags, legacy V1, corrupt/missing records з усіма reset flags і
   repeated resets. Кожен invalid або missing record має дати TOTAL LOST;
-  shortcut cold-boot/fresh-tank немає. Звичайне вмикання без valid retained
-  record має припинити кожен ICE Status packet, доки fresh stopped-engine quorum
-  (disarmed + valid zero RPM + closed throttle) не дозволить оператору повторно
-  записати `FUEL_CAPG`, навіть якщо його числове значення не змінилося; EFI
-  backend FC тим часом має стати stale/unhealthy. Доведіть, що disarmed alone,
-  stale/missing RPM, nonzero RPM, stale/missing throttle і open throttle кожен
-  відхиляє reset та видає `FUEL_CAPG blocked: engine not confirmed stopped`.
-  Повторіть quorum matrix для `FUEL_DENS` і вимагайте
-  `FUEL_DENS blocked: engine not confirmed stopped` для кожного відхиленого
-  запису.
-  Кожен boot має встановити engine-may-be-running latch, а
-  очистити його можуть лише ті самі fresh three-way evidence; сам parameter
-  write не можна використовувати як stop evidence. Valid restore має
+  automatic shortcut cold-boot/fresh-tank немає. Звичайне вмикання без valid
+  retained record має припинити кожен ICE Status packet, доки authorized
+  positive `FUEL_CAPG` не встановить total; EFI backend FC тим часом має стати
+  stale/unhealthy. Спочатку доведіть normal quorum: fresh disarmed + fresh valid
+  zero RPM + fresh closed throttle приймає і `FUEL_DENS`, і `FUEL_CAPG`, тоді як
+  disarmed alone, stale/missing RPM, nonzero RPM, stale/missing throttle та open
+  throttle незалежно відхиляються з відповідним `... engine not confirmed
+  stopped` text.
+
+  Окремо перевірте manual-start exception v0.5.32. True cold POR може відкрити
+  його незалежно від valid backup; backup provenance має окремо керувати
+  restore old total. Відхиліть cold path, доки FC family/version unknown,
+  non-ArduPilot або unsupported; contract `-1/-1` може використовувати лише
+  positively identified supported ArduPilot session. Тоді подавайте fresh exact MAVLink
+  `RPM1=-1,RPM2=-1`, fresh DISARMED і fresh closed throttle безперервно;
+  відхиліть CAPG на 2,999 ms і прийміть на 3,000 ms. Доведіть, що `-1/-1`
+  лишається invalid для normal RPM selection, burn і stopped quorum. Доки cold
+  declaration ready з LOST/unconfigured total, вимагайте exact status
+  `Cold manual-start ready: write positive FUEL_CAPG`. З trustworthy retained total
+  вимагайте `Cold OFF ready; write FUEL_CAPG only if refuelled`, виконайте
+  no-refuel path зі збереженням цього total і окремо real-refuel path. Прийміть
+  `FUEL_DENS`, не витрачаючи declaration; після фактичної
+  зміни density вимагайте `Tune saved`, а тоді приймайте лише **positive**
+  `FUEL_CAPG`. Відхиліть zero з exact status
+  `Cold FUEL_CAPG must be positive weighed fuel`, тоді прийміть positive CAPG, доведіть очищення RAM latch і
+  consumption one-shot. Незалежно
+  інжектуйте armed, будь-який RPM `>=1`, open throttle та FC peer/session reset
+  після початку observations; кожен має скасувати declaration до кінця цієї
+  power session. Warm/watchdog/brownout reset і будь-який reset після accepted
+  declaration мають відновити engine-may-be-running та не зберігати OFF result.
+  Доведіть, що POR із valid retained record усе одно відкриває fresh declaration,
+  зберігаючи окрему accounting semantics record. Recovery після warm reset
+  потребує справжнього повного зняття живлення і newly eligible cold session.
+  Нарешті подайте positive RPM, поверніться до exact `-1/-1` і доведіть, що
+  latch не очищається: degraded rated-power charging триває. Це regression для
+  false stop при disconnected pickup.
+
+  Кожен boot має встановити engine-may-be-running latch. Поза вузькою eligible
+  explicit cold declaration очистити його можуть лише normal fresh three-way
+  stopped evidence; ordinary parameter write не є stop evidence. Valid restore має
   додати точно фіксоване 25-секундне reset-gap нарахування за номінальною
   потужністю, що покриває до 2 с застарілості save, найдовший шлях налаштування
   UM980 приблизно 11.5 с, інший startup overhead і запас; у H743 немає Phase-C

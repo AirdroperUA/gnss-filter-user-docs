@@ -151,18 +151,48 @@ Required hardware-in-the-loop coverage:
 - Fuel provenance and degraded operation: exercise valid V2 records across
   warm and POR/PDR reset flags, legacy V1, corrupt/missing records under every
   reset flag, and repeated resets. Every invalid or missing record must produce
-  TOTAL LOST; there is no cold-boot/fresh-tank shortcut. A normal power-on with
-  no valid retained record must stop every ICE Status packet until fresh
-  stopped-engine quorum (disarmed + valid zero RPM + closed throttle) permits
-  an operator to rewrite `FUEL_CAPG`, even when its numerical value is
-  unchanged; the FC EFI backend must age stale/unhealthy meanwhile. Prove that
-  disarmed alone, stale/missing RPM, nonzero RPM, stale/missing throttle, and
-  open throttle each reject the reset and emit `FUEL_CAPG blocked: engine not confirmed stopped`.
-  Repeat the quorum matrix for `FUEL_DENS` and require
-  `FUEL_DENS blocked: engine not confirmed stopped` on every rejected write.
-  Every boot must set the
-  engine-may-be-running latch, and only that same fresh three-way evidence may
-  clear it; the parameter write itself must not be used as stop evidence.
+  TOTAL LOST; there is no automatic cold-boot/fresh-tank shortcut. A normal
+  power-on with no valid retained record must stop every ICE Status packet
+  until an authorized positive `FUEL_CAPG` establishes a total; the FC EFI
+  backend must age stale/unhealthy meanwhile. First prove the normal quorum:
+  fresh disarmed + fresh valid zero RPM + fresh closed throttle accepts both
+  `FUEL_DENS` and `FUEL_CAPG`, while disarmed alone, stale/missing RPM, nonzero
+  RPM, stale/missing throttle, and open throttle independently reject with the
+  matching `... engine not confirmed stopped` text.
+
+  Separately test the v0.5.32 manual-start exception. A true cold POR may open
+  it whether or not a valid backup survived; backup provenance must still
+  independently control restoration of the old total. Reject the cold path
+  while FC family/version is unknown, non-ArduPilot, or unsupported; only a
+  positively identified supported ArduPilot session may use its `-1/-1`
+  contract. Then feed fresh exact MAVLink
+  `RPM1=-1,RPM2=-1`, fresh DISARMED, and fresh closed throttle continuously;
+  reject CAPG at 2,999 ms and accept it at 3,000 ms. Prove `-1/-1` remains
+  invalid to normal RPM selection, burn, and stopped quorum. While the cold
+  declaration is ready with LOST/unconfigured total, require exact status
+  `Cold manual-start ready: write positive FUEL_CAPG`. With a trustworthy
+  retained total require `Cold OFF ready; write FUEL_CAPG only if refuelled`,
+  perform a no-refuel path that preserves that total, and separately perform a
+  real-refuel path. Accept `FUEL_DENS` without consuming the declaration; after a real
+  density change, require `Tune saved`, then accept only a **positive**
+  `FUEL_CAPG`. Reject zero with exact status
+  `Cold FUEL_CAPG must be positive weighed fuel`, then accept positive CAPG, prove the RAM latch clears, and
+  prove the one-shot is consumed.
+  Independently inject armed, either RPM `>=1`, open throttle, and an FC
+  peer/session reset after observations have begun; each must revoke the
+  declaration for the rest of that power session. A warm/watchdog/brownout
+  reset and any reset after the accepted declaration must restore
+  engine-may-be-running and must not preserve the OFF result. Prove a POR with
+  a valid retained record still opens a fresh declaration while preserving the
+  record's separate accounting semantics. Recovery from a warm reset requires
+  true all-power removal plus a newly eligible cold session. Finally run
+  positive RPM, return to exact
+  `-1/-1`, and prove it cannot clear the latch: rated-power degraded charging
+  continues. This is the disconnected-pickup false-stop regression.
+
+  Every boot must set the engine-may-be-running latch. Outside the narrowly
+  eligible explicit cold declaration, only normal fresh three-way stopped
+  evidence may clear it; no ordinary parameter write is stop evidence.
   A valid restore must add exactly the fixed 25-second rated-power reset-gap
   charge, covering up to 2 s of save staleness, the roughly 11.5 s longest
   UM980 setup path, other startup overhead, and margin; H743 has no Phase-C boot
@@ -234,12 +264,22 @@ Required hardware-in-the-loop coverage:
   target, and an app copied to a different MCU UID. Confirm direct PlatformIO
   upload of a phase-B payload is refused and that provisioning installs the
   bootloader, UID-bound app, and matching signed metadata as one validated set.
-- Remote operator waiver: released targets must compile with
-  `FILTER_REMOTE_OPERATOR_WAIVER_ENABLE=0`. Send forged and replayed
-  `MAV_CMD_USER_1` waiver commands and verify they cannot change recovery state
-  or bypass the independent-evidence quorum. A lab-only opt-in build must treat
-  that command and its public magic value as unauthenticated and may enable it
-  only behind a separately authenticated transport.
+- Operator recovery (`MAV_CMD_USER_1`): released H743 DroneCAN targets now ship
+  with `FILTER_AUTH_OPERATOR_RECOVERY_ENABLE=1`, which implies the waiver flag,
+  by owner decision of 2026-09-02. The command clears DR1 immediately and
+  unconditionally, and is UNAUTHENTICATED - its magic is public and `DR_NONCE`
+  is broadcast. Verify: a wrong magic is refused and counts against the
+  per-source backoff; a command replayed after the nonce has rotated is refused;
+  a command with no prior DR1 is refused; and an accepted command clears DR1 on
+  the next pass AND emits `DR1 FORCE-RELEASED by operator; GNSS re-enabled`.
+  Confirm the detectors still re-trip DR1 while a spoof remains present - the
+  release must clear the latch without silencing detection. Record explicitly
+  that this transport is unauthenticated and that anyone able to inject MAVLink
+  into the flight-controller link can send it.
+- DR1-release tunables: verify `DR1_MAXMS` and `DR_LOCK_MS` are refused while
+  the flight controller is armed, on a build with
+  `FILTER_TUNE_REQUIRE_DISARMED=0` (the shipped default), and that every other
+  tunable is accepted in that state.
 
 Archive the signed checklist with the release artifacts. Any unexecuted row is
 an explicit release blocker, not an assumed pass.

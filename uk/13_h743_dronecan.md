@@ -20,6 +20,8 @@ compass публікується лише optional direct-flash `*_dronecan_mag`
 | `weact_mini_h743vitx_dronecan_usb` | Та сама standalone прошивка | USB-C ROM DFU |
 | `weact_mini_h743vitx_dronecan_mag` | Optional HMC5983-enabled DroneCAN build | ST-Link/SWD |
 | `weact_mini_h743vitx_dronecan_mag_usb` | Той самий optional HMC5983-enabled build | USB-C ROM DFU |
+| `weact_mini_h743vitx_dronecan_nosensors` | DroneCAN build для планера без I2C sensors | ST-Link/SWD |
+| `weact_mini_h743vitx_dronecan_nosensors_usb` | Той самий build без I2C sensors | USB-C ROM DFU |
 | `weact_mini_h743vitx_dronecan_bootloader` | H743 secure bootloader | ST-Link/SWD |
 | `weact_mini_h743vitx_dronecan_phaseb_app` | UID-patchable app template за адресою `0x08020000` | лише provisioner |
 | `weact_mini_h743vitx_dronecan_phaseb_app_usb` | ідентичний build-validation template | лише provisioner |
@@ -29,6 +31,19 @@ Default direct-flash builds і обидва signed phase-B production templates
 `MagneticFieldStrength2`. Production/signed phase-B magnetometer variant зараз
 немає. Вибирайте `*_dronecan_mag` лише для навмисної direct-flash інсталяції з
 фізично встановленим HMC5983.
+
+**Якщо pitot не встановлено, використовуйте `*_dronecan_nosensors` build.** Усі
+інші середовища вмикають MS4525 і опитують його на спільній шині I2C2, тож на
+планері без цього сенсора node витрачає час на старті, опитуючи адресу, яка
+ніколи не відповість. Варіанти `nosensors` вимикають обидва I2C sensors під час
+компіляції; це єдині builds, призначені для плати, де на `PB10`/`PB11` немає
+нічого.
+
+Один наслідок варто знати до польоту. У прямолінійному горизонтальному польоті
+pitot - єдиний незалежний свідок для recovery, тому без нього DR1 у повітрі можна
+зняти **лише** справжнім розворотом, набором чи зниженням щонайменше 3 м/с, або
+командою recovery від оператора з GCS. Це закладене обмеження evidence quorum, а
+не дефект build. Див. таблицю witness нижче в цьому документі.
 
 Значення за замовчуванням:
 
@@ -429,12 +444,43 @@ Production/default build показує MS4525 як DroneCAN device від node 
 `*_dronecan_mag` build також показує HMC5983.
 
 1. Для потрібного FC airspeed instance встановіть DroneCAN: зазвичай
-   `ARSPD_TYPE = 8`. Якщо instance 1 уже зайнятий, використайте відповідний
-   `ARSPD2_TYPE`, `ARSPD3_TYPE` тощо.
+   `ARSPD_TYPE = 8`. Якщо instance 1 уже зайнятий, використайте `ARSPD2_TYPE`.
+   ArduPilot має рівно два airspeed instances (`AIRSPEED_MAX_SENSORS` = 2), тому
+   `ARSPD3_TYPE` не існує - цей node має зайняти instance 1 або instance 2.
 2. Встановіть відповідний `ARSPDx_USE` згідно з vehicle і control strategy.
    Для Plane вмикайте використання лише після bench check та airspeed
    calibration; перевірте offset, ratio, tube order і pre-arm status за
    актуальною процедурою ArduPilot.
+
+   **Для Plane `ARSPD_USE=1` з цим фільтром — вимога безпеки польоту, а не
+   налаштування на смак.** Фільтр навмисно переводить літак у політ без GPS у
+   мить виявлення спуфінгу, а ArduPlane здатен на це лише з увімкненим
+   (used) сенсором повітряної швидкості. При `ARSPD_USE=0` EKF3 за лічені
+   секунди після зникнення GPS втрачає горизонтальну швидкість, `AP_AHRS`
+   переходить на DCM, а DCM без GPS і без airspeed не має доцентрової корекції:
+   його оцінка положення дрейфує в кожному розвороті, і автопілот «виправляє»
+   уявну помилку реальним опусканням носа. Відкалібруйте pitot у встановленому
+   планері, задайте `ARSPD_USE=1` і на стенді переконайтеся, що ArduPlane
+   показує сенсор як used, до першого польоту. Літак, який не може летіти без
+   GPS, не повинен літати там, де може спрацювати DR1.
+
+   Щойно `ARSPD_USE=1`, задайте також **біт 0 `AHRS_OPTIONS`
+   (`DisableDCMFallbackFW`)**. Навіть із used pitot ArduPlane має ще один шлях
+   до DCM у мить відключення GPS: `AP_AHRS::_active_EKF_type()` переходить на
+   DCM, коли EKF уже перестав *використовувати* GPS, а `AP_GPS` ще повідомляє
+   3D fix. Годинник `using_gps` в EKF іде від останньої *прийнятої* вибірки, а
+   в `AP_GPS` — від останнього *отриманого* повідомлення, тож спуфінг, який EKF
+   відкидав перед відключенням, відкриває вікно до 4 с, у якому AHRS переходить
+   на DCM і повертається на EKF3, коли надходить `NO_FIX`. Починаючи з firmware
+   `v0.5.37` фільтр сам надсилає `NO_FIX` у мить DR1 latch, що скорочує це
+   вікно до часу, коли EKF уже не використовував GPS; біт 0 все одно тримайте
+   ввімкненим. Кожне перемикання —
+   стрибок опорного положення та джерела висоти, яким керує TECS, і TECS
+   відповідає тангажем. Біт 0 прибирає цю гілку; EKF3 продовжує dead reckoning
+   за airspeed і вітром. У журналі це виглядає як `AHRS: DCM active`, а за
+   кілька секунд `AHRS: EKF3 active` одразу після `GNSS BLOCKED`, без
+   `stopped aiding` між ними. Вмикайте біт 0 лише разом з `ARSPD_USE=1`: без
+   used airspeed EKF, що не може відступити на DCM, гірший за DCM.
 3. **Лише `*_dronecan_mag`:** дозвольте ArduPilot автоматично знайти DroneCAN compass. У Mission Planner
    відкрийте `Setup -> Mandatory Hardware -> Compass`, переконайтесь, що є
    compass від node `42`, позначте/використайте його як external і встановіть
@@ -513,11 +559,13 @@ MAVLink2 тунелюється, але raw GNSS NMEA, UBX та SBF не тун�
 
 У package є
 `presets/arduplane_FC_4.6.3_h743_dronecan_CAN1_5L_EFI.param` для цього aircraft.
-Він потребує H743 DroneCAN firmware node 42 **v0.5.31 або новішої**; не
-імпортуйте його з public v0.5.25 чи будь-якою v0.5.30 або старішою. На fresh
+Він потребує H743 DroneCAN firmware node 42 **v0.5.33 або новішої**; не
+імпортуйте його з public v0.5.25 чи будь-якою v0.5.32 або старішою. На fresh
 setup спочатку повністю load/reboot/read back окремий non-EFI CAN1 core FC
-preset, щоб CAN/S2 передавав stopped-engine evidence, потім налаштуйте й
-перевірте реальний RPM pickup. Далі налаштуйте node 42, вимагайте positive
+preset, щоб CAN/S2 передавав engine evidence, потім налаштуйте й перевірте
+реальний RPM pickup у stopped і running conditions. GPIO pickup може штатно
+передавати exact `-1/-1` при зупинці; використайте cold manual-start procedure
+нижче, а не змінюйте RPM quality semantics. Далі налаштуйте node 42, вимагайте positive
 weighed `FUEL_CAPG` readback і accepted-write message, а якщо числове значення
 змінилося — також `Tune saved`. Лише тоді імпортуйте FC EFI/BATT2 file.
 Він зберігає наявний електричний BATT1 monitor і вимагає, щоб operator за live
@@ -544,7 +592,7 @@ write є state-changing refuel/reset action. Після save model rows окре
 приклад 3750 g. Узгодьте FC gauge за формулою
 `BATT2_CAPACITY = 0.8 * FUEL_CAPG / FUEL_DENS` (numeric mL); 4000 чинне лише
 для цього exact full-load example. Файл використовує опубліковані DLE 12 hp
-(`ENG_PMAXKW=8.95`), тоді як firmware v0.5.30 і v0.5.31 зберігають compiled
+(`ENG_PMAXKW=8.95`), тоді як firmware v0.5.30–v0.5.32 зберігають compiled
 fallback 8.6 kW. Значення 8.95 kW активне лише після завантаження profile та
 точного readback `ENG_PMAXKW`. DLE наводить для DLE120 26x10,
 26x12, 27x10 і 28x10, але не 27x12, тому файл лише записує встановлену
@@ -559,9 +607,29 @@ fallback 8.6 kW. Значення 8.95 kW активне лише після з�
 завершенням.
 Ніколи не записуйте `FUEL_CAPG=0`: це state-changing reset, а не placeholder.
 Firmware до v0.5.30 включно могла публікувати fresh zero-consumption EFI, а
-fixed FC capacity показував хибно повний gauge. Required v0.5.31+ suppresses
-ICE Status за нульової місткості, але позитивна зважена маса все одно
-обов'язкова.
+fixed FC capacity показував хибно повний gauge. Firmware v0.5.31 додала ICE
+Status suppression за zero/non-finite capacity, і v0.5.32 його зберігає, але
+v0.5.31 є ambiguous superseded identity та не може використовуватися.
+Позитивна зважена маса все одно обов'язкова.
+
+Для двигуна з ручним запуском, GPIO pickup якого до обертання передає exact
+MAVLink `RPM1=-1,RPM2=-1`, v0.5.32 має one-shot cold declaration. Після
+genuine cold POR (повного зняття живлення) тримайте fresh DISARMED, exact fresh
+`-1/-1` і fresh closed throttle безперервно щонайменше 3 секунди, але лише після
+positive identification FC family/version як supported ArduPilot. LOST/
+unconfigured total тоді повідомляє `Cold manual-start ready: write positive FUEL_CAPG`;
+зважте або інакше достовірно визначте actual fuel aboard, тоді
+запишіть positive capacity.
+Trustworthy retained total повідомляє `Cold OFF ready; write FUEL_CAPG only if refuelled`;
+збережіть його, якщо фактично не заправлялись. Valid retained backup record не блокує
+цю mechanical-stop declaration: він окремо визначає, чи trustworthy old fuel
+total. `FUEL_DENS` можна записати, доки declaration ready, не витрачаючи її;
+після фактичної зміни density дочекайтеся `Tune saved` до CAPG. Zero
+відхиляється з `Cold FUEL_CAPG must be positive weighed fuel`. Declaration не
+змінює state автоматично. Armed, RPM `>=1`, open throttle або observed FC
+peer/session reset скасовує її, а кожен reset H743 відновлює may-run latch.
+Тому після warm reset цей path потребує true all-power removal і newly eligible
+cold POR.
 Джерела специфікацій: [сторінка DLE120](https://www.dlengine.com/en/rcengine/dle120)
 та [manual виробника](https://cdn.dlengine.com/pdf/DLE120%20USER%20MANUAL%20.pdf).
 
@@ -593,6 +661,12 @@ aircraft-specific і навмисно відсутні у preset.
 [RPM parameter definition](https://github.com/ArduPilot/ardupilot/blob/Plane-4.6.3/libraries/AP_RPM/AP_RPM_Params.cpp#L16-L29)
 і [GPIO implementation](https://github.com/ArduPilot/ardupilot/blob/Plane-4.6.3/libraries/AP_RPM/RPM_Pin.cpp#L65-L78).
 
+Exact stopped pair `-1/-1` лишається **invalid globally**. Вона не потрапляє у
+selector як zero і не може довести stop після роботи двигуна. Після появи
+positive RPM, armed state або open throttle наступна `-1/-1` вважається
+unavailable sensor data, а conservative rated-power charge триває, доки не
+з'явиться normal fresh evidence DISARMED + valid zero RPM + closed throttle.
+
 **На літаку без датчика рівня палива ця оцінка — ЄДИНИЙ покажчик палива в
 пілота**, тому вона свідомо зміщена в бік завищення й лишається орієнтовною до
 калібрування. Задайте вісім параметрів `PROP_*`/`FUEL_*`/`ENG_PMAXKW` на
@@ -606,8 +680,10 @@ aircraft-specific і навмисно відсутні у preset.
 починається з установленим консервативним engine-may-be-running latch; тиша
 лінку не скидає його, а відсутні RPM нараховуються за номінальною потужністю,
 доки одночасно fresh disarmed state, нульові RPM і закритий газ не підтвердять
-зупинку. Запис `FUEL_CAPG` приймається лише після того, як ці самі три inputs
-стали fresh; сам запис не очищає цей latch.
+зупинку. Зазвичай `FUEL_CAPG` потребує тих самих трьох inputs. Єдиний exception
+— explicit positive CAPG після eligible 3-second cold `-1/-1` declaration; цей
+write очищає лише RAM latch і витрачає one-shot. Жоден reset не зберігає OFF
+result.
 
 Якщо при будь-якому boot немає надійного V2 backup record (зокрема при
 звичайному вмиканні, warm reset або будь-якому legacy V1 record), total
@@ -618,8 +694,9 @@ total, бо provenance settings місткості, густини та моде
 двигуна. EFI backend ArduPilot стає stale/unhealthy замість прийняти хибний
 нуль/повний бак. Кожні 60 с фільтр повторює `Fuel total LOST - write FUEL_CAPG
 to restart it`. Сідайте або лишайтеся на землі, перевірте всю fuel configuration,
-дочекайтеся fresh stopped-engine quorum (disarmed + valid zero RPM + closed
-throttle) і повторно запишіть `FUEL_CAPG` для палива на борту, навіть якщо його
+дочекайтеся normal fresh stopped-engine quorum (disarmed + valid zero RPM +
+closed throttle) або eligible cold manual-start declaration і повторно запишіть
+positive `FUEL_CAPG` для палива на борту, навіть якщо його
 числове значення не змінилося. Disarmed alone відхиляється. Якщо числова
 місткість змінилася, accepted write обнуляє runtime counter, але лишає TOTAL
 LOST і EFI silent, доки asynchronous save tune journal не повідомить `Tune
@@ -628,12 +705,13 @@ saved`; `Tune save failed` лишає lockout. Valid V2 restore отримує �
 точне вимірювання витрати під час reset/startup. Прийнятий запис, що встановлює
 новий total, скасовує pending charge старого відновленого total.
 
-`FUEL_DENS` потребує того самого fresh stopped-engine quorum. Фактична зміна
+`FUEL_DENS` потребує normal stopped quorum або ready cold manual-start
+declaration і не витрачає cold one-shot. Фактична зміна
 густини позначає total як LOST до runtime assignment, скасовує старий CAPG
 commit intent і блокує записи місткості з
 `FUEL_CAPG blocked: wait for FUEL_DENS save` до verified save journal. Failure лишається blocked/LOST; `Tune saved`
 очищає density latch, але не lost total. Лише після цього наступний
-stopped-quorum запис `FUEL_CAPG` встановлює fresh zero.
+stop-authorized positive `FUEL_CAPG` встановлює fresh zero.
 
 Factory reset позначає fuel total як LOST у BKPSRAM до початку flash work.
 Failed attempt теж може консервативно лишити його LOST. Після будь-якої спроби
@@ -748,17 +826,20 @@ compatibility rows зі значенням `9`. Реальні tune rows поч�
 Серійний H743 DroneCAN fixed-wing profile використовує:
 
 - `RJ_LOIT_V=0` (вимикає спеціальний low-speed rejoin gate floor 2500 м)
-- `SP_JMP_MPS=200`
-- `SP_ABS_M=400`
+- `SP_JMP_MPS=1000`
+- `SP_ABS_M=2000`
 - `EKF_TRIPMS=500`
 
-На 120 км/год літак проходить приблизно 33,3 м/с, тобто близько 167 м за повне
-стандартне NAV-validity window 5 с. Абсолютний ліміт 400 м залишає запас для
-відновлення після такої паузи, а implied-speed limit 200 м/с у шість разів
-перевищує cruise speed. Математичні guard-тести охоплюють design envelope до
-65 м/с (234 км/год): за 5 с це 325 м, тому залишається 75 м запасу absolute
-limit; це не є flight або hardware validation. Це серійні fixed-wing values, а не універсальна
-рекомендація: перевірте їх відносно максимальної швидкості та flight logs.
+Починаючи з v0.5.37 ліміти стрибка позиції — 1000 м/с і 2000 м (раніше 200 м/с
+і 400 м), послаблені за рішенням власника, щоб звичайне маневрування,
+multipath і шум GNSS не викликали DR1. Це також мінімуми параметрів, тож
+плата зі старими збереженими значеннями підвищує їх при першому запуску. На
+120 км/год літак проходить близько 167 м за повне стандартне NAV-validity
+window 5 с, що далеко в межах обох лімітів. Компроміс: після паузи через
+глушіння спуфер може зсунути повернений фікс далі, перш ніж спрацює ця
+перевірка; власне повідомлення приймача про спуфінг та інші перевірки діють і
+далі. Тригери висоти послаблено в тому самому релізі; див. посібник з
+налаштування.
 
 Під час першого fixed-wing-profile update H743 мігрує stored value лише тоді,
 коли він досі точно дорівнює legacy migration sentinel (`0.8/500/1000/0`). Custom
@@ -903,8 +984,15 @@ speed, barometer/bias, firmware-version та warning states. Новий binding
 
 У spoof/fault DR1:
 
-- `Fix2` і `Auxiliary` зупиняються
-- FC перестає отримувати свіжий GPS від цього node
+- `Fix2` і `Auxiliary` з даними GNSS зупиняються одразу, а вже поставлені в
+  чергу CAN GPS frames відкидаються
+- починаючи з firmware `v0.5.37` node після цього надсилає три `Fix2` зі
+  статусом `NO_FIX` з інтервалом 200 мс, щоб ArduPilot скинув GPS негайно. Без
+  них ArduPilot ще 4 с (свій GPS timeout) показує останній 3D fix. Ці
+  повідомлення не містять позиції, швидкості, часу чи кількості супутників -
+  усі поля даних нульові - і ніколи не надсилаються, поки вихід GNSS дозволено.
+  Mission Planner показує `No Fix`; DroneCAN GPS в ArduPilot після виявлення
+  ніколи не показує `No GPS`, бо на timeout видаляється лише serial GPS driver
 - `NodeStatus` продовжується 1 Hz з warning health
 - дисплей фіксується на червоній alert page `BLOCK` з активною причиною, а
   footer показує `PUB-` і `DR1`
@@ -1039,7 +1127,7 @@ witness**. Row рахується як witness лише тоді, коли йо�
 
 | Witness | Потрібно |
 |---------|----------|
-| Ground speed vs pitot | реальна повітряна швидкість, IAS >= 12 м/с і ground speed >= 6 м/с |
+| Ground speed vs pitot | реальна повітряна швидкість, IAS >= 18 м/с і ground speed >= 6 м/с |
 | Vertical rate | реальний набір або зниження >= 3 м/с |
 | Course vs yaw | реальний розворот >= 12 град/с, зараховується лише на тому проході |
 
@@ -1210,7 +1298,9 @@ MAVLink channel фільтра, `SYSID_THISMAV = 1`, MAVLink channel budget (і�
 
 Airborne recovery не миттєве: має спливти 120 s DR lock, потім evidence quorum
 із незалежним witness треба тримати 60 s, далі йде blend. Witness дає
-climb/descent щонайменше 3 м/с, справжній turn або live pitot не нижче 12 м/с.
+climb/descent щонайменше 3 м/с, справжній turn або live pitot не нижче 18 м/с
+(мінімальна швидкість польоту планера, щоб pitot, який на землі міряє вітер, не
+видавав себе за рух).
 Straight-and-level cruise підходить зі справним pitot вище threshold; без pitot
 потрібен sustained climb або turn.
 

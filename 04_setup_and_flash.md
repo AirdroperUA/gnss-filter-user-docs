@@ -149,9 +149,10 @@ The update service has nested permanent H743 fuel-safety boundaries. A
 `v0.5.30+` promotion permanently excludes pre-`v0.5.30` readers because they
 cannot preserve lost/known fuel provenance. After the first `v0.5.31+`
 promotion, `v0.5.30` is also permanently excluded because it can publish fresh
-zero-consumption EFI for zero capacity. Owner-authorized rollback cannot cross
-either boundary. Recovery after that cutover must be a forward-versioned
-`v0.5.31+` build.
+zero-consumption EFI for zero capacity. The first production-eligible release
+is v0.5.32: after any `v0.5.32+` promotion, ambiguous v0.5.31 and every older
+build are excluded. Owner-authorized rollback cannot cross any boundary.
+Recovery after that cutover must be a forward-versioned `v0.5.32+` build.
 
 ## 4) H743 DroneCAN MAVLink2 virtual ports
 
@@ -265,7 +266,7 @@ doing something:
 | Row | Becomes an independent witness when |
 |-----|-------------------------------------|
 | Barometric vertical rate | a real climb or descent of at least 3 m/s |
-| Ground speed vs airspeed | a live pitot reading at or above 12 m/s |
+| Ground speed vs airspeed | a live pitot reading at or above 18 m/s |
 | GNSS course vs FC yaw | the airframe genuinely turns |
 
 A board on a desk supplies none of them, so the **airborne quorum** correctly
@@ -298,31 +299,54 @@ is what should be done before a first flight.
 **Power-cycle.** Fastest way to get a bench unit back to DR0 without waiting
 for the parked dwell. It tests nothing about recovery.
 
-**Build a bench image with the operator waiver compiled in.** The waiver is
-`MAV_CMD_USER_1` with `param1 = 20437`, addressed to system 42; it waives *only*
-the independent-witness requirement, leaving the pass count, the
-zero-contradiction rule and the full hold window in force.
+**Press "Operator recovery" in Mission Planner.** Since v0.5.33 this is the
+fastest way out of DR1, on the bench or in the air, and it is worth
+understanding exactly what it does before you rely on it.
 
-It is compiled **out** of every flight build and is deliberately absent from
-`platformio.ini`, so no environment can produce it by accident - `MAV_CMD_USER_1`
-has no cryptographic authentication, so any node on the telemetry link could send
-it. Build it explicitly and only for the bench:
+`MAV_CMD_USER_1` with `param1 = 20437`, addressed to system 42, now clears DR1
+**immediately and unconditionally**. It does not arm a waiver and wait for
+evidence: it calls the same exit the `DR1_MAXMS` timeout uses, so the latch, the
+DR lock and the blend are cleared on the next loop pass and GNSS resumes as soon
+as the output gate allows it.
 
-```powershell
-$env:PLATFORMIO_BUILD_FLAGS="-DFILTER_REMOTE_OPERATOR_WAIVER_ENABLE=1"
-pio run -e weact_mini_h743vitx_dronecan -t upload
-Remove-Item Env:\PLATFORMIO_BUILD_FLAGS
-```
+> **This is the one control in the firmware that GRANTS GNSS rather than denying
+> it.** Everything else an operator can send is fail-closed. Understand the
+> consequences before using it in flight.
+>
+> - The magic value is published in this document and in the source. The
+>   signature is optional and the `DR_NONCE` challenge is broadcast in
+>   telemetry, so echoing it proves reception, not authority.
+> - The filter parses MAVLink from the DroneCAN tunnel as well as direct USB, so
+>   **anyone able to inject MAVLink into the flight-controller link can send
+>   it** - including, on an airframe with a telemetry radio, someone within
+>   radio range. An attacker who is spoofing you and can reach that link can
+>   therefore command the filter to accept the spoof.
+> - This posture is a deliberate owner decision (2026-09-02), taken on the basis
+>   that only authorised operators have link access. It is recorded at
+>   `handle_operator_command_long` in `src/main.cpp` and in
+>   `docs/dev/evidence/h743-dronecan-v0.5.33.md`.
 
-The resulting image is about 4 kB larger than the flight build. **Never fly it**,
-and reflash a normal build before the aircraft goes anywhere.
+What is **not** waived: detection keeps running. Clearing the latch does not
+silence the detectors, so if the spoof is still present DR1 re-trips within
+seconds and you will watch it happen. The command also still requires the right
+magic, a fresh `DR_NONCE` echo, and the board to already be in DR1.
 
-If instead you want a guaranteed time-bounded exit from DR1 in flight regardless
-of evidence, that is what the `DR1_MAXMS` parameter is for. It ships at 0
-(infinite latch) on purpose: a timeout hands the aircraft back to a possibly
-still-active spoofer on a clock rather than on evidence, so releasing on a timer
-is the less safe failure and staying in dead reckoning is the safer one. Set it
-knowingly.
+Clearing the latch is also not the same as GNSS flowing. `gnss_output_allowed()`
+additionally tests the boot north gate, a live fence violation, FC
+heartbeat/EKF freshness and the autopilot version gates. If one of those is
+still shut you get DR0 with no GPS, and the filter says which:
+`DR0 but GNSS still gated: FENCE`.
+
+The other bench options remain: **drive it** (the only end-to-end test of the
+evidence path, and what should be done before a first flight), or
+**power-cycle** (fastest, and tests nothing about recovery).
+
+`DR1_MAXMS` gives a time-bounded exit instead, and still ships at 0 (infinite
+latch) on purpose: a timeout hands the aircraft back to a possibly still-active
+spoofer on a clock rather than on evidence. Note that `DR1_MAXMS` and
+`DR_LOCK_MS` are the two parameters that can *release* DR1, so unlike every
+other tunable they can only be written while the flight controller is
+positively disarmed.
 
 ## 9) Build-state note
 

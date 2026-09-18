@@ -79,4 +79,5 @@ HD-15 повністю зайнятий, встановлені I2C sensors ма
 12. `11_faq.md` - часті запитання щодо роботи фільтра, апаратного забезпечення, налаштування та ліцензування.
 13. `12_video_tutorials.md` - бібліотека YouTube-уроків з прев'ю, вбудованими плеєрами та пов'язаними інструкціями.
 14. `13_h743_dronecan.md` - guide для WeAct H743 DroneCAN: wiring, HD-15 D-sub box pinout, flashing, FC setup, display, validation.
-15. `CHANGELOG.md` - повна історія версій прошивки та примітки до релізів.
+15. `14_h743_airspeed_node.md` - H743 Airspeed Node: окрема прошивка для тієї самої плати з MS4525 airspeed через DroneCAN, camera tunnel і станом польотного контролера на дисплеї, без GPS-фільтра.
+16. `CHANGELOG.md` - повна історія версій прошивки та примітки до релізів.

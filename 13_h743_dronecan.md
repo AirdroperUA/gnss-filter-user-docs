@@ -20,6 +20,8 @@ variant described below.
 | `weact_mini_h743vitx_dronecan_usb` | Same DroneCAN GPS build | USB-C ROM DFU |
 | `weact_mini_h743vitx_dronecan_mag` | Optional HMC5983-enabled DroneCAN build | ST-Link |
 | `weact_mini_h743vitx_dronecan_mag_usb` | Same optional HMC5983-enabled build | USB-C ROM DFU |
+| `weact_mini_h743vitx_dronecan_nosensors` | DroneCAN build for an airframe with no I2C sensors fitted | ST-Link |
+| `weact_mini_h743vitx_dronecan_nosensors_usb` | Same no-I2C-sensors build | USB-C ROM DFU |
 | `weact_mini_h743vitx_dronecan_bootloader` | H743 DroneCAN secure bootloader | ST-Link |
 | `weact_mini_h743vitx_dronecan_phaseb_app` | UID-patchable H743 app template at `0x08020000` | Provisioner only |
 | `weact_mini_h743vitx_dronecan_phaseb_app_usb` | Identical build-validation template | Provisioner only |
@@ -29,6 +31,20 @@ set `FILTER_DRONECAN_HMC5983_ENABLE=0`; node 42 publishes no
 `MagneticFieldStrength2` from them. There is currently no production/signed
 phase-B magnetometer variant. Select a `*_dronecan_mag` environment only for a
 deliberate direct-flash installation with a physically fitted HMC5983.
+
+**If no pitot is fitted, use a `*_dronecan_nosensors` build.** Every other
+environment compiles the MS4525 in and probes for it on the shared I2C2 bus, so
+on an airframe without one the node spends boot time reprobing an address that
+will never answer and reports the sensor permanently absent. The `nosensors`
+variants compile both I2C sensors out; they are the only builds intended for a
+board with nothing on `PB10`/`PB11`.
+
+Choosing it has one consequence worth knowing before you fly. The pitot is the
+only independent recovery witness available in straight-and-level cruise, so
+without one an airborne DR1 can be cleared **only** by a genuine turn, a climb
+or descent of at least 3 m/s, or an operator recovery command from the GCS.
+That is a designed limit of the evidence quorum, not a fault in the build. See
+the witness table later in this document.
 
 The recommended H743 flight configuration is the DroneCAN family:
 
@@ -546,11 +562,43 @@ sensors are powered:
 
 1. Set the chosen FC airspeed instance to DroneCAN: normally
    `ARSPD_TYPE = 8`. If another airspeed sensor already occupies instance 1,
-   use the matching `ARSPD2_TYPE`, `ARSPD3_TYPE`, and so on.
+   use `ARSPD2_TYPE` instead. ArduPilot builds exactly two airspeed instances
+   (`AIRSPEED_MAX_SENSORS` is 2), so there is no `ARSPD3_TYPE` and no higher
+   instance to fall back on: this node must take instance 1 or instance 2.
 2. Set the matching `ARSPDx_USE` according to the vehicle and intended control
    strategy. For Plane this is normally enabled only after a successful bench
    check and airspeed calibration; follow the current ArduPilot airspeed setup
    procedure for offset, ratio, tube order and pre-arm validation.
+
+   **For Plane, `ARSPD_USE=1` is a flight-safety requirement with this filter,
+   not a tuning preference.** The filter makes the aircraft fly GPS-denied the
+   moment it detects a spoof, and ArduPlane can only do that on a used
+   airspeed sensor. With `ARSPD_USE=0`, EKF3 loses horizontal velocity within
+   seconds of the GPS cut, `AP_AHRS` falls back to DCM, and DCM without GPS or
+   airspeed has no centripetal correction: its attitude estimate drifts in
+   every turn and the autopilot corrects the phantom error with a real
+   nose-down. Calibrate the pitot in the installed airframe, set
+   `ARSPD_USE=1`, and confirm on the bench that ArduPlane reports the sensor
+   in use before the first flight. An aircraft that cannot fly GPS-denied must
+   not fly where DR1 can trip.
+
+   Once `ARSPD_USE=1`, also set **`AHRS_OPTIONS` bit 0 (`DisableDCMFallbackFW`)**.
+   Even with a used pitot ArduPlane keeps one path to DCM at the instant GPS is
+   cut: `AP_AHRS::_active_EKF_type()` falls back when the EKF has stopped
+   *using* GPS while `AP_GPS` still reports a 3D fix. The EKF's `using_gps`
+   clock runs from the last *accepted* sample and `AP_GPS`'s from the last
+   *received* message, so a spoof the EKF was rejecting before the cut opens a
+   gap of up to 4 s in which AHRS switches to DCM and then back to EKF3 when
+   `NO_FIX` lands. From firmware `v0.5.37` the filter sends `NO_FIX` itself at
+   the DR1 latch, which shortens that gap to the time the EKF had already
+   stopped using GPS; keep bit 0 set anyway. Each switch steps the attitude reference and the height
+   source TECS controls, and TECS answers with pitch. The branch's own source
+   comment calls it "highly vulnerable to GPS noise"; bit 0 removes it, and
+   EKF3 keeps dead-reckoning on airspeed and wind. In a log this excursion
+   reads `AHRS: DCM active` followed by `AHRS: EKF3 active` within seconds of
+   `GNSS BLOCKED`, with no `stopped aiding` between them. Set bit 0 only
+   together with `ARSPD_USE=1`: without a used airspeed, an EKF that cannot
+   fall back is worse than DCM.
 3. **`*_dronecan_mag` only:** allow ArduPilot to discover the DroneCAN compass. In Mission Planner open
    `Setup -> Mandatory Hardware -> Compass`, confirm a compass from node `42`
    appears, mark/use it as external as appropriate, and assign its priority.
@@ -632,11 +680,13 @@ To consume it:
 
 The package includes
 `presets/arduplane_FC_4.6.3_h743_dronecan_CAN1_5L_EFI.param` for this aircraft.
-It requires node-42 H743 DroneCAN firmware **v0.5.31 or later**; do not import
-it with public v0.5.25 or any v0.5.30-or-older build. On a fresh setup, first
+It requires node-42 H743 DroneCAN firmware **v0.5.33 or later**; do not import
+it with public v0.5.25 or any v0.5.32-or-older build. On a fresh setup, first
 fully load/reboot/read back the separate non-EFI CAN1 core FC preset so CAN/S2
-can deliver stopped-engine evidence, then configure and verify the real RPM
-pickup. Next configure node 42, require a positive weighed `FUEL_CAPG` readback
+can deliver engine evidence, then configure and verify the real RPM pickup at
+stopped and running conditions. A GPIO pickup may legitimately send exact
+`-1/-1` while stopped; use the cold manual-start procedure below rather than
+changing RPM quality semantics. Next configure node 42, require a positive weighed `FUEL_CAPG` readback
 and its accepted-write message, and wait for `Tune saved` if the numerical
 value changed. Only then import the FC EFI/BATT2 file.
 It keeps the existing electrical BATT1 monitor and requires the operator to
@@ -663,7 +713,7 @@ are saved, separately write measured density and weighed loaded mass. Exactly
 5000 mL at `0.75 g/mL` is only the 3750 g example. Match the FC gauge using
 `BATT2_CAPACITY = 0.8 * FUEL_CAPG / FUEL_DENS` (numeric mL); 4000 is valid only
 for that exact full-load example. The file uses DLE's published 12 hp rating
-(`ENG_PMAXKW=8.95`), while v0.5.30 and v0.5.31 firmware retain the 8.6 kW
+(`ENG_PMAXKW=8.95`), while v0.5.30 through v0.5.32 firmware retain the 8.6 kW
 compiled fallback. The 8.95 kW value is active only after the profile is loaded
 and exact `ENG_PMAXKW` readback confirms it.
 DLE publishes 26x10, 26x12, 27x10, and 28x10 for the DLE120, not 27x12, so the
@@ -678,8 +728,29 @@ the firmware schedules no new journal save; the accepted-write message and
 exact readback are the expected completion.
 Never write `FUEL_CAPG=0`: it is a state-changing reset, not a placeholder.
 Firmware through v0.5.30 could publish fresh zero-consumption EFI while a fixed
-FC capacity made the gauge look falsely full. Required v0.5.31+ suppresses ICE
-Status at zero, but a positive weighed value remains mandatory.
+FC capacity made the gauge look falsely full. Firmware v0.5.31 introduced ICE
+Status suppression at zero/non-finite capacity and v0.5.32 retains it, but
+v0.5.31 is an ambiguous superseded identity and must not be used. A positive
+weighed value remains mandatory.
+
+For a hand-started engine whose GPIO pickup sends exact MAVLink
+`RPM1=-1,RPM2=-1` before it turns, v0.5.32 has a one-shot cold declaration.
+After a genuine cold POR (full power removal), hold fresh DISARMED, exact fresh
+`-1/-1`, and fresh closed throttle continuously for at least 3 seconds, but
+only after FC family/version is positively identified as supported ArduPilot. A
+LOST/unconfigured total then reports `Cold manual-start ready: write positive FUEL_CAPG`;
+weigh or otherwise positively establish actual fuel aboard, then
+write positive capacity. A trustworthy
+retained total reports `Cold OFF ready; write FUEL_CAPG only if refuelled`;
+preserve it unless you actually refuelled. A retained valid backup record does not
+block this mechanical-stop declaration; it separately controls whether the old
+fuel total is trustworthy. `FUEL_DENS` may be written while this declaration is
+ready without consuming it; after a real density change, wait for `Tune saved`
+before CAPG. Zero is rejected with `Cold FUEL_CAPG must be positive weighed fuel`.
+The declaration never changes state automatically. Armed, RPM
+`>=1`, open throttle, or an observed FC peer/session reset revokes it, and
+every H743 reset restores the may-run latch. A warm reset therefore needs true
+all-power removal and a newly eligible cold POR before this path can be used.
 The source specifications are DLE's
 [DLE120 product page](https://www.dlengine.com/en/rcengine/dle120) and
 [manufacturer manual](https://cdn.dlengine.com/pdf/DLE120%20USER%20MANUAL%20.pdf).
@@ -713,6 +784,13 @@ ArduPilot's Plane 4.6.3
 and [GPIO implementation](https://github.com/ArduPilot/ardupilot/blob/Plane-4.6.3/libraries/AP_RPM/RPM_Pin.cpp#L65-L78)
 define this scaling contract.
 
+The exact stopped pair `-1/-1` remains **invalid globally**. It is not fed into
+the selector as zero and cannot prove a stop after the engine has run. Once
+positive RPM, armed state, or open throttle has appeared, later `-1/-1` is
+treated as unavailable sensor data and the conservative rated-power charge
+continues until normal fresh DISARMED + valid zero RPM + closed-throttle
+evidence exists.
+
 **On an airframe with no fuel-level sensor this estimate is the ONLY fuel
 indication the pilot has**, so it is deliberately biased to over-report and is
 advisory until calibrated. Set the eight `PROP_*`/`FUEL_*`/`ENG_PMAXKW`
@@ -726,8 +804,10 @@ running through complete FC-link loss and an unknown/unsupported FC-version
 block. Every boot starts with the conservative engine-may-be-running latch set;
 link silence cannot clear it, and missing RPM is charged at rated power until
 fresh disarmed state, zero RPM, and closed throttle all confirm a stop. Writing
-`FUEL_CAPG` is accepted only after those same three inputs are fresh; the write
-itself does not clear that latch.
+`FUEL_CAPG` normally requires those same three inputs. The sole exception is an
+explicit positive CAPG after the eligible 3-second cold `-1/-1` declaration;
+that write clears only the RAM latch and consumes the one-shot. No reset
+preserves the OFF result.
 
 If any boot has no trustworthy V2 backup record (including a normal power-on, a
 warm reset, or any legacy V1 record), the total is marked LOST and the filter
@@ -738,8 +818,9 @@ POR/PDR cannot prove a refuel or mechanical engine stop. ArduPilot's EFI backend
 therefore ages stale/unhealthy instead of accepting a false zero/full tank. The
 filter repeats `Fuel total LOST - write FUEL_CAPG to restart it` every 60 s.
 Land or remain on the ground, verify the complete fuel configuration, wait for
-fresh stopped-engine quorum (disarmed + valid zero RPM + closed throttle), and
-rewrite `FUEL_CAPG` for the fuel aboard even if its numerical value is unchanged.
+normal fresh stopped-engine quorum (disarmed + valid zero RPM + closed
+throttle) or the eligible cold manual-start declaration, and rewrite positive
+`FUEL_CAPG` for the fuel aboard even if its numerical value is unchanged.
 Disarmed alone is rejected. If the numerical capacity changed, the accepted
 write zeroes the runtime counter but leaves TOTAL LOST and EFI silent until the
 asynchronous tune-journal save reports `Tune saved`; `Tune save failed` leaves
@@ -748,12 +829,13 @@ the lockout in place. A valid V2 restore receives a bounded conservative
 reset/startup burn. An accepted write establishing a new total cancels any
 pending charge belonging to the old restored total.
 
-`FUEL_DENS` requires the same fresh stopped-engine quorum. An actual density
+`FUEL_DENS` requires the same normal stopped quorum or the ready cold
+manual-start declaration, and it does not consume the cold one-shot. An actual density
 change marks the total LOST before runtime assignment, cancels any older CAPG
 commit intent, and blocks capacity writes with
 `FUEL_CAPG blocked: wait for FUEL_DENS save` until verified journal save. Failure stays blocked/LOST;
 `Tune saved` clears the density latch but not the lost total. Only then can a
-subsequent stopped-quorum `FUEL_CAPG` write establish a fresh zero.
+subsequent stop-authorized positive `FUEL_CAPG` establish a fresh zero.
 
 Factory reset marks the fuel total LOST in backup SRAM before flash work starts.
 A failed attempt may conservatively leave it LOST too. After any attempt,
@@ -843,16 +925,31 @@ configuration path.
 > guard having completed warm-up - and it is a **healthy** indication that says
 > nothing about the flight controller.
 >
-> When a write really is refused for arming, the filter says so explicitly:
-> `Write blocked: FC armed/unknown`. If you see silence instead, the write did
-> not reach the filter; re-read the box above.
+> When a write really is refused for arming, the filter names the actual
+> condition rather than collapsing three different situations into one:
+> `Param write blocked: disarm the aircraft`, `Param write blocked: no FC arming
+> state seen` (the arming source is missing, so no write will ever succeed), or
+> `Param write blocked: FC arming state stale`. If you see silence instead, the
+> write did not reach the filter; re-read the box above.
 
-Reads are available at any time, but every mutation is fail-closed unless the
-filter has received a fresh, positive **FC disarmed** report. This includes
-parameter writes, `UBX_RESET`, **Commit Params**, and factory reset. The FC must
-therefore remain powered, connected over DroneCAN, and disarmed even when the
-parameter UI itself is connected directly over USB-C. DroneCAN mutations must
-also originate from the configured or currently bound FC node.
+Reads are available at any time. Since v0.5.33 **parameter writes are accepted in
+any flight-controller state**, including armed, by owner decision - an armed
+write is never silent, it is announced in the flight log as
+`Parameter changed while the aircraft is ARMED`.
+
+Three things still require a fresh, positive **FC disarmed** report and are
+fail-closed without one:
+
+| Operation | Why |
+|---|---|
+| `DR1_MAXMS` and `DR_LOCK_MS` | These two do not tune detection, they govern whether a latched DR1 can be RELEASED. `DR1_MAXMS` feeds an auto-recovery that exits DR1 with no evidence quorum at all, so writing it in flight would be a way around DR1 rather than a way of tuning it. Enforced unconditionally, independently of the setting above. |
+| `UBX_RESET` (receiver hot/cold restart, clear config) | Restarting the receiver in flight removes the navigation source. |
+| Saving to flash (**Commit Params**, factory reset) | A flash write must not contend with flight. |
+
+The FC must therefore remain powered, connected over DroneCAN, and disarmed for
+those, even when the parameter UI itself is connected directly over USB-C.
+DroneCAN mutations must also originate from the configured or currently bound FC
+node.
 
 ### Option A: DroneCAN through the flight controller
 
@@ -938,18 +1035,19 @@ and `GNSS_TYPE`.
 The production H743 DroneCAN fixed-wing profile uses:
 
 - `RJ_LOIT_V=0` (disables the special low-speed 2500 m rejoin-gate floor)
-- `SP_JMP_MPS=200`
-- `SP_ABS_M=400`
+- `SP_JMP_MPS=1000`
+- `SP_ABS_M=2000`
 - `EKF_TRIPMS=500`
 
-At 120 km/h the aircraft travels about 33.3 m/s, or about 167 m during the
-full default 5 s NAV-validity window. The 400 m absolute limit leaves recovery
-margin across that gap, while the 200 m/s implied-speed limit is six times
-cruise speed. Mathematical guard tests cover a 65 m/s (234 km/h) design
-envelope, which travels 325 m in 5 s and preserves 75 m of absolute-limit
-margin; this is not flight or hardware validation. These
-are fixed-wing production values, not universal airframe
-recommendations: validate them against maximum speed and flight logs.
+Since v0.5.37 the position-jump limits are 1000 m/s and 2000 m (previously
+200 m/s and 400 m), relaxed by owner decision so that ordinary manoeuvring,
+multipath and GNSS noise do not trip DR1. They are also the parameters'
+minimums, so a board with older saved values is raised on its first boot. At
+120 km/h the aircraft travels about 167 m during the full default 5 s
+NAV-validity window, far inside either limit. The trade-off is that, after a
+jamming gap, a spoofer can move the returning fix further before this check
+trips; the receiver's own spoofing report and the other checks still apply.
+The altitude trips were relaxed in the same release; see the tuning guide.
 
 On the first fixed-wing-profile update, H743 migrates a stored value only when
 it still exactly matches the legacy migration sentinel (`0.8/500/1000/0`). A custom
@@ -1099,8 +1197,16 @@ In DR0:
 
 In spoof/fault DR1:
 
-- `Fix2` and `Auxiliary` are suppressed
-- the flight controller stops receiving fresh GPS from this node
+- `Fix2` and `Auxiliary` carrying GNSS data stop at once, and any GPS frames
+  already queued on CAN are discarded
+- from firmware `v0.5.37` the node then sends three `Fix2` messages with status
+  `NO_FIX`, 200 ms apart, so ArduPilot drops the GPS immediately. Without them
+  ArduPilot keeps showing the last 3D fix for its 4 s GPS timeout. These
+  messages carry no position, velocity, time or satellite count - every data
+  field is zero - and they are never sent while GNSS output is allowed.
+  Mission Planner shows `No Fix`; a DroneCAN GPS can never show `No GPS` in
+  ArduPilot once it has been detected, because only a serial GPS driver is
+  removed on timeout
 - `NodeStatus` continues at 1 Hz with warning health and vendor status bits
 - the display locks to the red `BLOCK` alert view with the active reason, while
   its footer shows `PUB-` and `DR1`
@@ -1234,7 +1340,7 @@ witness only when its operands were physically excited:
 
 | Witness | Needs |
 |---------|-------|
-| Ground speed vs pitot | real airspeed, IAS >= 12 m/s and ground speed >= 6 m/s |
+| Ground speed vs pitot | real airspeed, IAS >= 18 m/s and ground speed >= 6 m/s |
 | Vertical rate | a real climb or descent >= 3 m/s |
 | Course vs yaw | a real turn >= 12 deg/s, scored on that pass only |
 
@@ -1417,7 +1523,8 @@ things have to happen in order:
 
 So the airborne floor is about three minutes plus blend, not two. A witness
 needs a climb/descent of at least 3 m/s, a genuine turn, or a live pitot at or
-above 12 m/s. Straight-and-level cruise **does** satisfy the witness when that
+above 18 m/s (the airframe's minimum flying speed, so that a pitot reading air
+on a parked aircraft in a gale cannot pose as motion). Straight-and-level cruise **does** satisfy the witness when that
 pitot is live and above threshold; without a pitot it does not. See the witness
 table in `04_setup_and_flash.md`.
 

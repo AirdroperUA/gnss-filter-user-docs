@@ -381,22 +381,58 @@ erase, а production app підписаний і прив'язаний до по
 задумано: підсумок тепер переживає перезавантаження в польоті, тож він не може
 водночас скидатися сам щоразу, коли плата перезапускається. Записуйте його
 після кожної заправки, навіть якщо розмір баку не змінився. Ви побачите
-`FUEL_CAPG written - fuel total zeroed`. Запис приймається лише після fresh
-stopped-engine quorum: disarmed, valid zero RPM і closed throttle. Якщо числова
+`FUEL_CAPG written - fuel total zeroed`. Зазвичай запис приймається лише після
+fresh stopped-engine quorum: disarmed, valid zero RPM і closed throttle.
+Двигун із ручним запуском, GPIO pickup якого перед першим запуском передає
+exact `-1/-1`, може використати вузько gated cold declaration нижче. Якщо числова
 місткість змінилася, це повідомлення підтверджує лише runtime reset: EFI
 лишається silent, доки asynchronous save journal не повідомить `Tune saved`.
 `Tune save failed` лишає total LOST і не є відновленням.
 Використовуйте позитивну зважену масу; ніколи не записуйте нуль як placeholder.
 H743 DroneCAN v0.5.31+ suppresses ICE Status за zero/non-finite capacity, тоді
 як firmware до v0.5.30 включно могла expose fresh zero-consumption EFI після
-zero write.
+zero write. Сама v0.5.31 є retired ambiguous development identity;
+використовуйте v0.5.32 або новішу.
 
-Встановлюйте `FUEL_DENS` до `FUEL_CAPG`. Запис густини потребує того самого
-fresh stopped-engine quorum. Фактична зміна позначає total як LOST, скасовує
+Встановлюйте `FUEL_DENS` до `FUEL_CAPG`. Запис густини потребує normal quorum
+або ready cold manual-start declaration і не витрачає цей one-shot. Фактична
+зміна позначає total як LOST, скасовує
 старий pending capacity commit і блокує записи місткості з
 `FUEL_CAPG blocked: wait for FUEL_DENS save` до verified save density journal. Failed save лишається
 blocked/LOST. `Tune saved` знімає цей block, але не відновлює EFI; потім
-наступний stopped-quorum запис `FUEL_CAPG` встановлює fresh zero.
+наступний stop-authorized positive `FUEL_CAPG` встановлює fresh zero.
+
+### Чому вимкнений при power-up двигун показує RPM `-1` і max burn?
+
+GPIO pulse RPM backend ArduPilot надсилає точну MAVLink пару
+`RPM1=-1,RPM2=-1`, коли зупинений pickup не має pulse quality. Це означає
+**unavailable**, а не measured zero. Filter навмисно лишає її invalid
+глобально: якби після обриву sensor wire `-1` вважалося zero, fuel accounting
+міг би зупинитися при працюючому двигуні.
+
+Лише для pre-start випадку H743 DroneCAN v0.5.32 має one-shot operator
+declaration. Повністю зніміть живлення, увімкніть плату в genuine cold POR і
+дочекайтеся positive identification FC як supported ArduPilot family/version;
+тримайте FC fresh DISARMED, обидва RPM поля точно `-1`, а throttle fresh closed
+щонайменше 3 безперервні секунди. Тоді запишіть **positive weighed**
+`FUEL_CAPG`, коли re-establishing LOST/unconfigured total за достовірно відомим
+паливом на борту або після фактичної заправки. Для LOST або unconfigured
+total readiness повідомляє `Cold manual-start ready: write positive FUEL_CAPG`.
+Якщо trustworthy total пережив reset, натомість з'являється
+`Cold OFF ready; write FUEL_CAPG only if refuelled`; не знищуйте retained total лише
+щоб вимкнути conservative latch. Valid retained fuel total визначає accounting
+provenance, але не physical-stop eligibility. Accepted positive CAPG очищає
+RAM engine latch і витрачає one-shot. Zero відхиляється з
+`Cold FUEL_CAPG must be positive weighed fuel`. `FUEL_DENS` можна спочатку записати за тим самим evidence; він не
+витрачає one-shot, але після фактичної зміни дочекайтеся `Tune saved` до CAPG.
+
+Не arm, не відкривайте throttle і не запускайте engine до CAPG: armed report,
+RPM `>=1` або open-throttle evidence скасовує declaration. Observed FC
+peer/session reset також її скасовує. Кожен reset H743 відновлює conservative
+may-run latch; reset button, watchdog, brownout або warm reboot недостатні для
+повтору — виконайте true all-power removal і знову задовольніть cold
+eligibility. Після запуску exact `-1/-1` лишається sensor loss із rated-power
+charging, а не доказом зупинки.
 
 ### Що стається при втраті телеметрії FC або збереженого fuel total?
 
@@ -404,8 +440,9 @@ blocked/LOST. `Tune saved` знімає цей block, але не відновл
 починається з установленим консервативним engine-may-be-running latch; тиша
 лінку не скидає його, а відсутні RPM нараховуються за номінальною потужністю,
 доки одночасно fresh disarmed state, valid zero RPM і closed throttle не
-підтвердять зупинку. Запис `FUEL_CAPG` приймається лише після того, як ці самі
-три inputs стали fresh; сам запис не очищає цей engine latch.
+підтвердять зупинку. Normal `FUEL_CAPG` приймається лише після того, як ці самі
+три inputs стали fresh. Єдиний exception — explicit positive CAPG в eligible
+one-shot cold manual-start window; жоден reset не зберігає RAM-only OFF result.
 
 Якщо при будь-якому boot немає надійного V2 backup record (зокрема при
 звичайному вмиканні, warm reset або legacy V1 record), total невідомий і фільтр
@@ -415,9 +452,10 @@ numeric total не можна довіряти, якщо provenance settings м�
 моделі, за яких він накопичувався, невідомий. POR/PDR не доводить заправку. EFI
 backend ArduPilot стає stale/unhealthy замість прийняти хибний нуль. Кожні 60 с
 фільтр повторює `Fuel total LOST - write FUEL_CAPG to restart it`. Сідайте або
-лишайтеся на землі, перевірте fuel configuration, дочекайтеся fresh
-stopped-engine quorum (disarmed + valid zero RPM + closed throttle) і повторно
-запишіть `FUEL_CAPG` для палива на борту, навіть якщо його числове значення не
+лишайтеся на землі, перевірте fuel configuration, отримайте normal fresh
+stopped-engine quorum (disarmed + valid zero RPM + closed throttle) або eligible
+cold declaration вище й повторно запишіть positive `FUEL_CAPG` для палива на
+борту, навіть якщо його числове значення не
 змінилося. Змінене значення очистить lockout лише після `Tune saved`; disarmed
 same-value path не планує нового save, тому accepted-write message і точний
 readback є completion evidence. Disarmed alone відхиляється. Valid restore

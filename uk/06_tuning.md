@@ -66,8 +66,8 @@ parameters за наявності свіжого явно disarmed стану F
 | `BLEND_MS` | Тривалість blend DR1 → DR0 (мс) | 10000 | 1000 | 120000 |
 | `DR_LOCK_MS` | Мін. блокувальне вікно DR1 (мс) | 120000 | 1000 | 600000 |
 | `DR1_MAXMS` | Макс. тривалість DR1 до примусового виходу після `DR_LOCK_MS` (мс, 0=вимкнено) | 0 | 0 | 3600000 |
-| `SP_JMP_MPS` | Макс. розрахункова швидкість переміщення між фіксами (м/с) | 200 | 50 | 20000 |
-| `SP_ABS_M` | Ліміт абсолютного стрибка позиції (м) | 400 | 100 | 50000 |
+| `SP_JMP_MPS` | Макс. розрахункова швидкість переміщення між фіксами (м/с) | 1000 | 1000 | 20000 |
+| `SP_ABS_M` | Ліміт абсолютного стрибка позиції (м) | 2000 | 2000 | 50000 |
 | `ARM_MIN_S` | Мін. супутників для активації захистів | 6 | 4 | 30 |
 | `ARM_MAX_HD` | Макс. HDOP для активації захистів | 4 | 0.5 | 10 |
 | `ARM_STABMS` | Вікно стабільності для активації (мс) | 2000 | 200 | 10000 |
@@ -75,12 +75,12 @@ parameters за наявності свіжого явно disarmed стану F
 | `ALT_BHDOP` | Макс. HDOP для калібрування alt-bias | 2.5 | 0.5 | 10 |
 | `ALT_CALM_V` | Макс. вертикальна швидкість для «спокійного» вікна (м/с) | 2 | 0.1 | 20 |
 | `ALT_BCMS` | Тривалість «спокійного» вікна (мс) | 2000 | 200 | 30000 |
-| `ALT_JMP_M` | Абсолютний стрибок висоти (м) | 80 | 5 | 500 |
-| `ALT_RMPS` | Поріг швидкості зміни висоти (м/с) | 40 | 1 | 200 |
-| `ALT_RDTMS` | Мін. dt для висотного rate-захисту (мс) | 600 | 100 | 5000 |
-| `ALT_RDH_M` | Мін. дельта-H для rate-захисту (м) | 20 | 1 | 200 |
-| `ALT_BSEP_M` | Неактивний compatibility threshold absolute alt-vs-baro (м) | 100 | 10 | 500 |
-| `ALT_BSEPMS` | Неактивний compatibility hold absolute alt-vs-baro (мс) | 1500 | 100 | 20000 |
+| `ALT_JMP_M` | Абсолютний стрибок висоти (м) | 300 | 300 | 500 |
+| `ALT_RMPS` | Поріг швидкості зміни висоти (м/с) | 100 | 100 | 200 |
+| `ALT_RDTMS` | Мін. dt для висотного rate-захисту (мс) | 2000 | 2000 | 5000 |
+| `ALT_RDH_M` | Мін. дельта-H для rate-захисту (м) | 100 | 100 | 200 |
+| `ALT_BSEP_M` | Неактивний compatibility threshold absolute alt-vs-baro (м) | 400 | 400 | 500 |
+| `ALT_BSEPMS` | Неактивний compatibility hold absolute alt-vs-baro (мс) | 10000 | 10000 | 20000 |
 | `ALT_RJSEP` | Неактивний compatibility limit absolute alt-vs-baro rejoin (м) | 50 | 5 | 500 |
 | `RJ_REQEKF` | Застарілий compatibility slot (без runtime effect) | 0 | 0 | 0 |
 | `NUDGE_EN` | Увімкнути DR1 nudge до GNSS (0/1) | 1 | 0 | 1 |
@@ -114,15 +114,16 @@ parameters за наявності свіжого явно disarmed стану F
 | `FENCE_RAD` | Радіус гео-огорожі від першого фіксу (м, 0=вимкнено) | 0 | 0 | 2000000 |
 | `HEMI_EN` | Жорстка огорожа північної півкулі (завжди увімк.) | 1 | 1 | 1 |
 | `LOG_LOC` | Координати лише у periodic DR0 status text (0/1) | 0 | 0 | 1 |
-| `CONF_TRIP` | Поріг зваженої spoof-confidence, що замикає DR1 | 70 | 30 | 100 |
+| `CONF_TRIP` | Поріг зваженої spoof-confidence, що замикає DR1 | 85 | 85 | 100 |
 | `PROP_DIA` | Діаметр гвинта (дюйми) | 27 | 6 | 40 |
 | `PROP_PITCH` | Крок гвинта (дюйми) | 12 | 2 | 30 |
 | `FUEL_BSFC` | Питома витрата палива двигуна (г/кВт·год) | 700 | 200 | 1500 |
 | `FUEL_IDLE` | Витрата на холостому ходу (г/год) | 250 | 0 | 3000 |
 | `ENG_PMAXKW` | Номінальна потужність на валу (кВт) | 8.6 | 0.2 | 60 |
 | `FUEL_TRIM` | Калібрувальний множник оцінки палива | 1 | 0.2 | 5 |
-| `FUEL_CAPG` | Заправлено палива, за вагою (г) | 0 | 0 | 200000 |
+| `FUEL_CAPG` | Заправлено палива, за вагою (г) | 7500 | 0 | 200000 |
 | `FUEL_DENS` | Густина палива (г/мл) | 0.75 | 0.5 | 1.2 |
+| `FUEL_AUTOF` | Автоматичний повний бак на cold start (0 = off) | 0 | 0 | 1 |
 
 ## Детальний опис параметрів
 
@@ -153,8 +154,8 @@ parameters за наявності свіжого явно disarmed стану F
 
 ### Захист від спуфінгу (стрибки позиції)
 
-- **SP_JMP_MPS**: Максимальна розрахункова швидкість переміщення позиції між двома послідовними свіжими фіксами. Це не зміна reported speed приймача. Якщо `distance / elapsed_time` перевищує ліміт, після активації спрацьовує DR1. H743 default 200 м/с у шість разів перевищує крейсерські 120 км/год; перед зменшенням перевірте повний speed envelope та logs.
-- **SP_ABS_M**: Абсолютна відстань між послідовними свіжими фіксами. Guard використовує **OR**: DR1 спрацьовує при перевищенні `SP_ABS_M` або `SP_JMP_MPS * elapsed_time`. H743 default 400 м залишає запас над приблизно 167 м нормального переміщення на 120 км/год протягом повного стандартного NAV-validity window 5 с.
+- **SP_JMP_MPS**: Максимальна розрахункова швидкість переміщення позиції між двома послідовними свіжими фіксами. Це не зміна reported speed приймача. Якщо `distance / elapsed_time` перевищує ліміт, після активації спрацьовує DR1. H743 default 1000 м/с (100 м між фіксами 10 Hz), послаблено з 200 м/с у v0.5.37, щоб звичайне маневрування та шум GNSS не викликали DR1; це також мінімум, тож нижче встановити не можна.
+- **SP_ABS_M**: Абсолютна відстань між послідовними свіжими фіксами. Guard використовує **OR**: DR1 спрацьовує при перевищенні `SP_ABS_M` або `SP_JMP_MPS * elapsed_time`. H743 default і мінімум 2000 м (400 м до v0.5.37). Компроміс: після паузи через глушіння спуфер може поставити повернений фікс настільки далеко, перш ніж спрацює саме ця перевірка; власне повідомлення приймача про спуфінг та інші перевірки діють і далі.
 
 ### Активація захистів (коли вмикаються перевірки)
 
@@ -167,10 +168,10 @@ parameters за наявності свіжого явно disarmed стану F
 - **ALT_BSATS**, **ALT_BHDOP**, **ALT_CALM_V**, **ALT_BCMS**: Збережені
   calibration settings для вимкненого absolute alt-vs-baro path; у released
   builds вони не активують live guard.
-- **ALT_JMP_M**: Абсолютний стрибок висоти для DR1.
-- **ALT_RMPS**: Поріг швидкості зміни висоти.
-- **ALT_RDTMS**: Мін. час для rate-перевірки.
-- **ALT_RDH_M**: Мін. зміна висоти для rate-перевірки.
+- **ALT_JMP_M**: Абсолютний стрибок висоти для DR1 між вибірками GNSS, ближчими за `ALT_RDTMS`. H743 default і мінімум 300 м (80 м до v0.5.37).
+- **ALT_RMPS**: Поріг швидкості зміни висоти. H743 default і мінімум 100 м/с (40 м/с до v0.5.37).
+- **ALT_RDTMS**: Мін. час для rate-перевірки. H743 default і мінімум 2000 мс (600 мс до v0.5.37).
+- **ALT_RDH_M**: Мін. зміна висоти для rate-перевірки. H743 default і мінімум 100 м (20 м до v0.5.37).
 - **ALT_BSEP_M**, **ALT_BSEPMS**, **ALT_RJSEP**: Неактивні compatibility
   settings. `ALT_BARO_GUARD_ENABLE` лишається false, бо absolute
   pressure-altitude comparison не пройшов flight qualification. Вони не
@@ -219,7 +220,7 @@ FC GPS raw-UART bypass все одно немає. DR1 зупиняє лише n
 ### Обробка GNSS та логи
 
 - **LOG_MS**: Період статус-логів.
-- **CONF_TRIP**: Поріг зваженої spoof-confidence (0-100), при якому замикається DR1. Цей score **не** є основним детектором, і значення за замовчуванням — не компроміс між чутливістю та хибними спрацюваннями. Score ділиться на вагу *доступних* індикаторів, тому індикатор, який присутній і читається чистим, працює як чистий знаменник. Атакувальник, який тримає свій сигнал внутрішньо узгодженим, читається чистим на всіх індикаторах, крім власного вердикту приймача UBX-SEC-SIG та розходження баровисоти з GNSS за вертикальною швидкістю — двох, які він не може ні спостерігати, ні підробити, — що обмежує score на рівні 31. Саме тому ці два спрацьовують **самостійно**, незалежно від цього порогу, і саме тому жодне значення `CONF_TRIP` не зловить компетентного атакувальника. Цей поріг відповідає за наївного та середнього за рівнем атакувальника, який залишає брудну сигнальну статистику. Знижуйте його лише за наявності польових даних: нижче приблизно 35 він входить у діапазон, якого чистий польот досягає сам.
+- **CONF_TRIP**: Поріг зваженої spoof-confidence (0-100), при якому замикається DR1. Цей score **не** є основним детектором, і значення за замовчуванням — не компроміс між чутливістю та хибними спрацюваннями. Score ділиться на вагу *доступних* індикаторів, тому індикатор, який присутній і читається чистим, працює як чистий знаменник. Атакувальник, який тримає свій сигнал внутрішньо узгодженим, читається чистим на всіх індикаторах, крім власного вердикту приймача UBX-SEC-SIG та розходження баровисоти з GNSS за вертикальною швидкістю — двох, які він не може ні спостерігати, ні підробити, — що обмежує score на рівні 31. Саме тому ці два спрацьовують **самостійно**, незалежно від цього порогу, і саме тому жодне значення `CONF_TRIP` не зловить компетентного атакувальника. Цей поріг відповідає за наївного та середнього за рівнем атакувальника, який залишає брудну сигнальну статистику. На H743 з v0.5.37 він дорівнює 85 з утриманням 5 с (до того 70 і 1,5 с), і 85 — це також мінімум, тож score має бути і вищим, і стійкішим, перш ніж замкне DR1.
 - **LOG_LOC**: При `1` координати можуть з'являтися лише у створеному
   фільтром periodic status, коли output повністю у DR0 (без latch, synthetic
   output або blending). Trip/transition text і всі повідомлення під час DR1
@@ -355,27 +356,28 @@ FC GPS raw-UART bypass все одно немає. DR1 зупиняє лише n
 
 Налаштування:
 
-- `SP_ABS_M=400`
-- `SP_JMP_MPS=200`
+- `SP_ABS_M=2000`
+- `SP_JMP_MPS=1000`
 
 Викликає DR1:
 
-- Один фікс стрибнув на 500 м за ~1 с (`500 м > 400 м` і `500 м/с > 200 м/с`).
+- Один фікс стрибнув на 2500 м за ~1 с (`2500 м > 2000 м` і `2500 м/с > 1000 м/с`).
+- Один фікс 10 Hz стрибнув на 150 м (`1500 м/с > 1000 м/с`).
 
 Не викликає DR1:
 
-- 50 м за 1 с.
+- Стрибок 50 м через multipath між фіксами 10 Hz (`500 м/с`).
 - Приблизно 167 м штатного переміщення за 5-секундну паузу GNSS на 120 км/год.
 
 ### Тригер абсолютного стрибка висоти
 
 Налаштування:
 
-- `ALT_JMP_M=80`
+- `ALT_JMP_M=300`
 
 Викликає DR1:
 
-- Висота GNSS змінилась з `120 м` до `230 м` за одне оновлення (`+110 м`).
+- Висота GNSS змінилась з `120 м` до `450 м` за одне оновлення (`+330 м`).
 
 Не викликає DR1:
 
@@ -385,17 +387,17 @@ FC GPS raw-UART bypass все одно немає. DR1 зупиняє лише n
 
 Налаштування:
 
-- `ALT_RMPS=40`
-- `ALT_RDTMS=600`
-- `ALT_RDH_M=20`
+- `ALT_RMPS=100`
+- `ALT_RDTMS=2000`
+- `ALT_RDH_M=100`
 
 Викликає DR1:
 
-- ~30 м за 600 мс (`50 м/с` і ΔH >= 20 м).
+- ~250 м за 2 с (`125 м/с` і ΔH >= 100 м).
 
 Не викликає DR1:
 
-- 10 м за 1 с (`10 м/с`) або короткі/шумні зміни нижче `ALT_RDH_M`.
+- 60 м за 2 с (`30 м/с`) або короткі/шумні зміни нижче `ALT_RDH_M`.
 
 ### Absolute altitude-vs-baro path (вимкнено)
 
@@ -483,12 +485,36 @@ FC `RPM1_TYPE=3` або `RPM2_TYPE=3` (EFI) як selected RPM source filter-а: 
 створить циклічну залежність. Тут EFI — лише DroneCAN telemetry backend
 ArduPilot; DLE120 лишається механічно карбюраторним.
 
+**GPIO RPM при power-up до ручного запуску.** GPIO pulse backend ArduPilot
+передає точну MAVLink пару `RPM1=-1, RPM2=-1`, доки зупинений pickup не має
+імпульсів. У всій normal selection/burn/stop logic ця пара лишається
+unavailable, а не нулем. H743 DroneCAN v0.5.32 дозволяє її лише для one-shot
+manual-start declaration після справжнього cold POR незалежно від того, чи
+зберігся valid fuel-backup record. Backup provenance визначає accounting
+total, а не physical-stop eligibility. Дочекайтеся positive identification FC
+як supported ArduPilot family/version, потім тримайте fresh `DISARMED`, точну
+`-1/-1` і fresh closed throttle безперервно щонайменше 3 секунди. Якщо
+встановлюєте refuelled total або re-establishing LOST/unconfigured total за
+достовірно відомим паливом на борту, тоді явно запишіть **позитивний**
+`FUEL_CAPG`. Цей write очищає RAM engine latch і витрачає declaration.
+`FUEL_DENS` теж дозволений, доки declaration ready, але не витрачає її. Armed,
+RPM `>=1`, open throttle або observed FC peer reset скасовує її. Кожен reset
+плати відновлює may-run latch; після warm reset потрібні повне зняття живлення
+і нова eligible cold session.
+
+Readiness text залежить від provenance total: LOST/unconfigured повідомляє
+`Cold manual-start ready: write positive FUEL_CAPG`, а trustworthy retained
+total — `Cold OFF ready; write FUEL_CAPG only if refuelled`. Не reset surviving
+total лише для очищення conservative latch. Zero відхиляється з
+`Cold FUEL_CAPG must be positive weighed fuel`.
+
 ### Процедура
 
 1. Встановіть `PROP_DIA`, `PROP_PITCH`, `ENG_PMAXKW`, `FUEL_BSFC`, `FUEL_IDLE` і
    `FUEL_DENS` за вашим двигуном, гвинтом та паливом або завантажте пресет
    двигуна. Густину встановлюйте **до** місткості: фактична зміна `FUEL_DENS`
-   потребує fresh stopped-engine quorum, позначає total як LOST до застосування
+   потребує normal fresh stopped-engine quorum або ready cold manual-start
+   declaration вище, позначає total як LOST до застосування
    нового значення, скасовує старий pending capacity commit і сама не може
    відновити EFI. Дочекайтеся verified save density з повідомленням `Tune saved`;
    до цього кожен запис місткості відхиляється з
@@ -501,8 +527,10 @@ ArduPilot; DLE120 лишається механічно карбюраторни
    безпечний placeholder. Firmware до v0.5.30 включно могла дозволити fresh
    zero-consumption EFI, а fixed FC `BATT2_CAPACITY` показував хибно повний
    gauge. H743 DroneCAN v0.5.31+ suppresses ICE Status, коли capacity нульова
-   або non-finite, але все одно потребує позитивної зваженої маси. Узгоджуйте
-   FC capacity за формулою `0.8 * FUEL_CAPG / FUEL_DENS`.
+   або non-finite, але сама v0.5.31 є retired ambiguous development identity;
+   використовуйте v0.5.32 або новішу. Позитивна зважена маса все одно
+   обов'язкова. Узгоджуйте FC capacity за формулою
+   `0.8 * FUEL_CAPG / FUEL_DENS`.
 
    **Запис `FUEL_CAPG` також обнуляє накопичений підсумок.** Це єдине, що його
    обнуляє. Підсумок тепер переживає перезавантаження (див. нижче), тому
@@ -511,9 +539,10 @@ ArduPilot; DLE120 лишається механічно карбюраторни
    змінилося. Також обов'язково повторно запишіть його після звичайного
    вмикання, яке повідомляє TOTAL LOST через відсутність придатного retained
    record, знову ж навіть коли числове значення не змінилося. Перед записом
-   дочекайтеся, щоб увесь stopped-engine quorum FC був fresh: positively
-   disarmed, valid zero RPM і closed throttle. Самого disarmed report
-   недостатньо; відхилений запис повідомляє `FUEL_CAPG blocked: engine not confirmed stopped`.
+   отримайте або normal fresh stopped-engine quorum (positively disarmed, valid
+   zero RPM і closed throttle), або exact cold `-1/-1` declaration вище.
+   Самого disarmed report недостатньо; відхилений запис повідомляє
+   `FUEL_CAPG blocked: engine not confirmed stopped`.
    `FUEL_CAPG written - fuel total zeroed` з'явиться лише після прийняття запису.
    Якщо числова місткість змінилася, це повідомлення підтверджує лише runtime
    reset: fuel total навмисно лишається TOTAL LOST, а EFI мовчить, доки
@@ -566,6 +595,7 @@ ArduPilot; DLE120 лишається механічно карбюраторни
 | Ситуація | Поведінка |
 |---|---|
 | Датчик обертів відмовив під час роботи двигуна | Нараховує НОМІНАЛЬНУ потужність двигуна і повідомляє `RPM sensor lost - fuel charged at max burn`. Свідоме значне завищення. |
+| GPIO RPM передає точну `-1/-1` до першого ручного запуску | На v0.5.32+ глобально лишається invalid, а genuine cold POR може відкрити one-shot declaration незалежно від valid backup: backup provenance і physical-stop eligibility окремі. Після 3 безперервних секунд fresh DISARMED + exact `-1/-1` + closed throttle explicit positive `FUEL_CAPG` підтверджує OFF. Після armed/RPM/open-throttle evidence, peer reset або будь-якого reset плати використати її не можна. |
 | Оберти = 0 при відкритому газі | Вважається відмовою датчика, а не зупинкою двигуна: зіпсований датчик видає цілком правдоподібний нуль. |
 | Оберти = 0 при закритому газі | Вважається правдою. Це зупинений двигун або холостий хід, і нараховувати номінал крізь кожне планування було б абсурдом. |
 | Немає повітряної швидкості | Приймається статичний режим, що максимізує поглинуту потужність і витрату. |
@@ -574,13 +604,13 @@ ArduPilot; DLE120 лишається механічно карбюраторни
 | Показання газу застаріли | Вважаються невідомими і більше не можуть утримувати оцінку на холостому ходу. Далі оцінку веде сама модель гвинта. |
 | Телеметрія FC зникла або версія його прошивки невідома/непідтримувана | Облік палива триває, навіть коли вихідний GPS-gate закритий. Щойно fresh RPM/throttle evidence показав, що двигун міг працювати, тиша лінку не скидає цей latch; відсутні RPM нараховуються за номінальною потужністю. Очистити latch можуть лише одночасно fresh disarmed state, нульові RPM і закритий газ. |
 | Головний цикл зупинився понад 10 с | Інтервал нараховується за НОМІНАЛЬНОЮ потужністю, а не відкидається, з повідомленням `Main loop stalled - fuel charged at max burn`. Обмежено 60 с на одну зупинку. |
-| Кожен boot | Починається з установленим консервативним engine-may-be-running latch. Його очищають лише одночасно fresh disarmed state, fresh valid zero RPM і fresh closed throttle. Запис `FUEL_CAPG` приймається лише після появи того самого stopped-engine quorum; сам запис не є доказом механічної зупинки. |
+| Кожен boot | Починається з установленим консервативним engine-may-be-running latch. Зазвичай його очищають лише одночасно fresh disarmed state, fresh valid zero RPM і fresh closed throttle. Єдиний exception — explicit positive `FUEL_CAPG` у eligible one-shot cold manual-start window; жоден reset не зберігає цю RAM-only OFF declaration. |
 | Надійний V2 record пережив reset | Running total відновлюється незалежно від reset-cause flag і з'являється `Fuel total kept: N g - re-set FUEL_CAPG if refuelled`. До risky setup retained record надійно переписується як TOTAL LOST. Він знову стає known лише після того, як фіксоване 25-секундне нарахування за номінальною потужністю та перший measured interval обидва інтегровані й committed. Ці 25 с покривають до 2 с застарілості backup save, найдовший шлях налаштування UM980 приблизно 11.5 с, інший startup overhead і запас; у H743 немає Phase-C boot wait. Це обмежене консервативне нарахування, а не точне вимірювання витрати. Оскільки integration clock запускається під час ранньої ініціалізації backup, будь-який додатковий setup elapsed time теж нараховується. Якщо оператор спочатку встановив новий total прийнятим записом `FUEL_CAPG`, pending charge старого відновленого total скасовується. |
-| Ще один reset стається до повторного known commit відновленого total | Durable write-ahead marker лишається LOST (або перерваний commit стає invalid), тому наступний boot suppresses EFI, доки stopped-engine quorum не дозволить запис `FUEL_CAPG`. Stale known record ніколи не використовується повторно з мовчки пропущеним ще одним startup gap. |
-| При будь-якому boot немає придатного backup record, він пошкоджений або legacy V1 | Cumulative total стає LOST. POR/PDR не доводить заправку чи зупинку двигуна, тому це стосується і звичайного вмикання, і warm reset. Фільтр не надсилає DroneCAN ICE Status, тому EFI backend ArduPilot стає stale/unhealthy замість прийняти хибний нуль. Кожні 60 с повторюється `Fuel total LOST - write FUEL_CAPG to restart it`, а warning ladder мовчить. Сідайте або лишайтеся на землі, дочекайтеся fresh stopped-engine quorum (disarmed + valid zero RPM + closed throttle) і повторно запишіть `FUEL_CAPG`, навіть якщо його числове значення не змінилося. Same-value write може одразу очистити поточний lockout; змінене значення відновлює EFI лише після `Tune saved`. Disarmed alone відхиляється. |
-| H743 tune journal відсутній, пошкоджений або не має valid record | Будь-який surviving numeric fuel total анулюється, а EFI мовчить. Retained total накопичувався за settings місткості, густини й моделі, provenance яких тепер невідомий; compiled defaults не доводять, що ці settings збігаються. Перевірте всю fuel configuration і повторно встановіть залите паливо через stopped-quorum `FUEL_CAPG`. |
+| Ще один reset стається до повторного known commit відновленого total | Durable write-ahead marker лишається LOST (або перерваний commit стає invalid), тому наступний boot suppresses EFI, доки normal stopped quorum або newly eligible cold manual-start declaration не дозволить positive `FUEL_CAPG`. Stale known record ніколи не використовується повторно з мовчки пропущеним ще одним startup gap. |
+| При будь-якому boot немає придатного backup record, він пошкоджений або legacy V1 | Cumulative total стає LOST. POR/PDR не доводить заправку чи зупинку двигуна, тому це стосується і звичайного вмикання, і warm reset. Фільтр не надсилає DroneCAN ICE Status, тому EFI backend ArduPilot стає stale/unhealthy замість прийняти хибний нуль. Кожні 60 с повторюється `Fuel total LOST - write FUEL_CAPG to restart it`, а warning ladder мовчить. Сідайте або лишайтеся на землі, отримайте normal stopped quorum або narrowly eligible cold manual-start declaration і повторно запишіть positive `FUEL_CAPG`, навіть якщо число не змінилося. Same-value write може одразу очистити поточний lockout; змінене значення відновлює EFI лише після `Tune saved`. Disarmed alone відхиляється. |
+| H743 tune journal відсутній, пошкоджений або не має valid record | Будь-який surviving numeric fuel total анулюється, а EFI мовчить. Retained total накопичувався за settings місткості, густини й моделі, provenance яких тепер невідомий; compiled defaults не доводять, що ці settings збігаються. Перевірте всю fuel configuration і повторно встановіть залите паливо authorized positive `FUEL_CAPG`. |
 | Прийнятий запис `FUEL_CAPG` змінює числову місткість | Running counter обнуляється, а старе restore-gap нарахування скасовується, але total лишається TOTAL LOST і ICE Status не надсилається до успішного asynchronous save tune journal. `FUEL_CAPG written - fuel total zeroed` підтверджує прийняття, а не durability. Дочекайтеся `Tune saved`; `Tune save failed` лишає EFI silent, а dirty snapshot — pending для retry. |
-| Фактична зміна `FUEL_DENS` | Потрібен той самий fresh stopped-engine quorum; інакше запис повідомляє `FUEL_DENS blocked: engine not confirmed stopped`. До зміни runtime density total позначається LOST, а будь-який старий CAPG commit intent скасовується, щоб FC-visible cumulative volume не рухався назад. До успішного verified save journal кожен запис `FUEL_CAPG` відхиляється з `FUEL_CAPG blocked: wait for FUEL_DENS save`; failure лишається blocked/LOST. `Tune saved` очищає лише pending-density latch, а не lost total. Потім виконайте наступний stopped-quorum запис `FUEL_CAPG`, щоб установити fresh zero за нової густини. |
+| Фактична зміна `FUEL_DENS` | Потрібен normal fresh stopped quorum або ready cold manual-start declaration; інакше запис повідомляє `FUEL_DENS blocked: engine not confirmed stopped`. Density write не витрачає cold one-shot. До зміни runtime density total позначається LOST, а будь-який старий CAPG commit intent скасовується, щоб FC-visible cumulative volume не рухався назад. До успішного verified save journal кожен запис `FUEL_CAPG` відхиляється з `FUEL_CAPG blocked: wait for FUEL_DENS save`; failure лишається blocked/LOST. `Tune saved` очищає лише pending-density latch, а не lost total. Потім виконайте наступний authorized positive `FUEL_CAPG`, щоб установити fresh zero за нової густини. |
 | Виконано спробу factory reset | Firmware записує durable marker TOTAL LOST до початку flash work, бо defaults можуть змінити місткість, густину чи модель, не доводячи заправку. Failed start або interrupted reset теж може консервативно лишити total LOST. Після будь-якої спроби перевірте кожен setting fuel model і повторно запишіть `FUEL_CAPG` при зупиненому двигуні; після зміненого значення дочекайтеся `Tune saved`. |
 | Phase-C maintenance | **Ніколи не виконуйте його при працюючому двигуні.** Фіксоване 25-секундне нарахування покриває обмежену reset/startup роботу, а не довільно довгу підключену maintenance session. |
 | Двигун вважається зупиненим, обертів немає | Не інтегрується нічого. Немає витрати, яку треба обліковувати. |

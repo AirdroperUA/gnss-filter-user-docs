@@ -380,16 +380,17 @@ camera, не optional enrichment і не просто logging. Фільтр пр
 фільтра, і переконайтесь, що FC справді стрімить `EKF_STATUS_REPORT` на цьому
 channel.
 
-**`SYSID_THISMAV = 1` також є жорсткою вимогою.** Фільтр приймає FC safety
-telemetry лише від MAVLink system ID `1` і component ID `1`
+**MAVLink system ID FC, рівний 1, також є жорсткою вимогою: `MAV_SYSID = 1`
+на ArduPilot 4.7 і новіших, `SYSID_THISMAV = 1` на 4.6.** Фільтр приймає FC
+safety telemetry лише від MAVLink system ID `1` і component ID `1`
 (`MAV_COMP_ID_AUTOPILOT1`). Обидва значення є compile-time constants у прошивці;
-жоден parameter фільтра їх не змінює. За будь-якого іншого `SYSID_THISMAV`
-frames FC `HEARTBEAT` і `EKF_STATUS_REPORT` усе одно проходять tunnel і навіть
+жоден parameter фільтра їх не змінює. За будь-якого іншого system ID frames FC
+`HEARTBEAT` і `EKF_STATUS_REPORT` усе одно проходять tunnel і навіть
 парсяться, але відкидаються до того, як оновити safety evidence. Результат —
 постійний GPS block при повністю робочому CAN tunnel: node `42` присутній,
 tunnel byte counters зростають, camera MAVLink2 працює, а GPS не з'являється
 ніколи. Default самого ArduPilot вже `1`; ця несправність трапляється на
-апаратах, де `SYSID_THISMAV` змінили під multi-vehicle GCS setup.
+апаратах, де system ID змінили під multi-vehicle GCS setup.
 
 S1/index `0` є прозорим bidirectional каналом між OpenIPC camera UART і
 ArduPilot. S2/index `1` є окремим каналом: він несе MAVLink2, який генерує H743,
@@ -534,6 +535,10 @@ link. Frames, вже передані до FDCAN controller, відкликат�
 - `uavcan.tunnel.Targetted` для двох MAVLink2 virtual serial ports
 - `uavcan.equipment.ice.reciprocating.Status` з частотою 1 Гц — оцінка витрати
   палива двигуна (H743 DroneCAN `v0.5.28+`)
+
+Відповідь GetNodeInfo дає версію hardware `1.0` для WeAct H743 (у плати APMPX4
+CAN — `2.0`). Починаючи з `0.5.38`, її поле VCS також несе повну версію
+прошивки: інструмент, що показує це поле в hex, показує `00000538` для 0.5.38.
 
 MAVLink2 тунелюється, але raw GNSS NMEA, UBX та SBF не тунелюються. GPS
 залишається native `Fix2/Auxiliary`, а фізичний FC GPS UART залишається
@@ -693,7 +698,10 @@ total, бо provenance settings місткості, густини та моде
 накопичувався, невідомий. POR/PDR не доводить заправку чи механічну зупинку
 двигуна. EFI backend ArduPilot стає stale/unhealthy замість прийняти хибний
 нуль/повний бак. Кожні 60 с фільтр повторює `Fuel total LOST - write FUEL_CAPG
-to restart it`. Сідайте або лишайтеся на землі, перевірте всю fuel configuration,
+to restart it`, щойно FC надіслав RPM двигуна. Доки RPM не надходило (апарат
+без джерела RPM двигуна), фільтр натомість один раз пише
+`Fuel total unknown: no engine RPM from FC` (`0.5.38+`). Сідайте або лишайтеся
+на землі, перевірте всю fuel configuration,
 дочекайтеся normal fresh stopped-engine quorum (disarmed + valid zero RPM +
 closed throttle) або eligible cold manual-start declaration і повторно запишіть
 positive `FUEL_CAPG` для палива на борту, навіть якщо його
@@ -1120,6 +1128,13 @@ velocity-position consistency і receiver clock jump, якщо дані дост
 `DR1_MAX_DURATION_MS` дорівнює `0`. DR1 **не** спливає за таймером. Єдині
 шляхи назад — evidence quorum, ground release або power cycle.
 
+Power cycle означає зняття живлення. Починаючи з `0.5.38`, скидання без зняття
+живлення — watchdog, збій, кнопка reset — лишає DR1 активним з його причиною й
+довіреною позицією, яку він мав, і фільтр повідомляє про це рядком
+`DR1 kept across reset: <причина>`. Скидання поза DR1 зберігає довірену позицію
+(`North anchor kept across reset`), тож boot gate не довіряє першому fix знову,
+а вихід GNSS відкривається лише після стартового guard.
+
 Quorum потребує щонайменше трьох evidence rows, що погоджуються, **нуль**
 що суперечать, утримуваних безперервно, **і щонайменше одного незалежного
 witness**. Row рахується як witness лише тоді, коли його операнди були
@@ -1188,8 +1203,9 @@ release не може заблокувати юніт. Загалом ground rel
 разами на power cycle. Operator status називає цю причину `PARKED MOVE`, а
 короткий label на екрані плати — `PARKED`.
 
-**Як читати recovery banner.** Debug-рядок 1 Hz називає точно те, що блокує
-відновлення:
+**Як читати recovery banner.** Debug-рядок називає точно те, що блокує
+відновлення. Він приходить одразу, коли змінюється те, що блокує, кожні 2 с,
+поки йде відлік hold, і кожні 10 с, поки блокує те саме:
 
 ```
 RJ ev3/3F0W0/1p hold=0/60s gnd=45/90s -
@@ -1255,6 +1271,11 @@ airborne pass count.
 
 ## Якщо щось не працює
 
+Починаючи з `0.5.38`, статусні рядки, які фільтр надсилає в перші секунди
+після ввімкнення, до підключення тунелю FC, зберігаються й надсилаються, щойно
+він підключиться. Тож стартовий банер, рядки версії й попередження на кшталт
+`DR1 kept across reset` теж доходять до Mission Planner через FC.
+
 ### FC LINK STALE: одна причина, чотири повідомлення
 
 Відсутній FC `EKF_STATUS_REPORT` на tunnel index `1` дає всі чотири
@@ -1283,8 +1304,9 @@ ArduPilot не прив'язує GPS instance до цього node (звідси
 
 Ні те, ні інше не торкається причини: FC не доставляє фільтру
 `EKF_STATUS_REPORT`. Перевіряйте у такому порядку: stream rate `EXTRA3` на
-MAVLink channel фільтра, `SYSID_THISMAV = 1`, MAVLink channel budget (існують
-лише `SR0_`..`SR6_`), і тільки в кінці — CAN wiring.
+MAVLink channel фільтра, `MAV_SYSID = 1` (на 4.6 — `SYSID_THISMAV = 1`),
+MAVLink channel budget (існують лише `SR0_`..`SR6_`), і тільки в кінці — CAN
+wiring.
 
 Прошивка `v0.4.8+` називає, якої саме половини evidence бракує. DR1-повідомлення
 несе ages як `DR: FC telemetry stale (hb=... ekf=...)`, а періодичний рядок
@@ -1292,7 +1314,7 @@ MAVLink channel фільтра, `SYSID_THISMAV = 1`, MAVLink channel budget (і�
 
 - `hb=never` означає, що до фільтра взагалі не доходить MAVLink від FC. Це
   проблема tunnel, protocol або sysid: перевірте `CAN_D1_UC_S2_*`, `_PRO = 2` і
-  `SYSID_THISMAV = 1`.
+  `MAV_SYSID = 1` (на 4.6 — `SYSID_THISMAV = 1`).
 - `hb=0s ekf=never` означає, що tunnel працює і FC говорить, але FC не стрімить
   `EKF_STATUS_REPORT`. Це проблема stream rate/channel, а не проводів.
 
@@ -1313,6 +1335,12 @@ Straight-and-level cruise підходить зі справним pitot вищ�
 
 - Node не видно: перевірте `CAN_Dx_PROTOCOL=1`, bitrate `1000000`, CANH/CANL,
   common ground, termination на кінцях шини, `PB9 -> TXD`, `PB8 <- RXD`.
+- `CAN: another node uses ID 42 - ID clash`: інший вузол на шині має node ID
+  `42`, наприклад плата APMPX4 CAN поруч із цією. Їхні кадри зіштовхуються, а
+  FC об'єднав би два компаси під одним device ID. Починаючи з `0.5.38`, фільтр
+  повторює цей рядок кожні 10 с, поки отримує кадри від іншого вузла, і
+  показує себе unhealthy (`Node 42 unhealthy!`) ще 30 с після останнього.
+  Дайте іншому вузлу інший ID або приберіть його.
 - FC не бачить GPS: на `v0.5.30+` перевірте `FC VERSION UNKNOWN` /
   `AUTOPILOT_VERSION REQUIRED` або `FIRMWARE TOO OLD` / `UPDATE TO ARDUPILOT
   4.6.1+`. Фільтр явно запитує `AUTOPILOT_VERSION` і негайно suppress GPS до
@@ -1338,8 +1366,9 @@ Straight-and-level cruise підходить зі справним pitot вищ�
   спричинений напрямом FC -> filter у tunnel index `1`, і сам tunnel зазвичай
   повністю справний — просто одне обов'язкове повідомлення не стрімиться. Для
   `FCLINK` СПОЧАТКУ перевіряйте stream rate `EXTRA3` на MAVLink channel фільтра,
-  `SYSID_THISMAV = 1` і MAVLink channel budget (лише `SR0_`..`SR6_`), а CAN
-  wiring, termination і bitrate — В ОСТАННЮ ЧЕРГУ.
+  `MAV_SYSID = 1` (на 4.6 — `SYSID_THISMAV = 1`) і MAVLink channel budget
+  (лише `SR0_`..`SR6_`), а CAN wiring, termination і bitrate — В ОСТАННЮ
+  ЧЕРГУ.
 - Airspeed/optional compass не видно: перевірте expected sensor firmware
   option. Production/default build вмикає лише MS4525; HMC5983 потребує
   direct-flash `*_dronecan_mag` build. Перевірте

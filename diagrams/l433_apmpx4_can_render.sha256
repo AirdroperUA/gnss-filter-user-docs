@@ -1,0 +1,6 @@
+# SHA-256 of the HTML each drawing was rendered from, written by
+# python tools/render_l433_pinout.py --export. Do not edit by hand.
+2e93959f754f31adb5f35370ba9a1614ea9f99185692b9c9d443b7a462819d2d  l433_apmpx4_can_pinout.pdf
+f5428b1dd72c13f2c9c7b3312278a4ae12920434823befeee22c011d2894703d  l433_apmpx4_can_wiring.png
+225cb77d62853e8d9a27af8def42c04123f0c97bb272f05385200550b1e12338  l433_apmpx4_can_pinout_uk.pdf
+95e66161db77a06dd9d149908c61f26f0ff7bb5a8401946925e647d359fe706f  l433_apmpx4_can_wiring_uk.png

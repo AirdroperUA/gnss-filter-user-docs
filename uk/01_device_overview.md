@@ -41,6 +41,7 @@
 | STM32F401 BlackPill | MAVLink UART + FC GPS UART | Основний ліцензований UART-шлях |
 | WeAct H743 standalone UART | MAVLink UART + FC GPS UART | Development/compatibility target, FC GPS на `C6/C7` |
 | WeAct H743 DroneCAN | DroneCAN GPS через CAN transceiver | Немає FC MAVLink UART або FC GPS UART; повний guide: [H743 DroneCAN Guide](13_h743_dronecan.md) |
+| APMPX4 CAN (STM32L433) | DroneCAN GPS через трансивер TJA1051 або збірка без GNSS | Ще не випущено; інструкція, до випуску на GitHub: [APMPX4 CAN](https://github.com/AirdroperUA/gnss-filter-user-docs/blob/main/uk/15_l433_apmpx4_can.md) |
 
 > ## ⚠️ USB-C роз'єм BlackPill не використовується
 >

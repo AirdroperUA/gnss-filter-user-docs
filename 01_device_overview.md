@@ -40,6 +40,7 @@ This document describes how the STM32 filter operates between the GNSS receiver 
 | STM32F401 BlackPill | FC GPS UART plus FC MAVLink UART | Main user docs and `10_self_install.md` |
 | WeAct H743 standalone UART | FC GPS UART on `PC6/PC7` plus FC MAVLink UART | Development use |
 | WeAct H743 DroneCAN | Native DroneCAN GPS on `PB8/PB9` through a CAN transceiver | [H743 DroneCAN Guide](13_h743_dronecan.md) |
+| APMPX4 CAN (STM32L433) | Native DroneCAN GPS through a TJA1051 transceiver, or a no-GNSS build | Not released yet; guide, on GitHub until the release: [APMPX4 CAN Guide](https://github.com/AirdroperUA/gnss-filter-user-docs/blob/main/15_l433_apmpx4_can.md) |
 
 The H743 DroneCAN build is a separate firmware family. It keeps USB-C on
 `PA11/PA12`, publishes GPS as DroneCAN `Fix2/Auxiliary`, and does not use the

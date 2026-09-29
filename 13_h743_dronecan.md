@@ -494,16 +494,17 @@ GPS, not unfiltered GPS, none. Configure `CAN_D1_UC_S2_*` even if you never
 intend to read filter status messages, and confirm the FC is actually streaming
 `EKF_STATUS_REPORT` on that channel.
 
-**`SYSID_THISMAV = 1` is also a hard requirement.** The filter accepts FC
-safety telemetry only from MAVLink system ID `1` and component ID `1`
-(`MAV_COMP_ID_AUTOPILOT1`). Both values are compile-time constants in the
-firmware; no filter parameter can change them. With any other
-`SYSID_THISMAV`, the FC `HEARTBEAT` and `EKF_STATUS_REPORT` frames still cross
-the tunnel and are still parsed, but they are discarded before they can refresh
-the safety evidence. The result is a permanent GPS block on a perfectly working
-CAN tunnel: node `42` is present, tunnel byte counters increase, camera
-MAVLink2 works, and GPS never appears. ArduPilot's own default is `1`; this
-failure shows up on aircraft where `SYSID_THISMAV` was changed for a
+**A flight controller MAVLink system ID of 1 is also a hard requirement:
+`MAV_SYSID = 1` on ArduPilot 4.7 and newer, `SYSID_THISMAV = 1` on 4.6.** The
+filter accepts FC safety telemetry only from MAVLink system ID `1` and
+component ID `1` (`MAV_COMP_ID_AUTOPILOT1`). Both values are compile-time
+constants in the firmware; no filter parameter can change them.
+With any other system ID, the FC `HEARTBEAT` and `EKF_STATUS_REPORT` frames
+still cross the tunnel and are still parsed, but they are discarded before they
+can refresh the safety evidence. The result is a permanent GPS block on a
+perfectly working CAN tunnel: node `42` is present, tunnel byte counters
+increase, camera MAVLink2 works, and GPS never appears. ArduPilot's own default
+is `1`; this failure shows up on aircraft whose system ID was changed for a
 multi-vehicle GCS setup.
 
 Port S1/index `0` is a transparent bidirectional path between the OpenIPC
@@ -655,6 +656,11 @@ It publishes native DroneCAN GPS messages:
 - `uavcan.tunnel.Targetted` for the two MAVLink2 virtual serial ports
 - `uavcan.equipment.ice.reciprocating.Status` at 1 Hz, the engine fuel estimate
   (H743 DroneCAN `v0.5.28+`)
+
+The GetNodeInfo response gives hardware version `1.0` for the WeAct H743 (the
+APMPX4 CAN board is `2.0`). From `0.5.38` its VCS field also carries the full
+firmware version: a tool that shows the field in hex shows `00000538` for
+0.5.38.
 
 The MAVLink2 streams are tunneled; raw GNSS NMEA, UBX, and SBF receiver streams
 are not. GPS remains native `Fix2/Auxiliary`, and the physical FC GPS UART stays
@@ -816,7 +822,10 @@ tune journal also invalidates a surviving fuel total because the capacity,
 density, and model settings under which it accumulated have unknown provenance.
 POR/PDR cannot prove a refuel or mechanical engine stop. ArduPilot's EFI backend
 therefore ages stale/unhealthy instead of accepting a false zero/full tank. The
-filter repeats `Fuel total LOST - write FUEL_CAPG to restart it` every 60 s.
+filter repeats `Fuel total LOST - write FUEL_CAPG to restart it` every 60 s
+once the flight controller has sent engine RPM. Before any RPM has arrived (an
+aircraft with no engine RPM source) it says
+`Fuel total unknown: no engine RPM from FC` once instead (`0.5.38+`).
 Land or remain on the ground, verify the complete fuel configuration, wait for
 normal fresh stopped-engine quorum (disarmed + valid zero RPM + closed
 throttle) or the eligible cold manual-start declaration, and rewrite positive
@@ -1334,6 +1343,13 @@ sanity, velocity-position consistency, and receiver clock jump when available.
 `DR1_MAX_DURATION_MS` is `0`. DR1 does **not** expire. The only ways out are the
 evidence quorum, ground release, or a power cycle.
 
+A power cycle means removing power. From `0.5.38` a reset that keeps power -
+the watchdog, a crash, the reset button - keeps DR1 latched, with its reason
+and the trusted position it had, and the filter says so with
+`DR1 kept across reset: <reason>`. A reset outside DR1 keeps the trusted
+position (`North anchor kept across reset`), so the boot gate does not trust
+the first fix again, and GNSS output opens only after the start-up guard.
+
 The quorum needs at least three evidence rows agreeing, **zero** contradicting,
 held continuously, **and at least one independent witness**. A row counts as a
 witness only when its operands were physically excited:
@@ -1401,8 +1417,9 @@ an integrity release cannot strand the unit. Ground release is limited to four
 times per power cycle in total. Operator status names this reason `PARKED MOVE`;
 the shorter board-screen label is `PARKED`.
 
-**Reading the recovery banner.** The 1 Hz debug line names exactly what is
-blocking recovery:
+**Reading the recovery banner.** The debug line names exactly what is
+blocking recovery. It comes at once when the blocker changes, every 2 s while
+a hold is counting, and every 10 s while the same blocker stands:
 
 ```
 RJ ev3/3F0W0/1p hold=0/60s gnd=45/90s -
@@ -1472,6 +1489,12 @@ change.
 
 ## 11) Troubleshooting
 
+From `0.5.38`, status lines the filter sends in the first seconds after
+power-up, before the flight controller's tunnel connects, are held and sent as
+soon as it does. The start-up banner and version lines, and warnings such as
+`DR1 kept across reset`, therefore reach Mission Planner through the flight
+controller as well.
+
 ### FC LINK STALE: one cause, four messages
 
 A missing FC `EKF_STATUS_REPORT` on the index-`1` tunnel produces all four of
@@ -1499,8 +1522,9 @@ Do not "fix" the symptoms:
 
 Neither touches the cause, which is that the FC is not delivering
 `EKF_STATUS_REPORT` to the filter. Work the checklist in this order: `EXTRA3`
-stream rate on the filter's MAVLink channel, `SYSID_THISMAV = 1`, MAVLink
-channel budget (`SR0_`..`SR6_` only), then CAN wiring last.
+stream rate on the filter's MAVLink channel, `MAV_SYSID = 1`
+(`SYSID_THISMAV = 1` on 4.6), MAVLink channel budget (`SR0_`..`SR6_` only),
+then CAN wiring last.
 
 Firmware `v0.4.8+` names which half of the evidence is missing. The DR1 trigger
 message carries the ages as `DR: FC telemetry stale (hb=... ekf=...)`, and a
@@ -1508,7 +1532,7 @@ periodic line reports `FC rx=... hb=... ekf=... nack=N`:
 
 - `hb=never` means no FC MAVLink is reaching the filter at all. That is a
   tunnel, protocol, or sysid problem: check `CAN_D1_UC_S2_*`, `_PRO = 2`, and
-  `SYSID_THISMAV = 1`.
+  `MAV_SYSID = 1` (`SYSID_THISMAV = 1` on 4.6).
 - `hb=0s ekf=never` means the tunnel works and the FC is talking, but the FC is
   not streaming `EKF_STATUS_REPORT`. That is a stream-rate/channel problem, not
   a wiring problem.
@@ -1551,6 +1575,15 @@ below the excitation floor restarts the 60 s window.
 - Confirm termination exists at both physical ends of the bus and not in the
   middle.
 
+### `CAN: another node uses ID 42 - ID clash`
+
+Another node on the bus uses node ID `42`, for example an APMPX4 CAN board next
+to this one. Their frames collide, and the flight controller would merge two
+compasses under one device ID. From `0.5.38` the filter repeats this line every
+10 s while it receives frames from the other node, and reports itself unhealthy
+(`Node 42 unhealthy!`) until 30 s after the last one. Give the other node a
+different ID or remove it.
+
 ### Node appears but FC does not get GPS
 
 - Confirm `GPS1_TYPE=9` or the matching GPS instance type is set to DroneCAN.
@@ -1588,9 +1621,9 @@ below the excitation floor restarts the 60 s window.
   caused by the FC -> filter direction of the index-`1` tunnel, and the tunnel
   itself is usually perfectly healthy while one required message is simply not
   being streamed. For `FCLINK`, check the `EXTRA3` stream rate on the filter's
-  MAVLink channel, `SYSID_THISMAV = 1`, and the MAVLink channel budget
-  (`SR0_`..`SR6_` only) FIRST, and check CAN wiring, termination and bitrate
-  LAST.
+  MAVLink channel, `MAV_SYSID = 1` (`SYSID_THISMAV = 1` on 4.6), and the
+  MAVLink channel budget (`SR0_`..`SR6_` only) FIRST, and check CAN wiring,
+  termination and bitrate LAST.
 
 ### Airspeed or optional compass is missing/unhealthy
 

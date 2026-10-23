@@ -6,6 +6,95 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## L433 CAN node 0.5.43 / desktop 2026.10.23.1 — desktop release, 2026-10-23
+
+- The desktop app gains a separate L433 CAN-node choice for airspeed, compass,
+  S1–S4 servos, serial bridges and the other node functions. It supplies no
+  GPS spoofing protection. The GNSS-filter product stays a separate choice.
+- The secured 0.5.43 image is bound to the licensed board and installed through
+  ST-Link. The previous 0.5.42 GitHub bench download remains unchanged.
+- CAN-node 0.5.43 is active in the firmware catalog. The
+  [official desktop download](https://gps.airdroper.org/download/app) now serves
+  app `2026.10.23.1`; select **[!] L433 CAN Node (NO GPS filter)**.
+- The production-anchor EXE was built manually and its checksum verified;
+  it has no GitHub build attestation. The secured 0.5.43 firmware has not been
+  flashed or flight-qualified: servo failsafe, CAN-loss, reset and stalled-loop
+  cutoff tests remain required. H743 firmware and active releases are unchanged.
+
+---
+
+## L433 no-GNSS CAN node 0.5.42 — GitHub bench prerelease, 2026-10-23
+
+- New `SV*` messages show whether servo commands reach the node, which outputs
+  accept them, their age, and why PWM is inhibited. Timer and guard settings
+  are also visible in Mission Planner Messages. A complete cycle takes 12 s.
+- Diagnostics do not change safety, command timeouts, saved settings or outputs.
+  Register reports describe firmware/hardware state; a scope or logic analyzer
+  is still required to verify the signal at a servo connector.
+- GitHub supplies the same 105,596-byte bench image for direct ST-Link/SWD
+  installation at `0x08000000`; its firmware date stays `2026-10-22`.
+  This prerelease covers only the CAN node without GNSS protection.
+- S4 physically moved the camera and returned it after the external servo
+  supply was connected. All four MCU output-pad readbacks showed HIGH and LOW.
+  The camera UART link worked; airspeed had worked in earlier bench use.
+- Only S4 had a connected servo. S1–S3 physical response, failsafe/stalled-loop
+  cutoff, CAN disconnect/reconnect and reset tests remain pending before flight.
+  H743 is unchanged; the L433 GNSS filter remains unreleased. The desktop
+  firmware catalog does not gain a CAN-node target from this GitHub package.
+
+---
+
+## L433 no-GNSS CAN node 0.5.41 — development bench candidate, 2026-10-20
+
+- Heavy serial traffic no longer causes repeated servo cutoffs by restarting
+  CAN while frames are still being transmitted. Actual CAN stalls still stop
+  the outputs safely.
+- Zero RPM cannot reduce estimated fuel use to idle while the last observed
+  throttle remains open, even if throttle telemetry has stopped arriving.
+- Replaces the 0.5.40 bench image. H743 and the L433 GNSS filter are unchanged.
+  Hardware bench validation remains required before flight.
+
+---
+
+## L433 no-GNSS CAN node 0.5.40 — superseded bench candidate, 2026-10-20
+
+- Old CAN commands cannot restart expired servos after the main loop stalls.
+  Command age is measured from reception, including multi-frame transfers.
+- Automatic full-tank setup is limited to an eligible cold start. Editing fuel
+  density/capacity or requesting factory reset cannot erase fuel already used.
+- EFI reports a crankshaft-sensor fault when RPM is missing or over 2 s old.
+- CN2/CN3 batch serial data and share bus capacity. RGB no longer blocks UART
+  reception at higher supported baud rates.
+- H743 and the L433 GNSS filter are unchanged. This candidate requires bench
+  validation before flight; it has not been uploaded or promoted.
+
+---
+
+## L433 no-GNSS CAN node 0.5.39 — unreleased development, 2026-10-16
+
+- The no-GNSS build adds four servo outputs, CN2/CN3 serial bridges, external
+  buzzer/RGB control and calibrated analog voltage/current telemetry beside
+  airspeed, the onboard compass, camera and fuel features.
+- Servos start without pulses and default to no pulses after a 500 ms command
+  timeout. The selected controller's fresh safety-off state is required.
+  A separate timer keeps enforcing timeout during a main-loop stall; a
+  hardware guard stops all outputs if timer service stalls for 3 ms, including
+  with interrupts disabled. Fresh safety and commands are then required.
+  Servo headers supply no power on their middle pins.
+- CAN restarts and node-ID conflicts clear control authority before more
+  messages are processed. Commands received while the link is unavailable
+  cannot prepare later pulses. Counter rollover after about 49 days cannot
+  revive expired commands or safety-off authority.
+- Analog voltage reporting stays off until the installed divider is checked
+  and calibrated. Current measurement needs an external sensor. These readings
+  are `CircuitStatus`, not an FC battery gauge.
+- The node has its own `N_*` settings; a node save omits hidden filter-only
+  settings. Restore GNSS tuning before switching back to the filter build.
+- Direct-SWD bench build only. The new functions have not run on hardware.
+  H743 and the L433 GNSS filter are outside this change.
+
+---
+
 ## H743 DroneCAN v0.5.37 — 2026-09-18 (instant GPS cut, far fewer false blocks)
 
 - **The flight controller now loses GPS the moment the filter blocks it.** The

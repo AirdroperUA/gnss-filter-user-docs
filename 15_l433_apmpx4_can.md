@@ -3,31 +3,56 @@
 > Board store: [GPS Spoofing Filter](https://airdroper.org/products/gps-spoofing-filter)
 
 The APMPX4 CAN board (EasyEDA project "APMPX4 CAN-JSTGH", schematic V1.0,
-2026-03-17) runs the same filter firmware as the
-[H743 DroneCAN Guide](13_h743_dronecan.md) on a smaller STM32L433RCT6, and
-publishes to the flight controller as DroneCAN node `42`. This guide covers
-firmware `0.5.39`.
+2026-03-17) runs either the GNSS filter described in the
+[H743 DroneCAN Guide](13_h743_dronecan.md) or the separate CAN peripheral
+firmware on a smaller STM32L433RCT6. Both use DroneCAN node `42`.
+This guide covers GNSS-filter `0.5.39`, no-GNSS CAN-node bench `0.5.42`
+and secured CAN-node `0.5.43`.
 
-**Status: not released yet.** No L433 firmware has been published yet, so the
-desktop app cannot install it. The `0.5.39` bench image has run on a bench
-board with ArduPlane 4.7.1: under a clear sky it passed GPS to the flight
-controller, and at a spoofed site it kept GPS blocked, as designed (see
-`docs/dev/evidence/l433-bench-live-spoofing-2026-09-26.md`). Treat this board
-as a bench and test-team device until a release is announced in the
-[Changelog](CHANGELOG.md).
+**Status, 2026-10-23: CAN-node 0.5.43 is released through the desktop app;
+0.5.42 remains the GitHub bench prerelease. The L433 GNSS filter remains
+unreleased.** Desktop `2026.10.23.1` adds the separate `l433_can_node` target.
+Its 0.5.43 image checks the licensed board's UID and RDP1; install it through
+the desktop app over ST-Link/SWD. The server catalog now serves promoted 0.5.43;
+the [official desktop download](https://gps.airdroper.org/download/app) serves
+app `2026.10.23.1`. The EXE was built manually with the reviewed production
+trust anchor and its checksum verified; it has no GitHub build attestation.
+The secured 0.5.43 firmware has not been flashed or qualified for flight.
+The 0.5.42 direct-SWD download is unchanged,
+with firmware date `2026-10-22`; it is not the secured catalog image.
+S4 camera movement, all four MCU output-pad readbacks and the camera UART
+link have been observed; airspeed worked in earlier bench use. Only S4 had
+a connected servo. S1–S3 physical response and failsafe, CAN-loss and reset
+tests remain pending. This is bench evidence, not flight qualification.
+See the [Changelog](CHANGELOG.md) and section 7.
+
+The separate GNSS-filter `0.5.39` bench image previously passed GPS under a
+clear sky and blocked it at a spoofed site with ArduPlane 4.7.1 (see
+`docs/dev/evidence/l433-bench-live-spoofing-2026-09-26.md`). Those observations
+do not apply GNSS protection to either no-GNSS CAN-node build.
 
 ## 1) Two firmware builds
 
 | Build | What it does | Installed by |
 |-------|--------------|--------------|
 | `apmpx4_can_l433rc_dronecan` | The GNSS spoofing filter: GNSS in on CN2, filtered GPS out as DroneCAN, plus airspeed, compass, the camera tunnel, fuel estimation and parameters. | The desktop app (release image), or directly over SWD (bench image) |
-| `apmpx4_can_l433rc_dronecan_nognss` | Everything except GNSS: airspeed, compass, the camera tunnel, fuel estimation and parameters on node `42`. CN2 is unused, and there is no DR0/DR1. | Directly over SWD only (bench image) |
+| `apmpx4_can_l433rc_dronecan_nognss` / `_nognss_release` | CAN peripheral node: airspeed, onboard compass, S1–S4 servo outputs, CN1/CN2/CN3 serial bridges, buzzer/RGB control, calibrated analog inputs, fuel and node parameters. No GNSS filter or DR0/DR1. | `0.5.42` bench image directly over SWD, or secured `0.5.43` through desktop target `l433_can_node`; hardware validation is partial |
+
+In desktop `2026.10.23.1`, select **[!] L433 CAN Node (NO GPS filter)**
+and ST-Link/SWD transport. Do not select the L433 GNSS-filter product for a
+peripheral-only installation. Activating or updating a secured board can erase
+saved settings; back them up and read them back after installation. The app
+verifies signed delivery metadata, the connected MCU and licensed UID, the
+written app, and RDP1. There is no USB update path or bootloader on this board.
+The template `apmpx4_can_l433rc_dronecan_nognss_release` is not a directly
+flashable bench binary: use the provisioner to bind it to the board.
 
 Both builds use node ID `42`, so do not put one of each on the same CAN bus.
 DroneCAN tools show them as `org.airdroper.gnss_filter.l433_dronecan` and
 `org.airdroper.gnss_filter.l433_nognss`, with hardware version `2.0` (the WeAct
 H743 is `1.0`). The node information's VCS field holds the full firmware
-version: a tool that shows it in hex shows `00000539` for 0.5.39.
+version: a tool that shows it in hex shows `00000539` for filter 0.5.39 or
+`00000542` for CAN node 0.5.42 or `00000543` for secured CAN node 0.5.43.
 
 If two nodes with ID `42` do share a bus, each of them reports
 `CAN: another node uses ID 42 - ID clash` every 10 s and reports itself
@@ -47,19 +72,20 @@ unhealthy, so the flight controller refuses to arm until one is removed.
 | Connector | Use | Pins |
 |-----------|-----|------|
 | U142 | CAN to the flight controller | 1 `5V`, 2 `CAN_H`, 3 `CAN_L`, 4 `GND` |
-| CN2 | GNSS receiver (filter build only), USART2 | 1 `5V`, 2 `TX2` (`PA2`), 3 `RX2` (`PA3`), 4 `SCL3`, 5 `SDA3`, 6 `GND` |
+| CN2 | GNSS receiver in the filter build; UART bridge in the no-GNSS node, USART2 | 1 `5V`, 2 `TX2` (`PA2`), 3 `RX2` (`PA3`), 4 `SCL3`, 5 `SDA3`, 6 `GND` |
 | CN1 | Camera MAVLink tunnel, USART1 at 115200 | 1 `5V`, 2 `TX1` (`PB6`), 3 `RX1` (`PB7`), 4 `SCL2`, 5 `SDA2`, 6 `GND` |
 | U141 | I2C2 sensors: MS4525 airspeed | 1 `5V`, 2 `SCL2` (`PB13`), 3 `SDA2` (`PB14`), 4 `GND` |
-| CN3 | Spare UART (USART3) and I2C2; unused | 1 `5V`, 2 `TX3`, 3 `RX3`, 4 `SCL2`, 5 `SDA2`, 6 `GND` |
+| CN3 | USART3 bridge in the no-GNSS node; shared I2C2 | 1 `5V`, 2 `TX3`, 3 `RX3`, 4 `SCL2`, 5 `SDA2`, 6 `GND` |
 | H1 | SWD for ST-Link, 2.54 mm; no NRST | 1 `3V3`, 2 `SWDIO` (`PA13`), 3 `SWCLK` (`PA14`), 4 `GND` |
 
-U138 and U140 carry the spare I2C3 bus, and S1–S4 are servo headers (signal,
-not connected, GND) with no power on them. The firmware uses none of them; it
-holds S1–S4 and the buzzer and RGB LED lines low. The compass on CN2 pins 4–5
-(I2C3) is not read either. The onboard MMC5983MA compass sits on I2C2 at
-`0x30`.
+U138 and U140 carry the spare I2C3 bus. S1–S4 are servo headers (signal,
+not connected, GND) with no power on them. The filter build holds S1–S4 and
+the buzzer/RGB lines low; the no-GNSS CAN node uses them as described in
+section 7. The compass on CN2 pins 4–5 (I2C3) is not read. The onboard
+MMC5983MA compass sits on I2C2 at `0x30`.
 
-The complete pinout, with both board sides, every solder pad and the pin tables,
+The drawings show the filter-mode wiring; section 7 describes the added
+no-GNSS node functions. The complete pinout, with both board sides, every solder pad and the pin tables,
 is an A3 drawing:
 [l433_apmpx4_can_pinout.pdf](https://github.com/AirdroperUA/gnss-filter-user-docs/blob/main/diagrams/l433_apmpx4_can_pinout.pdf)
 (Ukrainian:
@@ -125,17 +151,21 @@ the saved parameters survive it and carry over between the filter and no-GNSS
 builds.
 
 **With the desktop app (release image).** In the AirDroper desktop app choose
-**L433 APMPX4 CAN (ST-Link)**. The app downloads the image bound to this board's
+**[!] L433 CAN Node (NO GPS filter)** for peripheral firmware, or the
+**L433 APMPX4 CAN (ST-Link)** for GPS protection. The app downloads the image bound to this board's
 unique ID, checks its signature, writes it over ST-Link, reads it back, and then
 locks the chip (RDP1). The board has no reset button: when the app asks you to
 power-cycle the board, and again when it finishes, remove all power for at
 least 10 seconds and then power it again. It needs a published L433 release, so
-it does not work yet (see Status above).
+the GNSS-filter installation path does not work yet (see Status above).
+The secured CAN node uses target `l433_can_node` and version `0.5.43`;
+the GitHub CAN-node 0.5.42 bench image is installed directly over SWD instead.
 
-After an L433 flash the app also prints the board's
+After an L433 **GNSS-filter** flash the app also prints the board's
 `Authenticated DR-recovery signing key` and tells you to save it now: there is
 one key per board, and it cannot be recovered later. Keep it secret, like a
 password: anyone who has it can authorize a DR1 recovery on that board.
+The no-GNSS CAN node has no DR recovery key or DR1 recovery function.
 
 A release image refuses to start on a board it is not bound to, and on a board
 that is not locked. It then blinks the LED fast, 100 ms on and 100 ms off. Run
@@ -168,8 +198,9 @@ power-off after it clears the fuel record and any DR1 state the board kept
 across resets (section 8). Never write `RDP=0xCC`: that is level 2, which
 disables SWD for good.
 
-Never flash `apmpx4_can_l433rc_dronecan_release` directly: it only runs after
-the server has bound it to a board and the desktop app has locked the chip.
+Never flash `apmpx4_can_l433rc_dronecan_release` or
+`apmpx4_can_l433rc_dronecan_nognss_release` directly: they only run after
+the server has bound them to a board and the desktop app has locked the chip.
 
 After the first flash of a blank chip, power-cycle the board. A blank STM32L4
 keeps starting its ROM bootloader until a power-on reset.
@@ -258,37 +289,270 @@ The node publishes airspeed as `RawAirData` and the compass as
 ground-speed-versus-airspeed check can never pass, so leaving DR1 in flight
 needs a real climb or a steady turn; straight-and-level flight will not do it.
 
-## 7) The no-GNSS build
+## 7) The no-GNSS CAN node
 
-`apmpx4_can_l433rc_dronecan_nognss` is for aircraft that take GPS from
-elsewhere and want the board only as an airspeed, compass and camera node:
+`apmpx4_can_l433rc_dronecan_nognss` is a CAN peripheral node for aircraft
+that use a separate GPS: MS4525 airspeed, the onboard MMC5983MA compass, four
+servo outputs, serial bridges, buzzer/RGB control and calibrated analog inputs.
+Version `0.5.42` is a GitHub bench prerelease for direct SWD installation at
+`0x08000000`, with no server target. It is the same 105,596-byte bench image,
+not a new binary under the old version.
+Secured `0.5.43` uses the same node feature set with UID/RDP1 enforcement and
+its own `l433-node-release` identity. It is delivered by desktop target
+`l433_can_node`; it is a different artifact and has not inherited exact-artifact
+hardware qualification from 0.5.42.
 
-- It never publishes GPS, never latches DR1 and never blocks anything, and its
-  NodeStatus never reports GNSS as blocked.
-- The GNSS and DR1 parameters are still in the node's parameter list, but they
-  do nothing in this build, and saving one says so, for example
-  `GNSS_TYPE=1 saved (no GNSS in this build)`. Setting `UBX_RESET` to a reset
-  answers `UBX_RESET ignored: no GNSS in this build`; its idle value `0`, which
-  a parameter file writes, is accepted without a message. The read-only
-  `GPS1_TYPE` and `GPS_TYPE` entries that a DroneCAN GPS node lists are not in
-  its list.
-- The operator "block GNSS" command is answered `UNSUPPORTED`, and a DR1
-  release is answered that the node is not in DR1. With no DR1 there is no
-  authenticated DR recovery either, and no signing key.
-- Its status messages come once, from system 42. The filter build also repeats
-  each one as the flight controller's GPS component (system 1, component 220);
-  this build is not a GPS, so it does not.
-- Leave `GPS1_TYPE` for whatever GPS the aircraft really uses. When an
-  aircraft moves from the filter build to this one, set `GPS1_CAN_OVRIDE` back
-  to `0` (or to the node ID of the real DroneCAN GPS): node `42` never sends
-  GPS here, so a lock on `42` blocks the real GPS.
-- Keep the CAN, tunnel, airspeed and compass settings from section 5,
-  including the filter tunnel (S2) and the flight controller's system ID of 1.
-  The node's status messages reach Mission Planner only through that tunnel,
-  the node accepts parameter changes only from the flight controller it found
-  through the tunnels, and the flight controller telemetry it reads there (the
-  throttle and RPM for the fuel estimate, for example) counts only from
-  system 1.
+**Hardware validation is partial.** After the external servo BEC was connected,
+S4 moved the camera for a commanded change from 1800 to 1200 µs and returned
+close to the starting view at 1800 µs. Only S4 had a connected servo; physical
+response on S1–S3 remains unverified. Live GPIO readbacks of PA8–PA11 showed
+HIGH and LOW with TIM1 AF1 push-pull routing, but do not measure connector
+voltage or pulse timing. The camera UART/CAN link worked, and airspeed had
+worked in earlier bench use. Physical command-loss/stalled-loop cutoff, CAN
+disconnect/reconnect and reset HIL are still required before flight; other
+fitted functions are not certified by the S4 test. S1–S4 headers do not supply
+servo power: connect the external servo supply and common ground before testing.
+
+This build publishes no `Fix2` or `Auxiliary`, has no spoofing detector or
+DR0/DR1 state, and supplies no GNSS protection. Leave `GPS1_TYPE` configured
+for the aircraft's real GPS. When switching from the filter build, set
+`GPS1_CAN_OVRIDE` back to `0` or to that GPS node's actual ID; a lock on `42`
+would prevent the real GPS from being used.
+
+The node exposes and saves only its 23 `N_*` settings, the 9 fuel settings and
+`LOG_MS`. Filter-only GNSS/DR1 parameters and `UBX_RESET` are hidden. An old
+filter journal can supply matching fuel/log settings, but the next node save
+omits the inactive filter settings. **Before switching back to the filter
+firmware, restore and verify its GNSS and protection tuning.** The node's
+messages come once from system 42; it does not impersonate the FC's GPS
+component and has no DR-recovery signing key.
+
+### Controller and servo setup
+
+Control comes only from the CAN node selected by `N_FC_ID` (default `10`).
+`42` is this peripheral node itself and is not allowed as `N_FC_ID`.
+Match the FC's `CAN_D1_UC_NODE` to it; this is distinct from its MAVLink system
+ID. Servo commands, safety and DISARMED evidence come from this selected
+CAN source. Direct DroneCAN parameter requests may come from a GCS node;
+writes still require fresh DISARMED from the selected FC. The administrative
+MAVLink tunnels accept only that selected FC. Servo control and direct
+DroneCAN parameter access work without a filter MAVLink tunnel. Keep that
+tunnel from section 5 for status text and fuel telemetry; those FC MAVLink
+fields still require `MAV_SYSID = 1` (`SYSID_THISMAV = 1` on ArduPilot 4.6).
+
+| FC setting | Value for the default node setup |
+|------------|----------------------------------|
+| `CAN_P1_DRIVER` / `CAN_D1_PROTOCOL` | `1` / `1` |
+| `CAN_P1_BITRATE` | `1000000` |
+| `CAN_D1_UC_NODE` | `10`, matching node `N_FC_ID` |
+| `CAN_D1_UC_SRV_BM` | `15` to send SERVO1–SERVO4 |
+| `CAN_D1_UC_SRV_RT` | `50` |
+| `CAN_D1_UC_OPTION` | Preserve existing bits; bit `4` (value `16`) optionally sends PWM microseconds |
+| `ARSPD_TYPE` | `8` for MS4525 airspeed |
+
+For initial setup, use controller ID `10`. To change it, first confirm the
+current selected FC is DISARMED and write the new `N_FC_ID` to the node.
+Then set the FC's `CAN_D1_UC_NODE` to that new ID and reboot the FC. The source
+change clears old arming evidence and queued traffic, so wait for fresh
+DISARMED from the new ID and `Tune saved` before power-cycling the node and
+reading `N_FC_ID` back. Factory reset returns `N_FC_ID` to `10`; configure
+the FC to match before expecting control again.
+
+Assign the desired `SERVOx_FUNCTION` on the FC. The node accepts standard
+DroneCAN `actuator.ArrayCommand` with UNITLESS (`0`) or PWM (`4`) commands;
+with the defaults, unitless `-1`, `0`, `+1` becomes `1000`, `1500`, `2000` us.
+The FC's safety state must be freshly **off** before pulses can start; merely
+arming a vehicle or sending a command is insufficient.
+
+Connect S1–S4 signal pins (`PA8`–`PA11`) and GND. The middle pin of each
+header is **not connected**: supply servos from a separate suitable supply and
+share its ground with the board. Signals are 3.3 V; do not feed servo power
+into a signal pin. All four outputs share `N_SRV_HZ`, initially `50` Hz.
+
+Each channel independently times out after `N_SRV_TMO`, initially `500` ms.
+Commands for another channel cannot keep it alive. At boot and whenever safety
+is on, unknown or older than `1500` ms, or controller communication is lost,
+pulses stop. With fresh safety off, command timeout instead selects that
+channel's `N_Sx_FS`: `0` stops pulses (the default); a nonzero pulse is bounded
+by `N_SRV_MIN` and `N_SRV_MAX`. Set nonzero failsafes only after checking the
+installed mechanism's safe position. A new valid command is needed to resume.
+
+A CAN controller restart or node-ID conflict discards control authority before
+further receive processing. While the link is unavailable, safety-off and
+actuator commands are ignored. Returning online requires fresh safety off and
+new commands. Counter rollover after about 49 days cannot revive expired
+commands or an expired safety-off state.
+
+An independent timer checks command and safety expiry every `1` ms, including
+when the main loop stalls. Pulse-width changes take effect at the next PWM
+frame. A separate hardware guard forces all four signal pins LOW if that
+timer stops being serviced for `3` ms, including when interrupts are disabled.
+After a guard trip, fresh safety off and new commands are required; cached
+commands cannot restart the outputs.
+
+CAN safety and command age is measured at reception, not when the main loop
+eventually processes a queued frame. Multi-frame commands retain the first
+fragment's age. A delayed command has only its remaining timeout available;
+expired buffered traffic cannot renew PWM after a main-loop stall.
+
+For RPM-based fuel telemetry, keep the Hall pickup as the FC's direct RPM1
+source. A missing RPM stream or a sample over `2000` ms old is reported in EFI
+as a crankshaft-sensor fault, with numeric RPM `0`; conservative fuel accounting
+continues. Do not feed EFI-derived RPM back into this estimator.
+Fresh zero RPM also remains a fault for fuel estimation while the last
+observed throttle is open, even if throttle telemetry has expired; the
+conservative degraded estimate continues until usable evidence changes.
+`FUEL_AUTOF` remains `0` by default. When enabled, automatic full-tank
+establishment is available only on an eligible cold power-on with no retained
+fuel record and a working backup store, after the stopped-engine checks pass.
+Engine activity, a capacity/density edit or factory-reset preparation cancels
+that permission. A warm reset or later loss of accounting does not refill the
+tank automatically; use the normal stopped-engine `FUEL_CAPG` procedure.
+
+### Servo diagnostics in Mission Planner
+
+Version `0.5.42` automatically sends one `SV*` INFO row per second through the
+node's MAVLink tunnel. Open **Flight Data → Messages** and allow at least 12 s
+for a full cycle; parameter downloads/writes temporarily pause these rows.
+Each row is a new observational snapshot, so different rows have different
+sample times. Diagnostics do not release safety, renew commands, reset the
+guard or alter PWM. No diagnostic setting needs saving.
+
+| Row | Meaning |
+|-----|---------|
+| `SVRX f… a… s…` | Raw actuator frames from any source; completed actuator arrays and safety transfers from the selected FC |
+| `SVSRC a… s… st… i… t… u…` | Last raw actuator/safety source IDs; last decoded selected-FC safety status (`255` off, `0` on, `-1` none); last decoded actuator ID/type (`-1` none); ignored entries for unmapped IDs |
+| `SV1`–`SV4 i… n… a… p…/… LABEL` | Output's mapped actuator ID; accepted-command count; current command age in ms; desired/software-applied us; current state |
+| `SVHW C… M… E… G… R…` | TIM1 running; main output enable; channel-enable register in hex; latched guard fault; pending transport reset |
+| `SVTIM p… a… t2… t7…` | TIM1 prescaler and auto-reload registers; TIM2/TIM7 running flags |
+| `SVCCR …/…/…/…` | TIM1 compare registers in timer ticks, not microseconds |
+| `SVREJ n… REASON a…` | Rejected-event count; most recent historical rejection and its age in ms |
+| `SVG n… d… e… left…` | Guard-trip count; raw DMA flags in hex; guard DMA enabled; remaining DMA transfers |
+| `SVSAFE f… a… on… off…` | Raw safety-frame count; last selected-FC safety-transfer age; accepted safety-on/off event ages |
+
+Counters start again at node reset and wrap after `4294967295`; none is stored
+in flash. An age of `-1` means absent; displayed ages saturate at `99999` ms.
+A historical rejection can remain visible while new commands work. A raw
+frame is not proof that its source, payload or CRC was accepted. A completed
+array need not contain an ID mapped to S1–S4; watch each output's `n` counter.
+Valid entries for other outputs increase `u`, not the rejection count.
+
+State labels: `START` not initialized; `LINK` CAN unavailable; `GUARD` cutoff
+or guard fault; `RESET` transport purge pending; `CONFIG` invalid configuration;
+`SAFETY` no fresh safety-off; `IDOFF` output disabled; `NOCMD` no accepted
+command; `TIMEOUT` expired command with no pulses; `ZERO` explicit zero pulse.
+`FAILSAFE` means an expired command selected a configured nonzero failsafe.
+`TIMER`, `MOE` and `CCOFF` identify a stopped timer, cleared main output enable
+or disabled channel while policy requests a pulse. `PWM` means the software
+policy and reported timer enables permit PWM. Rejection labels are `SOURCE`,
+`PAYLOAD`, `TIMING`, `AUTH` and `COMMAND` (a mapped command with an unsupported
+type, non-finite value or value outside its admissible range); `NONE` means
+none recorded.
+
+For the temporary Mission Planner button setup, retain FC
+`SERVO5`–`SERVO8_FUNCTION=0`, include channels 5–8 in `CAN_D1_UC_SRV_BM`, and
+map node `N_S1_ID`–`N_S4_ID` to `5`–`8`. With safety released and the FC
+disarmed, button presses should increase the corresponding `n` counter and
+change `p`. Hold one target for at least 15 s to correlate the rows.
+At 50 Hz and an 80 MHz timer clock, `SVTIM p24 a63999` gives
+`pulse_us = CCR × 25 / 80`; 1500 us is CCR `4800`. A 1 MHz guard clock has
+TIM2 prescaler `79`; TIM7 should be running.
+
+**These rows do not measure a connector waveform, servo supply or movement.**
+The software-applied cache can stay nonzero after a hardware break; check
+`M`, the DMA flags and the compare registers. DMA remains live during a
+snapshot, and compare preloads may await the next PWM period. Verify actual
+50 Hz pulses with a scope/logic analyzer against the node's GND.
+
+### Node parameters
+
+Read/write them through node `42` in Mission Planner's DroneCAN parameter
+inspector. Writes require fresh DISARMED from the selected controller. Wait
+for `Tune saved`, then power-cycle and read back the settings. The complete
+per-parameter limits are in the [tuning manual](06_tuning.md).
+
+| Node setting | Default | Purpose |
+|--------------|---------|---------|
+| `N_FC_ID` | `10` | Selected controller CAN node ID |
+| `N_SRV_HZ` / `N_SRV_TMO` | `50` / `500` | Common PWM Hz / per-channel timeout ms |
+| `N_SRV_MIN` / `N_SRV_MAX` | `1000` / `2000` | Pulse endpoints in us |
+| `N_S1_ID` / `N_S2_ID` / `N_S3_ID` / `N_S4_ID` | `1` / `2` / `3` / `4` | Actuator IDs routed to S1–S4; `0` disables an output |
+| `N_S1_FS` / `N_S2_FS` / `N_S3_FS` / `N_S4_FS` | `0` / `0` / `0` / `0` | Command-timeout failsafe pulse, us; `0` stops pulses |
+| `N_V1_MULT` / `N_V2_MULT` | `0` / `0` | Voltage divider calibration; `0` disables publication |
+| `N_I1_GAIN` / `N_I2_GAIN` | `0` / `0` | External current-sensor gain, A/V; `0` means unknown current |
+| `N_I1_OFF` / `N_I2_OFF` | `0` / `0` | Zero-current ADC voltage, V |
+| `N_ADC_VREF` | `3.3` | Measured ADC reference voltage, V |
+| `N_U2_BAUD` / `N_U3_BAUD` | `115200` / `115200` | CN2/CN3 UART baud; `0` disables that port |
+| `N_LED_ID` | `0` | External RGB light ID accepted in `LightsCommand` |
+
+All nonzero `N_Sx_ID` values must be distinct, and `N_SRV_MIN` must be
+less than `N_SRV_MAX`. Invalid combinations inhibit all servo outputs.
+
+### Serial, analog and indication connections
+
+The remote serial IDs are `0` for CN1 camera, `1` for the node's own MAVLink
+parameter/status link, `2` for CN2 USART2 (`PA2` TX / `PA3` RX), and `3` for
+CN3 USART3 (`PB10` TX / `PB11` RX). Match the attached UART to its node baud
+setting; CN1 remains `115200`. For `N_U2_BAUD` and `N_U3_BAUD`, positive
+values `1`–`2399` are normalized to `2400`; `0` disables the port.
+CN2 requires 3.3 V UART logic, even though its
+power pin supplies 5 V.
+
+CN2/CN3 collect partial chunks for up to `5` ms and alternate service when CAN
+is busy. UART baud is not a guarantee of simultaneous sustained throughput:
+all tunnels, servo commands and sensors share the `1` Mbit/s CAN bus. Check
+the combined traffic under load; an overloaded bus can still lose serial data.
+If a progressing TX queue stays busy for two seconds, queued transmissions
+are discarded to bound delay. This serial congestion cleanup preserves servo
+authority. A real CAN outage still revokes authority and requires fresh safety
+off and commands after recovery.
+
+For example, to use CN2 instead of the camera on an available FC virtual port,
+set `CAN_D1_UC_SER_EN=1`, `CAN_D1_UC_S1_NOD=42`, `CAN_D1_UC_S1_IDX=2`,
+`CAN_D1_UC_S1_BD=115` and `CAN_D1_UC_S1_PRO=2`; keep S2 mapped to index `1`
+for the node's messages. Select remote index `3` instead for CN3. Reboot the
+FC after changing these settings. ArduPilot firmware commonly exposes only
+S1/S2/S3 virtual ports per CAN driver: choose which remote ports to map rather
+than expecting an S4 group. Bytes in CN2/CN3 are carried unchanged; the node
+does not infer or parse their attached device's protocol. This build requires
+the `Targetted` MAVLink2 transport tag (`1`), as for the camera; that is not
+a claim that arbitrary ArduPilot serial drivers use a compatible transport.
+
+BAT1/PC2 and BAT2/PC4 measure voltage through dividers. The board documents
+conflicting resistor values: the actual factor may be `11` or `21`.
+**Leave both `N_Vx_MULT` values at `0` until you check the fitted parts and
+calibrate against a meter.** CUR1/PC3 and CUR2/PC5 accept an external current
+sensor's 0–3.3 V output; there is no current sensor fitted on the board.
+Set its gain/offset from measurements, using
+`current_A = (ADC_V - N_Ix_OFF) * N_Ix_GAIN` and a measured `N_ADC_VREF`.
+Enabled circuits publish `uavcan.equipment.power.CircuitStatus` (`1091`),
+with circuit IDs `1` and `2`; an uncalibrated current is NaN. These are raw
+electrical readings, not `BatteryInfo`: selecting `BATT_MONITOR=8` does not
+turn them into an FC battery gauge or battery failsafe. They do not change
+the separate RPM-based fuel estimate.
+
+The external buzzer pads BZ+/BZ− are switched by PA0 through an S8050 NPN.
+The node accepts `BeepCommand` (`1080`), with tones from `1` to `10000` Hz
+and duration limited to `30` s. Use a suitable piezo buzzer, or fit a flyback
+diode for a magnetic one; this board has no flyback diode. PA1/U122 supplies
+the data signal for an external addressable RGB LED, selected by `N_LED_ID`
+from `LightsCommand` (`1081`). No buzzer or RGB strip is fitted on these pads.
+Match the external device's power and data requirements; the board provides
+a 3.3 V data signal, not an LED power driver. The normal PB1 status LED stays
+as described below. Spare I2C3 and SPI pads are still exposed for external
+hardware; this build does not add drivers for arbitrary devices on them.
+
+RGB transmission targets WS2815B-V1 timing and uses DMA, leaving UART interrupts
+enabled at higher configured CN2/CN3 baud rates. Verify the waveform and colors
+with the particular external strip on the bench; WS2815 revisions differ.
+
+Before using these additions, bench-check all servo directions/endpoints,
+power-up, safety-on, individual command timeout, CAN disconnect/reconnect,
+reset, a stalled main loop and disabled-interrupt cutoff with the mechanical
+loads disconnected. Check every UART both ways,
+compare analog readings with instruments, and verify compass behavior with
+servo/camera loads on and off. The earlier GNSS bench evidence does not
+validate any of these new outputs.
 
 ## 8) Troubleshooting
 

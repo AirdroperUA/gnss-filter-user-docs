@@ -6,16 +6,41 @@ The APMPX4 CAN board (EasyEDA project "APMPX4 CAN-JSTGH", schematic V1.0,
 2026-03-17) runs either the GNSS filter described in the
 [H743 DroneCAN Guide](13_h743_dronecan.md) or the separate CAN peripheral
 firmware on a smaller STM32L433RCT6. Both use DroneCAN node `42`.
-This guide covers GNSS-filter `0.5.39`, no-GNSS CAN-node bench `0.5.42`
+This guide covers GNSS-filter `0.5.46`, no-GNSS CAN-node bench `0.5.42`
 and secured CAN-node `0.5.43`.
 
-**Status, 2026-10-23: CAN-node 0.5.43 is released through the desktop app;
+Filter `0.5.46` is a bench candidate, not a promoted customer firmware or
+flight-qualified image. It has not been tested on physical hardware. The older filter bench evidence below does not
+qualify these new reset, CAN and peripheral changes.
+It supersedes the withdrawn 0.5.44 and 0.5.45 bench candidates: do not flash
+those older images. After upgrading from any older filter, remove all board power for at
+least 10 seconds before testing. Recheck compass setup as described in section 5.
+
+**Status, 2026-10-26:** desktop `2026.10.26.1` includes the full offline
+Mission Planner plugin **0.6.5** package. Its **Mission Planner plugin 0.6.5**
+button opens the folder and instructions; it does not install automatically,
+apply presets or flash a board. Download the latest program from the
+[official desktop download](https://gps.airdroper.org/download/app), or the
+[plugin package](https://gps.airdroper.org/download/mission-planner-mod) separately.
+CAN-node `0.5.43` remains the secured customer release. Filter `0.5.46` is
+provided only for bench testing; its physical DR1/reset/CAN/PWM checks remain.
+The complete L433 handover includes separate flashing paths and checksums.
+The EXE uses the reviewed production trust anchor; a manual build without
+GitHub attestation is identified as such in its accompanying release evidence.
+
+The live PC check with peripheral-only L433 read all 33 parameters through
+the FC tunnel and resumed diagnostics after Mission Planner reconnect. All
+104 recorded FC heartbeats were disarmed. This product has no DR telemetry;
+`UNKNOWN / STALE` and disabled filter controls are expected. These observations
+do not qualify filter `0.5.46`, its DR commands or its fuel readback retries.
+
+**Previous release, 2026-10-23: CAN-node 0.5.43 was released through the desktop app;
 0.5.42 remains the GitHub bench prerelease. The L433 GNSS filter remains
 unreleased.** Desktop `2026.10.23.1` adds the separate `l433_can_node` target.
 Its 0.5.43 image checks the licensed board's UID and RDP1; install it through
 the desktop app over ST-Link/SWD. The server catalog now serves promoted 0.5.43;
-the [official desktop download](https://gps.airdroper.org/download/app) serves
-app `2026.10.23.1`. The EXE was built manually with the reviewed production
+the official desktop download initially served
+app `2026.10.23.1`. That EXE was built manually with the reviewed production
 trust anchor and its checksum verified; it has no GitHub build attestation.
 The secured 0.5.43 firmware has not been flashed or qualified for flight.
 The 0.5.42 direct-SWD download is unchanged,
@@ -26,19 +51,19 @@ a connected servo. S1–S3 physical response and failsafe, CAN-loss and reset
 tests remain pending. This is bench evidence, not flight qualification.
 See the [Changelog](CHANGELOG.md) and section 7.
 
+## 1) Two firmware builds
+
 The separate GNSS-filter `0.5.39` bench image previously passed GPS under a
 clear sky and blocked it at a spoofed site with ArduPlane 4.7.1 (see
 `docs/dev/evidence/l433-bench-live-spoofing-2026-09-26.md`). Those observations
 do not apply GNSS protection to either no-GNSS CAN-node build.
 
-## 1) Two firmware builds
-
 | Build | What it does | Installed by |
 |-------|--------------|--------------|
-| `apmpx4_can_l433rc_dronecan` | The GNSS spoofing filter: GNSS in on CN2, filtered GPS out as DroneCAN, plus airspeed, compass, the camera tunnel, fuel estimation and parameters. | The desktop app (release image), or directly over SWD (bench image) |
+| `apmpx4_can_l433rc_dronecan` | The GNSS spoofing filter: GNSS exclusively on CN2, filtered GPS out as DroneCAN, plus airspeed, compass, camera, fuel and the shared peripheral functions in section 7. | The desktop app (release image), or directly over SWD (bench image) |
 | `apmpx4_can_l433rc_dronecan_nognss` / `_nognss_release` | CAN peripheral node: airspeed, onboard compass, S1–S4 servo outputs, CN1/CN2/CN3 serial bridges, buzzer/RGB control, calibrated analog inputs, fuel and node parameters. No GNSS filter or DR0/DR1. | `0.5.42` bench image directly over SWD, or secured `0.5.43` through desktop target `l433_can_node`; hardware validation is partial |
 
-In desktop `2026.10.23.1`, select **[!] L433 CAN Node (NO GPS filter)**
+In desktop `2026.10.23.1` or later, select **[!] L433 CAN Node (NO GPS filter)**
 and ST-Link/SWD transport. Do not select the L433 GNSS-filter product for a
 peripheral-only installation. Activating or updating a secured board can erase
 saved settings; back them up and read them back after installation. The app
@@ -51,12 +76,167 @@ Both builds use node ID `42`, so do not put one of each on the same CAN bus.
 DroneCAN tools show them as `org.airdroper.gnss_filter.l433_dronecan` and
 `org.airdroper.gnss_filter.l433_nognss`, with hardware version `2.0` (the WeAct
 H743 is `1.0`). The node information's VCS field holds the full firmware
-version: a tool that shows it in hex shows `00000539` for filter 0.5.39 or
+version: a tool that shows it in hex shows `00000546` for filter 0.5.46 or
 `00000542` for CAN node 0.5.42 or `00000543` for secured CAN node 0.5.43.
 
 If two nodes with ID `42` do share a bus, each of them reports
 `CAN: another node uses ID 42 - ID clash` every 10 s and reports itself
 unhealthy, so the flight controller refuses to arm until one is removed.
+
+### GNSS-filter 0.5.46: resets and CAN reconnects
+
+With healthy backup storage, DR1 intent is saved before the RAM latch changes
+or entry messages are sent.
+If an operator blocks a node already in automatic DR1, its stricter
+`OPERATOR BLOCK` reason is saved before the warning and command ACK. Healthy
+retained DR1 restores its reason, trusted anchor/fence and recovery references;
+its existing recovery policy remains in force. A CAN reconnect does not clear
+DR1 or a retained backup fault. Healthy DR0 restores its trusted takeoff
+anchor and a separate recent accepted position/altitude. The first new fix
+after the startup guard is checked against those recent references before
+publication; it cannot become a fresh unguarded baseline. The one-second
+checked backup service captures accepted detector state, including while the
+aircraft is far from takeoff, and does not adopt unjudged boot-time fixes.
+No receiver-time continuity is assumed across reset. The first absolute
+bounds use `SP_ABS_M` (default 2000 m) and `ALT_JMP_M` (default 300 m).
+Genuine movement beyond these bounds during an interruption can also block
+reacquisition and require recovery; these are conservative bounds, not a
+promise that every in-flight reset is transparent.
+Warm-reset recovery also retains the DR1 entry altitude and its validity.
+Ground recovery cannot silently drop its altitude bound after a reset.
+After automatic ground recovery, parked-position monitoring and its trusted
+reference survive warm resets; a reset cannot turn that monitoring off.
+In 0.5.46 this also bounds height against a genuinely known entry height:
+more than 30 m of drift, non-finite altitude or unavailable current altitude
+after the startup guard re-trips DR1. Initial UART absence may wait only while
+that fixed guard already blocks output. A missing-altitude trip preserves the
+known height through DR1 and reset; it cannot recover at an unrelated height.
+An originally unavailable height remains optional. Fresh arming ends parked
+probation. This does not enable the intentionally disabled absolute barometric
+guard or use GNSS-fed FC movement as authority to end probation.
+Warm resets also restore ground-release dwell escalation conservatively from
+the lifetime release count. A penalty that had decayed during clean DR0 can
+therefore return after reset; the lifetime release limit is never refunded.
+
+The backup store uses a primary record, a shadow of trusted references, an
+intent/commit marker and a fault word. Writes are checked by reading them back.
+An interrupted or damaged record, a blank store after a warm reset, failed
+self-test or rejected write causes `DR1 backup fault: GNSS blocked; power cycle`.
+This hold blocks GNSS and prevents a new fix from becoming a trusted anchor.
+Ordinary recovery, the DR1 maximum-duration setting and operator recovery cannot
+clear it.
+
+Clearing a backup-fault hold requires actual power loss that clears the retained
+store, followed by a healthy, wholly blank cold boot. Remove **all** board power
+for at least 10 seconds; a flight-controller reboot or debugger reset alone is
+insufficient. Earlier retained formats, including withdrawn 0.5.44/0.5.45 candidates,
+cannot prove the new recent-reference and recovery-field semantics of V3.
+Their reason and anchor remain available for diagnosis, but they fail closed
+in both DR0 and DR1; upgrading requires one such power cycle. A persistent
+backup failure needs repair, rather than repeated recovery commands.
+
+There is a hardware limit: a backup domain that rejects every write, including
+the intent and fault words, cannot retain its own failure. Firmware blocks GNSS
+in that boot. If hardware later restores old DR0 contents and loses all evidence
+of the failure, software cannot distinguish that history from a healthy old
+record. Reset and power-fault tests on the actual board remain required.
+
+The filter also discards stale transport state after stalls or reconnects:
+
+- Foreground service aborts a resident GNSS hardware mailbox at 300 ms and
+  quarantines a continuous hardware/software transmit backlog at 2 s.
+- A queued CAN frame aged 500 ms or more is quarantined at dispatch. Before a
+  matching tail is dispatched, an unfinished DroneCAN transfer aged 500 ms
+  from its assembly start is quarantined too. This discards queued/partial
+  transfers, filter-tunnel bytes and parser state and invalidates FC telemetry;
+  fresh evidence is required before GNSS can resume.
+- Before each FC-tunnel byte, an incomplete MAVLink message aged 500 ms from
+  its first parser start byte is reset, even if the tail arrives in a fresh
+  DroneCAN transfer. A fresh start byte can then begin a new message.
+
+Each receive/assembly stage has its own 500 ms budget. This is not a single
+500 ms end-to-end latency limit across all stages.
+
+These limits are serviced by the main loop. The autonomous CAN controller can
+finish an already authorized DR0 frame while that loop is stalled, before
+firmware resumes; the 300 ms limit is not an independent hardware cutoff.
+Completed DR1 purging closes GNSS transmission, and software tests do not
+replace a physical bus capture. These reset/transport guards need no new parameters. The changes
+apply only to the L433 GNSS filter; H743 and CAN-node 0.5.42/0.5.43 are unchanged.
+
+The existing CAN-node peripheral parameters are now also available in this
+filter; section 7 describes their scope, controller setup and journal migration.
+GNSS blocking does not revoke existing servo authority: an intentional GNSS-only
+purge preserves current servo/safety deadlines and the order of control frames
+already queued in software. Hardware FIFO and in-progress frames may still be
+lost during a CAN reset. Real transport faults, controller changes and hardware
+guard trips stop PWM and require fresh safety off and commands.
+
+### Mission Planner plugin 0.6.5 connection checks
+
+Use the updated plugin package with this filter. Status, recovery challenges
+and commands use one qualified, open connection. Reconnecting or changing the
+FC identity retires cached state and rereads settings. A delayed second link
+cannot replace a newer DR1 indication with an older DR0 report.
+
+Changing the primary vehicle clears cached FC position, heading, EFI, fuel
+warnings and the full-tank notice. Replacing or reopening its transport also
+retires position, heading and EFI. Queued packets from a closed FC link cannot
+refresh these readouts. The `FUEL_AUTOF` checkbox stays
+indeterminate and disabled until the selected node returns exactly 0 or 1;
+unknown does not mean enabled. This resets only the display, not board fuel
+consumption or saved parameters. An invalid current FC position also retires
+the position and heading cache without discarding EFI.
+
+Plugin 0.6.5 uses the same FC connection for L433; no secondary USB cable is
+required. The normal DR stream advances every five seconds. Missing fuel
+readbacks get an initial request plus three retries, three seconds apart;
+only missing settings are read, and writes/DR commands are not retried.
+Startup warnings before live DR qualification are logged as `UNQUALIFIED FILTER`
+with their source. They cannot establish DR state, fuel state or command readiness.
+DR commands use the captured qualified transport; a replaced connection cannot
+redirect them. Fast replies retain their ACK verdict. FC position and EFI
+packets also recheck their source context when they commit, so a queued packet
+cannot repopulate the previous vehicle's values after a context reset.
+
+The **Position diagnostics** row reports the expected absence of L433 SP/DV
+coordinates. RF diagnostics require fresh u-blox MON-RF data; an unsupported
+receiver profile can filter normally without these diagnostics. Strict saved
+RF-axis capture additionally needs a moving private DR-reference stream, which
+L433 does not publish. Servo diagnostic text is recorded in Fuel/Log when sent;
+servo, compass and airspeed operation still use the FC's normal DroneCAN pages.
+This plugin path is for the GNSS filter, not the separate no-GNSS CAN-node product.
+
+The monitor retains a boot-clock barrier across route changes. If the actual
+node has rebooted with a lower uptime while Mission Planner remains open,
+right-click the Flight Data map and choose **AirDroper: Reset monitor session**, then wait for
+fresh advancing telemetry. This clears only the PC's monitor and does not
+send a command, change autopilot settings or release DR1. Do not use it to
+accept a delayed link whose node has not rebooted.
+
+Each button press uses a reply token echoed by L433 0.5.46; a matching ACK
+proves which command the node answered, not that DR1 remains cleared.
+Always check fresh DR status: a persisting spoof indication can re-latch DR1.
+Older firmware returns legacy ACKs without this token, so the plugin cannot
+confirm an individual press from that ACK. Recovery magic, nonce checks and
+unsigned-command policy are unchanged; the token is not authentication.
+
+**L433 map limitation:** filter `0.5.46` publishes neither private `SP_*`
+coordinates nor `DV_*` offsets. Its red receiver-position and orange DR-reference
+markers are therefore unavailable over the FC/CAN link; no parameter can enable
+them. Plugin status, reason, commands, fuel and RF diagnostics remain available.
+The plugin must report missing position telemetry rather than invent a location
+or imply that a USB cable can provide one on this board. No diagnostic GNSS
+stream has been added to L433 in this review.
+
+On the supported H743 streams, the red point is the position **claimed by the
+GNSS receiver**, which may be spoofed. It is not the transmitter's location.
+Private coordinates and approximate offset reconstruction are labelled
+separately. A held offset keeps the FC origin captured with its transaction;
+later FC movement alone must not move that red point. Old incident samples
+cannot become live in a new DR episode. These plugin changes do not modify
+either board's firmware.
+
 
 ## 2) Board and connectors
 
@@ -75,17 +255,17 @@ unhealthy, so the flight controller refuses to arm until one is removed.
 | CN2 | GNSS receiver in the filter build; UART bridge in the no-GNSS node, USART2 | 1 `5V`, 2 `TX2` (`PA2`), 3 `RX2` (`PA3`), 4 `SCL3`, 5 `SDA3`, 6 `GND` |
 | CN1 | Camera MAVLink tunnel, USART1 at 115200 | 1 `5V`, 2 `TX1` (`PB6`), 3 `RX1` (`PB7`), 4 `SCL2`, 5 `SDA2`, 6 `GND` |
 | U141 | I2C2 sensors: MS4525 airspeed | 1 `5V`, 2 `SCL2` (`PB13`), 3 `SDA2` (`PB14`), 4 `GND` |
-| CN3 | USART3 bridge in the no-GNSS node; shared I2C2 | 1 `5V`, 2 `TX3`, 3 `RX3`, 4 `SCL2`, 5 `SDA2`, 6 `GND` |
+| CN3 | USART3 bridge in both builds; shared I2C2 | 1 `5V`, 2 `TX3`, 3 `RX3`, 4 `SCL2`, 5 `SDA2`, 6 `GND` |
 | H1 | SWD for ST-Link, 2.54 mm; no NRST | 1 `3V3`, 2 `SWDIO` (`PA13`), 3 `SWCLK` (`PA14`), 4 `GND` |
 
 U138 and U140 carry the spare I2C3 bus. S1–S4 are servo headers (signal,
-not connected, GND) with no power on them. The filter build holds S1–S4 and
-the buzzer/RGB lines low; the no-GNSS CAN node uses them as described in
-section 7. The compass on CN2 pins 4–5 (I2C3) is not read. The onboard
+not connected, GND) with no power on them. Both builds provide the servos
+and buzzer/RGB control described in section 7. The compass on CN2 pins 4–5
+(I2C3) is not read. The onboard
 MMC5983MA compass sits on I2C2 at `0x30`.
 
-The drawings show the filter-mode wiring; section 7 describes the added
-no-GNSS node functions. The complete pinout, with both board sides, every solder pad and the pin tables,
+The drawings show the filter-mode wiring; section 7 describes the shared
+peripheral functions. The complete pinout, with both board sides, every solder pad and the pin tables,
 is an A3 drawing:
 [l433_apmpx4_can_pinout.pdf](https://github.com/AirdroperUA/gnss-filter-user-docs/blob/main/diagrams/l433_apmpx4_can_pinout.pdf)
 (Ukrainian:
@@ -147,8 +327,9 @@ a UM980 or Mosaic then finds no receiver until `GNSS_TYPE` is set again
 (section 3, step 2). Set it, `FUEL_CAPG` and any other changed parameter again
 afterwards. A bench upload with PlatformIO over SWD
 (`pio run -e ... -t upload`) erases only the flash pages the image covers, so
-the saved parameters survive it and carry over between the filter and no-GNSS
-builds.
+the saved parameters survive it. The new filter journal is not readable by the
+released no-GNSS node: export, restore and verify the destination configuration
+when changing between builds (section 7).
 
 **With the desktop app (release image).** In the AirDroper desktop app choose
 **[!] L433 CAN Node (NO GPS filter)** for peripheral firmware, or the
@@ -238,10 +419,13 @@ telemetry only from system 1, component 1.
 - **Compass:** in Mission Planner open `Setup -> Mandatory Hardware -> Compass`,
   confirm a compass from node `42` appears, set its orientation and priority,
   and calibrate it in the installed vehicle. The onboard MMC5983MA is compass
-  `0` of node `42`, and an external compass on the sensor bus is compass `1`,
-  so each keeps its own orientation and calibration: after you add, remove or
-  change an external compass, the flight controller sees a different compass
-  to set up, not the old one with the wrong calibration.
+  `0` of node `42`. In filter `0.5.46`, external HMC5x83 uses sensor ID `1`
+  and external QMC5883L uses sensor ID `2`; these IDs follow the family,
+  independent of probe order. An upgrade with a QMC therefore creates a new
+  compass identity: check its priority/orientation and recalibrate it before use.
+  Released no-GNSS 0.5.42/0.5.43 still use external ID `1` for either family.
+  Replacing a compass with another of the same family does not change its ID;
+  always recheck orientation and recalibrate after any physical replacement.
 - **Tunnel ports:** `_PRO` must be `2` (MAVLink2) on both ports; with `1`, the
   node discards that port's traffic. Reboot the flight controller after
   changing any CAN or `CAN_D1_UC_*` serial setting: ArduPilot sets up the CAN
@@ -264,6 +448,57 @@ telemetry only from system 1, component 1.
   clears its node database and then the bit. Calibrate the compass again as
   well: to the flight controller the new board's compass is the old one, and
   it would keep the old board's calibration.
+
+### ArduPlane 4.7.1: EKF3 during DR1
+
+**Required manual step: preserve `AHRS_OPTIONS` and set bit 0.** Read its
+current integer value and write `old | 1`: `0 → 1`, `16 → 17`, `17 → 17`.
+Read it back. Do not replace an unknown bitmask with `1`. For QuadPlane,
+review VTOL operation separately; `old | 3` also sets its bit 1.
+
+This inhibits the later fixed-wing DCM fallback choices while EKF3 still
+provides valid attitude and vertical estimates. It is **not an absolute
+never-DCM guarantee**: `_active_EKF_type()` can select DCM earlier during
+startup or when those EKF estimates are unavailable.
+See the [official Plane-4.7.1 AHRS implementation](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_AHRS/AP_AHRS.cpp#L1896-L2058).
+
+The new companion file
+`presets/arduplane_FC_4.7.1_l433_filter_EKF3_after_calibration.param` in the
+Mission Planner package supplies these settings:
+
+| FC parameter | Value / purpose |
+|--------------|-----------------|
+| `AHRS_EKF_TYPE` / `EK3_ENABLE` | `3` / `1`: EKF3 |
+| `EK3_SRC1_POSXY` / `EK3_SRC1_VELXY` | `3` / `3`: filtered GPS when available |
+| `EK3_SRC1_POSZ` / `EK3_SRC1_VELZ` | `1` / `0`: barometric height; no GPS vertical-velocity source |
+| `EK3_SRC1_YAW` | `1`: calibrated compass |
+| `ARSPD_TYPE` / `ARSPD_USE` | `8` / `1`: calibrated DroneCAN pitot used for control |
+
+The source values follow the [official EKF source definitions](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_NavEKF/AP_NavEKF_Source.cpp).
+`ARSPD_USE = 1` enables control use: load this file **only after** the fitted
+pitot is healthy and calibrated, as described by the
+[official airspeed parameters](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_Airspeed/AP_Airspeed_Params.cpp).
+
+1. Back up every FC parameter. Keep the FC disarmed with ignition and servo
+   linkages disconnected for the bench change. Complete the transport setup
+   above and check that the FC's only enabled GNSS path is the L433 filter.
+2. Verify the installed compass orientation/calibration, healthy barometer
+   and calibrated pitot. The file preserves their individual calibration,
+   servo functions and aircraft failsafes.
+3. Confirm source set 1 is active. Review RC/script source switching, alternate
+   sets and `EK3_SRC_OPTIONS` bits 0/3 (all-velocity fusion/per-core sources);
+   they must not introduce GPS-dependent vertical or yaw aiding behind this
+   profile. Resolve a custom source configuration before loading the file.
+4. Load the companion file, write the nine values, then perform the required
+   `AHRS_OPTIONS = old | 1` step above. The file deliberately contains no
+   static `AHRS_OPTIONS` assignment and is incomplete without this step.
+5. Read all changed parameters back, reboot the FC while disarmed, and read
+   them back again. Verify the actual EKF3 state and sensor health; a saved
+   `AHRS_EKF_TYPE = 3` alone does not prove EKF3 is the active estimator.
+6. Complete controlled GPS-loss/recovery bench and SITL checks before flight.
+   EKF3 dead reckoning drifts and does not maintain a reliable global position
+   indefinitely. This preset does not configure an aircraft-specific failsafe
+   response or qualify a flight through GNSS loss.
 
 ## 6) Optional sensors
 
@@ -291,6 +526,29 @@ needs a real climb or a steady turn; straight-and-level flight will not do it.
 
 ## 7) The no-GNSS CAN node
 
+### Shared peripheral functions in the new filter
+
+GNSS-filter `0.5.46` includes the same servo, diagnostics, CN3 serial, buzzer/RGB
+and calibrated analog functions described below. Its GNSS protection stays
+active: CN2 is dedicated to the receiver, `N_U2_BAUD` is read-only `0`, and
+raw bridge port `2` is unavailable. Set the receiver through `GNSS_TYPE` and
+`UBX_BAUD`; use CN3 for an additional serial device. The filter now uses
+`N_FC_ID`, default `10`, for FC tunnel/status and servo authority instead of
+automatically binding a controller. H743 and released CAN-node `0.5.42`/
+`0.5.43` are unchanged. This filter has not been flashed or flight-qualified.
+
+The filter appends all 23 `N_*` keys without changing stored key IDs. It saves
+95 keys and exposes 96 parameters including `UBX_RESET`, retaining all GNSS
+tuning. Its L433-filter-only 1024-byte BTN4/schema-4 journal migrates legacy
+512-byte records and keeps the newest legacy snapshot until a new commit
+succeeds. Schema-3 profile choices remain intact. Released no-GNSS firmware
+cannot read BTN4 and may find an older legacy snapshot instead. **Back up
+settings before switching builds, then restore and read back the complete
+configuration for the destination firmware.** The base node's smaller saved
+subset described below is unchanged.
+
+### Separate no-GNSS firmware and its bench evidence
+
 `apmpx4_can_l433rc_dronecan_nognss` is a CAN peripheral node for aircraft
 that use a separate GPS: MS4525 airspeed, the onboard MMC5983MA compass, four
 servo outputs, serial bridges, buzzer/RGB control and calibrated analog inputs.
@@ -313,7 +571,7 @@ disconnect/reconnect and reset HIL are still required before flight; other
 fitted functions are not certified by the S4 test. S1–S4 headers do not supply
 servo power: connect the external servo supply and common ground before testing.
 
-This build publishes no `Fix2` or `Auxiliary`, has no spoofing detector or
+The no-GNSS build publishes no `Fix2` or `Auxiliary`, has no spoofing detector or
 DR0/DR1 state, and supplies no GNSS protection. Leave `GPS1_TYPE` configured
 for the aircraft's real GPS. When switching from the filter build, set
 `GPS1_CAN_OVRIDE` back to `0` or to that GPS node's actual ID; a lock on `42`
@@ -377,18 +635,24 @@ channel's `N_Sx_FS`: `0` stops pulses (the default); a nonzero pulse is bounded
 by `N_SRV_MIN` and `N_SRV_MAX`. Set nonzero failsafes only after checking the
 installed mechanism's safe position. A new valid command is needed to resume.
 
-A CAN controller restart or node-ID conflict discards control authority before
-further receive processing. While the link is unavailable, safety-off and
+A real CAN fault, controller rebind or node-ID conflict discards control
+authority before further receive processing. While the link is unavailable, safety-off and
 actuator commands are ignored. Returning online requires fresh safety off and
 new commands. Counter rollover after about 49 days cannot revive expired
 commands or an expired safety-off state.
+
+An intentional GNSS-only purge in the filter preserves current servo/safety
+deadlines and the order of control frames already in the software RX queue.
+Hardware FIFO and in-progress frames can still be lost during a CAN reset.
+The GNSS output gate remains independent of servo authority.
 
 An independent timer checks command and safety expiry every `1` ms, including
 when the main loop stalls. Pulse-width changes take effect at the next PWM
 frame. A separate hardware guard forces all four signal pins LOW if that
 timer stops being serviced for `3` ms, including when interrupts are disabled.
 After a guard trip, fresh safety off and new commands are required; cached
-commands cannot restart the outputs.
+commands cannot restart the outputs. A single-bank flash save may stall
+interrupt service long enough to trip this guard.
 
 CAN safety and command age is measured at reception, not when the main loop
 eventually processes a queued frame. Multi-frame commands retain the first
@@ -411,8 +675,9 @@ tank automatically; use the normal stopped-engine `FUEL_CAPG` procedure.
 
 ### Servo diagnostics in Mission Planner
 
-Version `0.5.42` automatically sends one `SV*` INFO row per second through the
-node's MAVLink tunnel. Open **Flight Data → Messages** and allow at least 12 s
+CAN-node `0.5.42`/`0.5.43` and filter `0.5.46` automatically send one `SV*`
+INFO row per second through the node's MAVLink tunnel. Open
+**Flight Data → Messages** and allow at least 12 s
 for a full cycle; parameter downloads/writes temporarily pause these rows.
 Each row is a new observational snapshot, so different rows have different
 sample times. Diagnostics do not release safety, renew commands, reset the
@@ -473,7 +738,7 @@ per-parameter limits are in the [tuning manual](06_tuning.md).
 
 | Node setting | Default | Purpose |
 |--------------|---------|---------|
-| `N_FC_ID` | `10` | Selected controller CAN node ID |
+| `N_FC_ID` | `10` | Selected FC tunnel/status and servo controller CAN node ID |
 | `N_SRV_HZ` / `N_SRV_TMO` | `50` / `500` | Common PWM Hz / per-channel timeout ms |
 | `N_SRV_MIN` / `N_SRV_MAX` | `1000` / `2000` | Pulse endpoints in us |
 | `N_S1_ID` / `N_S2_ID` / `N_S3_ID` / `N_S4_ID` | `1` / `2` / `3` / `4` | Actuator IDs routed to S1–S4; `0` disables an output |
@@ -482,7 +747,7 @@ per-parameter limits are in the [tuning manual](06_tuning.md).
 | `N_I1_GAIN` / `N_I2_GAIN` | `0` / `0` | External current-sensor gain, A/V; `0` means unknown current |
 | `N_I1_OFF` / `N_I2_OFF` | `0` / `0` | Zero-current ADC voltage, V |
 | `N_ADC_VREF` | `3.3` | Measured ADC reference voltage, V |
-| `N_U2_BAUD` / `N_U3_BAUD` | `115200` / `115200` | CN2/CN3 UART baud; `0` disables that port |
+| `N_U2_BAUD` / `N_U3_BAUD` | `115200` / `115200` on the base node | CN2/CN3 bridge baud; `0` disables a bridge. The filter locks `N_U2_BAUD` at `0` for receiver-only CN2 |
 | `N_LED_ID` | `0` | External RGB light ID accepted in `LightsCommand` |
 
 All nonzero `N_Sx_ID` values must be distinct, and `N_SRV_MIN` must be
@@ -491,14 +756,16 @@ less than `N_SRV_MAX`. Invalid combinations inhibit all servo outputs.
 ### Serial, analog and indication connections
 
 The remote serial IDs are `0` for CN1 camera, `1` for the node's own MAVLink
-parameter/status link, `2` for CN2 USART2 (`PA2` TX / `PA3` RX), and `3` for
+parameter/status link, `2` for CN2 USART2 (`PA2` TX / `PA3` RX) on the no-GNSS
+node only, and `3` for
 CN3 USART3 (`PB10` TX / `PB11` RX). Match the attached UART to its node baud
-setting; CN1 remains `115200`. For `N_U2_BAUD` and `N_U3_BAUD`, positive
+setting; CN1 remains `115200`. In the filter, CN2 is receiver-only and
+`N_U2_BAUD` reads `0` and rejects writes. For enabled bridge ports, positive
 values `1`–`2399` are normalized to `2400`; `0` disables the port.
 CN2 requires 3.3 V UART logic, even though its
 power pin supplies 5 V.
 
-CN2/CN3 collect partial chunks for up to `5` ms and alternate service when CAN
+Bridge ports collect partial chunks for up to `5` ms and alternate service when CAN
 is busy. UART baud is not a guarantee of simultaneous sustained throughput:
 all tunnels, servo commands and sensors share the `1` Mbit/s CAN bus. Check
 the combined traffic under load; an overloaded bus can still lose serial data.
@@ -507,10 +774,11 @@ are discarded to bound delay. This serial congestion cleanup preserves servo
 authority. A real CAN outage still revokes authority and requires fresh safety
 off and commands after recovery.
 
-For example, to use CN2 instead of the camera on an available FC virtual port,
+For example, on the no-GNSS node, to use CN2 instead of the camera on an available FC virtual port,
 set `CAN_D1_UC_SER_EN=1`, `CAN_D1_UC_S1_NOD=42`, `CAN_D1_UC_S1_IDX=2`,
 `CAN_D1_UC_S1_BD=115` and `CAN_D1_UC_S1_PRO=2`; keep S2 mapped to index `1`
-for the node's messages. Select remote index `3` instead for CN3. Reboot the
+for the node's messages. Select remote index `3` instead for CN3 in either
+build; the filter rejects raw CN2 bridge traffic. Reboot the
 FC after changing these settings. ArduPilot firmware commonly exposes only
 S1/S2/S3 virtual ports per CAN driver: choose which remote ports to map rather
 than expecting an S4 group. Bytes in CN2/CN3 are carried unchanged; the node
@@ -543,7 +811,7 @@ as described below. Spare I2C3 and SPI pads are still exposed for external
 hardware; this build does not add drivers for arbitrary devices on them.
 
 RGB transmission targets WS2815B-V1 timing and uses DMA, leaving UART interrupts
-enabled at higher configured CN2/CN3 baud rates. Verify the waveform and colors
+enabled at higher configured bridge baud rates. Verify the waveform and colors
 with the particular external strip on the bench; WS2815 revisions differ.
 
 Before using these additions, bench-check all servo directions/endpoints,
@@ -595,7 +863,18 @@ shows the state:
   the node sends every 5 s. The same line then repeats every 5 s, but from then
   on it names what blocks recovery now, not the trip reason: `no-anchor`, for
   example, means there has been no trusted fix since power-up. DR1 has several
-  reasons; two of them are worth knowing here:
+  reasons.
+
+  A DR1 state alone is not proof of spoofing. `NO FIX` (`DR_REASON` 1),
+  `LOW SATELLITES` (2) and `FC LINK STALE` (14) can follow signal or telemetry
+  loss. Ten satellites do not guarantee a valid fix or acceptable HDOP.
+  `SNR` (7) is a heuristic and can also reject an unusually narrow clean C/N0
+  spread. Keep the first trigger message and `DR_REASON`, `DR_COUNT`,
+  `DR_STATE` and `DR_CONF` in a telemetry log before changing thresholds.
+  A repeating banner with unchanged `DR_COUNT` is not another DR0-to-DR1
+  transition; a restored latch also keeps its count across a warm reset.
+
+  Two installation-specific reasons are worth knowing here:
   - `FC LINK STALE`, common on a new installation: the filter tunnel or the
     flight controller's system ID (`MAV_SYSID`, or `SYSID_THISMAV` on 4.6) is
     wrong, and the H743 guide's "FC LINK STALE: one cause, four messages"
@@ -610,16 +889,22 @@ shows the state:
     `PreArm: GPS 1: Bad fix` and `PreArm: DroneCAN: Node 42 unhealthy!`. With
     a u-blox receiver, `GNSS hot ...` and `GNSS cold ...` after 10 minutes
     without a fix, and then `GNSS cold retry` every 2 minutes, are expected.
-- **`DR1 kept across reset: <reason>` (filter build):** the board reset
-  without losing power (the watchdog, a crash, a power dip) while DR1 was
-  latched, and came back latched, with the same reason and the trusted
-  position it had. GNSS output stays blocked until the normal recovery
-  evidence releases it, or, for `SOUTH HEMISPHERE` and `OPERATOR BLOCK`,
-  until the board's power is removed for at least 10 seconds. After a reset
-  outside DR1 the node keeps only its trusted position
+- **`DR1 kept across reset: <reason>` (filter build):** a healthy retained
+  record restored the latch, reason and trusted references after a reset.
+  GNSS stays blocked under the existing recovery policy; reset does not
+  grant a release. An incomplete or damaged record uses the backup-fault
+  hold described below. After a healthy reset outside DR1 the node keeps its
+  trusted position
   (`North anchor kept across reset`), and GNSS output waits for the start-up
   guard (20 s, or 2 s while the flight controller reports itself armed)
   before it opens.
+  In 0.5.44 the restored minimum lock uses the saved `DR_LOCK_MS`, measured
+  from the restore timestamp; it no longer silently uses the two-minute
+  compiled default when a different duration was saved.
+- **`DR1 backup fault: GNSS blocked; power cycle` (filter 0.5.46):** retained
+  state could not establish safe reset authority. GNSS remains blocked even
+  if normal recovery conditions pass. Follow the power-cycle and hardware
+  checks in section 1; every earlier retained format needs one power cycle on upgrade.
 - **`RESET: ...` after power-up:** the board reset without a power-off, and
   says why. `RESET: watchdog` means the firmware stopped responding;
   `RESET: HardFault PC=... CFSR=...` (or `MemManage`, `BusFault`,
@@ -629,8 +914,8 @@ shows the state:
   power-up says nothing.
 - **`BACKUP: store failed, nothing kept across reset`:** the registers that
   keep the fuel total and the DR1 state across resets failed their start-up
-  test. The board keeps neither, so the fuel total reads lost after every
-  reset. The board needs repair.
+  test. Fuel accounting cannot rely on retention. Filter 0.5.46 also holds GNSS
+  closed, rather than treating the failure as a fresh start. The board needs repair.
 - **`CAN rxerr=... boff=... purge=...`:** the node's CAN counters since
   power-up: received frames it lost, bus-off events, and transmit queues it
   dropped, which includes the drop every DR1 entry makes on purpose. The line

@@ -27,6 +27,93 @@ faster H743 aircraft also require log-based jump-threshold validation.
 The preset does not replace receiver validation, pitot zero/ratio calibration,
 compass orientation and calibration, or a staged ground test.
 
+## L433 peripheral parameters
+
+The following `N_*` parameters apply to development GNSS-filter `0.5.46` and
+the separate no-GNSS CAN-node `0.5.42`/`0.5.43`. H743 is unchanged. Change
+peripheral settings only while the selected controller positively reports
+DISARMED. They are flash-backed: wait for `Tune saved`, power-cycle, and read
+the values back. Existing GNSS tuning retains its separate write policy.
+Wiring, controller setup and bench checks are in the
+[L433 guide, section 7](15_l433_apmpx4_can.md#7-the-no-gnss-can-node).
+
+The no-GNSS node exposes and saves its 23 `N_*` values, 9 fuel settings and
+`LOG_MS`; GNSS/DR1 settings are hidden. Its next save omits inactive filter
+settings. The new filter retains all GNSS settings and appends the peripheral
+keys without changing existing IDs: 95 saved keys and 96 visible parameters,
+including `UBX_RESET`. Its L433-filter-only 1024-byte BTN4/schema-4 journal
+migrates legacy 512-byte records while retaining the newest legacy snapshot
+until a new commit succeeds. Existing schema-3 profile choices are preserved.
+Released no-GNSS nodes cannot read BTN4 and may reload an older legacy snapshot.
+Back up settings before changing firmware; restore and read back the complete
+configuration for the destination build. Filter `0.5.46` has not been flashed,
+published or flight-qualified.
+Its retained DR state uses a new format; after upgrading any earlier filter,
+remove all board power for at least 10 seconds. Flash-backed tuning is a
+separate store. See the L433 guide for the QMC compass ID change and recalibration.
+
+| Parameter | Meaning | Default | Min | Max |
+|-----------|---------|---------|-----|-----|
+| `N_FC_ID` | FC tunnel/status and servo controller CAN node ID, matching `CAN_D1_UC_NODE`; 42 (this node) is not allowed | 10 | 1 | 127 |
+| `N_SRV_HZ` | Common servo frame rate (Hz) | 50 | 25 | 333 |
+| `N_SRV_TMO` | Per-channel command timeout (ms) | 500 | 50 | 5000 |
+| `N_SRV_MIN` | Minimum servo pulse (us) | 1000 | 500 | 1500 |
+| `N_SRV_MAX` | Maximum servo pulse (us) | 2000 | 1500 | 2500 |
+| `N_S1_ID` | S1 actuator ID; 0 disables | 1 | 0 | 255 |
+| `N_S2_ID` | S2 actuator ID; 0 disables | 2 | 0 | 255 |
+| `N_S3_ID` | S3 actuator ID; 0 disables | 3 | 0 | 255 |
+| `N_S4_ID` | S4 actuator ID; 0 disables | 4 | 0 | 255 |
+| `N_S1_FS` | S1 command-timeout failsafe pulse (us); 0 stops pulses | 0 | 0 | 2500 |
+| `N_S2_FS` | S2 command-timeout failsafe pulse (us); 0 stops pulses | 0 | 0 | 2500 |
+| `N_S3_FS` | S3 command-timeout failsafe pulse (us); 0 stops pulses | 0 | 0 | 2500 |
+| `N_S4_FS` | S4 command-timeout failsafe pulse (us); 0 stops pulses | 0 | 0 | 2500 |
+| `N_V1_MULT` | BAT1 divider multiplier; 0 disables publication | 0 | 0 | 100 |
+| `N_V2_MULT` | BAT2 divider multiplier; 0 disables publication | 0 | 0 | 100 |
+| `N_I1_GAIN` | CUR1 external sensor gain (A/V); 0 means unknown | 0 | 0 | 1000 |
+| `N_I2_GAIN` | CUR2 external sensor gain (A/V); 0 means unknown | 0 | 0 | 1000 |
+| `N_I1_OFF` | CUR1 zero-current ADC voltage (V) | 0 | 0 | 3.3 |
+| `N_I2_OFF` | CUR2 zero-current ADC voltage (V) | 0 | 0 | 3.3 |
+| `N_ADC_VREF` | Measured ADC reference voltage (V) | 3.3 | 2 | 3.6 |
+| `N_U2_BAUD` | No-GNSS node CN2 UART2 bridge baud; filter reserves CN2 for GNSS and locks this at 0 | 115200 | 0 | 921600 |
+| `N_U3_BAUD` | CN3 UART3 bridge baud; 0 disables | 115200 | 0 | 921600 |
+| `N_LED_ID` | External RGB LightsCommand light ID | 0 | 0 | 255 |
+
+Safety on, unknown/stale safety and controller loss always stop servo pulses.
+`N_S1_FS`–`N_S4_FS` apply only to command timeout with fresh safety off;
+nonzero values are limited to `N_SRV_MIN`–`N_SRV_MAX`. Servo headers have no
+power on their middle pins. Verify travel and failsafe with linkages disconnected.
+
+In the filter, `N_FC_ID` now selects the FC tunnel/status source as well as
+servos; match its default 10 on the FC rather than relying on automatic binding.
+Intentional GNSS-only purges preserve servo authority, deadlines and the order
+of control frames already queued in software. Hardware FIFO/in-progress frames
+can still be lost during a CAN reset. Real transport faults, controller changes and hardware-guard trips stop
+PWM and require fresh safety off and commands. A single-bank flash save can
+stall interrupt service long enough to trip that guard.
+
+Leave `N_V1_MULT` and `N_V2_MULT` at 0 until the fitted divider is checked
+(11 or 21) and calibrated against a meter. Current pads require an external
+0–3.3 V sensor: `current_A = (ADC_V - N_Ix_OFF) * N_Ix_GAIN`.
+The table gives the no-GNSS node's `N_U2_BAUD` default/range. In the filter it
+always reads 0, advertises a locked zero range and rejects writes; configure
+the dedicated receiver with `GNSS_TYPE` and `UBX_BAUD` instead. CN3 remains a
+bridge in both builds. Positive bridge baud values from 1 to 2399 normalize
+to 2400; 0 disables the corresponding bridge.
+Partial bridge chunks wait up to 5 ms for batching. All UART tunnels share
+the 1 Mbit/s CAN bus; a higher baud setting does not reserve bus capacity.
+RGB updates leave UART interrupts enabled.
+`CircuitStatus` reports electrical voltage/current, not battery capacity or
+fuel remaining; unknown current is NaN. No new node/output hardware validation
+has been performed for this development build.
+
+On the no-GNSS node v0.5.40, `FUEL_AUTOF` can establish a total only on an
+eligible cold boot with no retained record and a working backup store, after
+the stopped-engine checks pass. Engine activity, capacity/density changes and
+factory-reset preparation cancel that boot's permission. A warm reset cannot
+renew it. Stale/missing RPM is marked as a crankshaft-sensor fault in EFI;
+the numeric RPM field is 0 and conservative fuel accounting continues. Keep
+the FC's direct Hall RPM1 source; do not loop EFI-derived RPM back into it.
+
 ## Exposed Tune Parameters
 
 The default column below is the **H743 DroneCAN production fixed-wing profile**,

@@ -6,6 +6,158 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## Desktop 2026.10.26.1 / Mission Planner plugin 0.6.5 — 2026-10-26
+
+- The Windows program includes the full offline Mission Planner package.
+  Its new button opens the folder and instructions; installation and aircraft
+  presets are separate operator actions. No firmware update is needed for the plugin.
+- Live FC-tunnel reads and Mission Planner reconnect worked with a peripheral-only
+  L433. The FC stayed disarmed in all 104 recorded heartbeats. That firmware
+  supplies no DR clock, so UNKNOWN/STALE and unavailable filter controls are expected.
+- The L433 handover separates filter 0.5.46 bench testing from secured CAN-node
+  0.5.43 installation. Filter 0.5.46 has no flight qualification; physical
+  reset/CAN/PWM and DR1 isolation checks remain. H743 firmware is unchanged.
+
+## Mission Planner plugin 0.6.5 — L433 compatibility candidate, 2026-10-25
+
+- L433 status, commands and fuel clearly use the FC tunnel. Expected missing
+  map streams no longer look like a failed USB connection; receiver-dependent RF
+  diagnostics and unavailable strict saved-axis capture are explained.
+- DR commands cannot follow a replacement transport, and fast replies keep their
+  verdict. Old queued FC position/fuel packets cannot restore another context.
+- Missing fuel settings get three bounded read retries; writes are not repeated.
+  Automatic reads stay in the log and do not replace a command verdict.
+- Startup warnings before live DR qualification are visible as unqualified
+  diagnostics, without enabling controls. Fuel values remain readable in dark
+  and light Mission Planner themes.
+- All firmware is unchanged, including L433 filter 0.5.46 and H743.
+
+---
+
+## Mission Planner plugin 0.6.4 — additional review candidate, 2026-10-25
+
+- Valid private H743 position samples no longer reset the monitor when their
+  timestamp is slightly older than adjacent diagnostics. Delayed DR status and
+  recovery challenges remain rejected; the retained clock barrier is unchanged.
+- Switching vehicles clears the previous vehicle's fuel readout, warnings and
+  full-tank notice. Closing/replacing the FC link also retires its position,
+  heading and EFI. Invalid current FC coordinates hide the old map origin.
+- Automatic full-tank control shows an unknown state and remains disabled until
+  the selected node answers with FUEL_AUTOF exactly 0 or 1. A display update
+  does not write settings or reset fuel consumption on the board.
+- Fuel writes and parameter export keep reply tracking when switching to the
+  usable link. Export files retain the completed request's parameters and route;
+  starting another export cannot replace the contents of the previous snapshot.
+- All board firmware remains unchanged. L433 0.5.46 still cannot supply a live
+  fake receiver location through FC/CAN; the plugin explains this limitation.
+
+---
+
+## Mission Planner plugin 0.6.3 — map review candidate, 2026-10-25
+
+- Correct fake receiver marker placement across the date line and at high
+  latitude. An offset keeps its captured FC origin; later FC movement alone
+  cannot move the held marker. Offset reconstruction is labelled approximate.
+- Old position samples cannot reappear as live after a new DR incident.
+  Out-of-range reports expire when no fresh position telemetry arrives.
+- A fresh private no-fix report hides the older offset marker. Missing/stale
+  private telemetry may still fall back to a fresh offset. Changing vehicles
+  retires the old FC origin and heading.
+- L433 filter 0.5.46 does not send SP coordinates or DV offsets: its live fake
+  location is unavailable through FC/CAN. The plugin and both language guides
+  explain that limitation. No new stream or parameter has been added.
+- All board firmware is unchanged. Red shows the GNSS receiver's claimed
+  position, not the location of a jammer or spoofer transmitter.
+
+---
+
+## L433 GNSS filter 0.5.46 / Mission Planner plugin 0.6.2 - bench candidate, 2026-10-25
+
+- Warm resets retain the most recent accepted position and height, separately
+  from takeoff. The first new fix is checked before it can become a new
+  reference. Being far from takeoff is allowed; jumping far from the recent
+  reference is not. The absolute reset bounds can also block genuine movement
+  larger than `SP_ABS_M` / `ALT_JMP_M` during an interruption; recovery is required.
+- After ground recovery, parked monitoring also bounds altitude. A known
+  entry height cannot be discarded by hiding current altitude or resetting.
+  A genuinely unavailable original height remains optional. No new parameter
+  is required and the global absolute barometric guard remains disabled.
+- After upgrading from 0.5.45 or earlier, remove **all board power for at least
+  10 seconds**. Earlier retained formats keep GNSS blocked until this cold start.
+  Flash-backed tuning remains separate; read it back after installation.
+- Plugin 0.6.2 keeps status and commands on a qualified live connection.
+  Delayed copies from a second FC link cannot falsely clear DR1. Closed/stale
+  routes are retired and reconnects refresh settings. Incomplete DV bursts
+  cannot move the map marker using a mixture of different samples.
+- Plugin commands on L433 0.5.46 use a reply token for each press. A delayed
+  old ACK cannot report success for a later press or consume its challenge.
+  On older firmware an uncorrelated ACK is not proof that the current press
+  succeeded; check fresh DR status. After a real node reboot with lower uptime,
+  use **Reset monitor session** in the plugin context menu and wait for fresh
+  status. The action changes only this PC's monitor; it does not release DR1.
+- The 0.5.45 candidate is withdrawn. H743 firmware and no-GNSS CAN-node
+  0.5.42/0.5.43 remain unchanged. Hardware bench checks remain required before
+  operational use. See the [L433 guide](15_l433_apmpx4_can.md).
+
+---
+
+## L433 GNSS filter 0.5.45 — withdrawn bench candidate, 2026-10-25
+
+Superseded by 0.5.46 after the additional reset/probation review.
+
+- Warm resets keep the parked-position monitor and its trusted reference after
+  ground recovery, and retain the entry altitude used to bound DR1 recovery.
+- Reset restores dwell escalation conservatively from the lifetime release
+  count; a penalty that had decayed before reset can return afterward.
+- Older retained formats, including 0.5.44, keep GPS blocked until all board
+  power is removed for at least 10 seconds. Flash-backed tuning is separate;
+  read it back after installation. No new parameter is needed.
+- Compass IDs in this filter are now onboard MMC5983MA 0, external HMC5x83 1
+  and external QMC5883L 2. After a QMC upgrade, check compass selection and
+  orientation and recalibrate. Always recalibrate a physical replacement,
+  including another part of the same family.
+- The 0.5.44 candidate is withdrawn; use its corrected replacement for bench
+  testing. H743 and no-GNSS CAN-node 0.5.42/0.5.43 remain unchanged. This
+  replacement has not been flashed, published or qualified for flight.
+  See the [L433 guide](15_l433_apmpx4_can.md).
+
+---
+
+## L433 GNSS filter 0.5.44 — withdrawn bench candidate, 2026-10-23
+
+Superseded by 0.5.45 after the reset and compass findings of 2026-10-24.
+Do not flash the 0.5.44 image.
+
+- A warm reset now restores the configured `DR_LOCK_MS` minimum hold instead
+  of silently using the two-minute default before saved settings loaded.
+- A new ArduPlane 4.7.1 L433-filter companion and EN/UK procedure configure
+  EKF3, barometric vertical aiding, compass yaw and calibrated airspeed use.
+  Set `AHRS_OPTIONS` bit 0 without clearing other bits to inhibit normal GPS-loss
+  fallback; stock ArduPlane can still select DCM at startup or on invalid EKF
+  attitude/vertical state. This is not an absolute never-DCM guarantee.
+- The GNSS filter gains the existing CAN-node servo, diagnostics, CN3 serial,
+  buzzer/RGB and calibrated analog functions. CN2 remains exclusively GNSS;
+  `N_U2_BAUD` reads zero and rejects writes. `N_FC_ID` defaults to 10 and must
+  match the FC CAN node for its tunnel, status and servo commands.
+- Its 95 saved settings migrate from the old 512-byte journal to a separate
+  1024-byte format without changing key IDs. Back up settings before switching
+  firmware: released CAN-node versions cannot read the new filter journal.
+- With healthy backup storage, DR1 entry and an operator's promotion to OPERATOR
+  BLOCK are saved before status messages or acknowledgement. Retained DR1
+  keeps its reason, trusted position and existing recovery policy after a reset.
+- Interrupted or damaged backup records, failed writes and an empty store
+  after a warm reset keep GPS blocked. Ordinary recovery cannot release this
+  backup-fault hold. A real power-off that clears the store, followed by a
+  healthy cold start, is required; upgrading an old DR0 record needs one such
+  power cycle. See the [L433 guide](15_l433_apmpx4_can.md).
+- Old pending GPS transmissions and stale CAN telemetry are discarded before
+  they can resume after a stall or reconnect. Intentional GNSS blocking preserves
+  current servo deadlines; real transport faults and guard trips still stop outputs.
+- H743 and CAN-node 0.5.42/0.5.43 remain unchanged. This filter version has not
+  been flashed, published or qualified for flight; hardware tests remain required.
+
+---
+
 ## L433 CAN node 0.5.43 / desktop 2026.10.23.1 — desktop release, 2026-10-23
 
 - The desktop app gains a separate L433 CAN-node choice for airspeed, compass,

@@ -80,5 +80,5 @@ Reboot is not required after every parameter write.
 13. `12_video_tutorials.md` - YouTube tutorial library with previews, embedded players, and related written guides.
 14. `13_h743_dronecan.md` - complete WeAct H743 DroneCAN wiring, HD-15 D-sub box pinout, flashing, FC setup (including EFI fuel reporting), display, and validation guide.
 15. `14_h743_airspeed_node.md` - the H743 Airspeed Node: a separate firmware for the same board with MS4525 airspeed over DroneCAN, the camera tunnel and flight-controller status on the display, and no GPS filter.
-16. `15_l433_apmpx4_can.md` - the APMPX4 CAN board (STM32L433): the GNSS-filter and no-GNSS firmware builds, connectors, wiring, flashing over SWD, FC setup and optional sensors. Not released yet.
+16. `15_l433_apmpx4_can.md` - the APMPX4 CAN board (STM32L433): licensed GNSS filter 0.5.46 and separate no-GNSS CAN node 0.5.45, connectors, wiring, SWD flashing, FC setup, peripheral configuration and GPS-loss EKF3 guidance. Both products are published; select the intended product in the program.
 17. `CHANGELOG.md` - full firmware version history and release notes.

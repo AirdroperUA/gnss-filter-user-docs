@@ -6,6 +6,116 @@
 
 ---
 
+## L433 GNSS filter 0.5.46 — опубліковано, 2026-10-28
+
+- Ліцензований filter 0.5.46 став stable/default для **L433 APMPX4 CAN
+  (ST-Link)** **2026-10-28 о 13:05:46 UTC** (15:05:46 Київ); public catalogs обирають
+  0.5.46. Окремий **L433 CAN Node (NO GPS filter)** лишається
+  0.5.45 і не має GNSS protection. Повний filter kit зберігає незмінні
+  program 2026.10.27.2 / plugin 0.6.6 та містить поточні EN/UK flash/ArduPlane
+  instructions. До прошивання перевірте live catalog; raw unpersonalized
+  firmware чи per-board secrets не включено.
+- Виконайте [ArduPlane 4.7.1 EKF3 baseline](15_l433_apmpx4_can.md#arduplane-471-ekf3-під-час-dr1):
+  calibrated compass/pitot, barometric height, без GPS vertical velocity і
+  ручний `AHRS_OPTIONS = old | 1`. Перевірте actual EKF health/source selection,
+  reboot/readback і збережіть arming/pitot protections. Це continuation
+  initialized healthy EKF, не всі відмови чи GPS-denied FC restart.
+  AUTO/RTL/LOITER можуть слідувати drifting estimate; absolute home/коло й
+  межа похибки на 500 км не гарантовані. DR1 не дозволяє вводити receiver чи
+  synthetic GNSS лише для роботи режиму.
+- Окремо збережіть FC/node settings перед protected SWD update. Readback
+  доводить лише RAM acceptance: дочекайтеся `Tune saved` чи completed DroneCAN
+  SAVE у disarmed стані, перезапустіть L433 і перечитайте знову. Fuel declaration
+  side effects лишаються явними. Filter defaults: servo IDs 1–4 / 1000–2000 us;
+  не копіюйте factory profile no-GPS 0.5.45 без перевірки.
+- Software/SITL/isolated signed delivery checks пройдено; physical reset/CAN/PWM
+  і flight qualification плати потрібні окремо. H743 та всі firmware images
+  незмінні. Publication status, identities і review limits — у
+  [release record](../../dev/evidence/l433-filter-v0.5.46.md).
+- Окремий GPS-denied SITL case на 500.106 км зберіг AUTO/EKF validity, але
+  завершився похибкою позиції 103.354 км. Робота режиму не доводить точну
+  навігацію чи надійне повернення home; короткі RTL/LOITER samples і simulation
+  не замінюють кваліфікацію літака.
+
+## L433 CAN node 0.5.45 — опубліковано, 2026-10-27
+
+- Нові захищені no-GNSS вузли та explicit factory reset дають прив'язку
+  Mission Planner Servo 5/6/7/8 до L433 S1/S2/S3/S4. Збережені mappings
+  оператора мають пріоритет; update не перепризначає виходи літака автоматично.
+- FC налаштуйте окремо: передавайте виходи 5–8 через
+  `CAN_D1_UC_SRV_BM=240` та PWM у мікросекундах (`CAN_D1_UC_OPTION` bit 4,
+  value 16), CAN FD вимкнено. `SERVO5_FUNCTION`–`SERVO8_FUNCTION=0` —
+  тимчасовий disarmed bench setup, а не призначення функцій для польоту.
+  Наявні функції SERVO1–SERVO4 не змінюються.
+- Модель DLE60, максимум 2200 us, усі failsafes і safety/cutoff перевірки
+  збережено. Паливо не оголошується й не скидається. H743 та firmware
+  spoofing filter незмінні. Версія 0.5.45 стала stable default програми
+  2026-10-27 о 16:59:06 UTC; обидва public catalogs ставлять її першою.
+  Наявні програма 2026.10.27.2 і plugin 0.6.6 незмінні в оновленому
+  [full kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/l433-can-node-v0.5.45/AirDroper-L433-2026-10-27-CAN-node-0.5.45-release.zip).
+  Попередня 0.5.44 та її kit лишаються доступними й незмінними. Публікацію
+  виконано за прямим запитом власника; плату не прошивали, перед польотом
+  потрібні hardware tests точного artifact. Див.
+  [release record](../../dev/evidence/l433-can-node-v0.5.45.md).
+
+## L433 CAN node 0.5.44 — опубліковано, 2026-10-27
+
+- Нові захищені no-GNSS вузли мають типовий профіль DLE60 / 23x10:
+  діаметр 23 in, крок 10 in, номінальна потужність 5.22 kW і максимальний
+  імпульс серво 2200 us. Наявні valid retained settings мають пріоритет;
+  protected ST-Link update може їх стерти: зробіть backup, відновіть і перечитайте
+  settings. Factory reset відновлює цей профіль. IDs і порядок усіх 33 параметрів незмінні.
+- FC налаштовується окремо. Увімкніть `CAN_D1_UC_OPTION` bit 4 (value 16)
+  для PWM у мікросекундах, щоб зберегти калібровані положення серво;
+  новий діапазон вузла перетворює UNITLESS zero на 1600 us. IDs 1–4,
+  50 Hz, timeout команд 500 ms, failsafe без імпульсів і всі safety/cutoff
+  перевірки лишаються чинними.
+- BSFC 700, idle flow 250 і trim 1 — початкові значення, які потребують
+  калібрування за виміряною витратою. Заправка 11 L / 30:1 не оголошується
+  автоматично на кожній платі чи reboot. Штатна stopped-engine процедура
+  оголошення палива лишається потрібною; `FUEL_AUTOF` вимкнено.
+  Ця зміна не скидає лічильник спожитого палива.
+- Захищений no-GNSS 0.5.44 тепер є stable default програми: promotion
+  виконано 2026-10-27 о 15:32:07 UTC. Обидва public catalogs ставлять її першою.
+  App 2026.10.27.2 і опублікований plugin 0.6.6 незмінні в оновленому
+  [full kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/l433-can-node-v0.5.44/AirDroper-L433-2026-10-27-CAN-node-0.5.44-release.zip). H743, filter 0.5.46 та всі попередні firmware payloads незмінні.
+  Публікацію виконано за прямим запитом власника; перед польотом потрібні
+  hardware tests саме цього artifact. Source identity, software checks і
+  перевірку kit записано в
+  [release record](../../dev/evidence/l433-can-node-v0.5.44.md).
+
+## Desktop 2026.10.27.2 / plugin 0.6.6 — опубліковано, 2026-10-27
+
+- Виправлено відсутність native backend PyNaCl у Windows EXE, яка може зупиняти
+  активацію L433. Старі EXE 2026.10.26.1 та 2026.10.27.1 містили файли PyNaCl,
+  але не `_cffi_backend`; перевірка лише вмісту архіву цього не виявила.
+- Виправлена standalone-програма містить власне середовище виконання. Окремо
+  встановлювати Python або PyNaCl не потрібно. Офлайн-самоперевірка перевіряє
+  підписи та відхилення змінених даних саме упакованою програмою.
+- Виправлену [Windows-програму](https://gps.airdroper.org/download/app),
+  [plugin 0.6.6](https://gps.airdroper.org/download/mission-planner-mod) та
+  [повний комплект L433](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/desktop-2026-10-27-l433-crypto-fix/AirDroper-L433-2026-10-27-release.zip)
+  опубліковано. Ідентифікацію завантажених файлів та всі 20 файлів плагіна
+  перевірено. Встановлення плагіна лишається окремою дією оператора.
+- Уся firmware незмінна, включно з H743 та захищеним CAN-node 0.5.43. Filter
+  0.5.46 залишається bench candidate. Публікація не підтверджує фізичну
+  активацію чи прошивання; для виправлення desktop-помилки залежності змінювати
+  прошивку не потрібно.
+
+## Mission Planner plugin 0.6.6 — локальний UI candidate, 2026-10-27
+
+- Компактна смуга стану висотою 48 px показує DR-стан і результат команди.
+  Єдина кнопка **Open** відкриває робочий простір без надсилання команд.
+- Одна вкладка **AirDroper** містить **Overview** для команд, **Fuel** для
+  показників і налаштувань палива, **Diagnostics** для повних даних і map/RF
+  console та **Log** для подій. Окрему вкладку AirDroper Fuel/Log замінено.
+- За невідомої чи застарілої телеметрії недоступні controls лишаються вимкненими.
+  L433 не отримує потоку фальшивої позиції; firmware й налаштування апарата незмінні.
+- Plugin 0.6.6 і desktop candidate 2026.10.27.1 існують лише локально: їх не
+  встановлено й не опубліковано, desktop ще не зібрано. Публічні версії — plugin
+  0.6.5 і desktop 2026.10.26.1. Оновлення UI не кваліфікує L433 filter 0.5.46
+  для польоту й не замінює потрібні перевірки на фізичній платі.
+
 ## Desktop 2026.10.26.1 / Mission Planner plugin 0.6.5 — 2026-10-26
 
 - Windows app містить повний offline пакет Mission Planner. Нова кнопка

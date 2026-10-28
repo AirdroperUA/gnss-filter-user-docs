@@ -6,6 +6,114 @@ All notable firmware and tool changes are documented here.
 
 ---
 
+## L433 GNSS filter 0.5.46 — published, 2026-10-28
+
+- Licensed filter 0.5.46 became stable/default for **L433 APMPX4 CAN
+  (ST-Link)** at **2026-10-28 13:05:46 UTC** (15:05:46 Kyiv). The public catalogs
+  select 0.5.46. The separate **L433 CAN Node (NO GPS filter)** product
+  remains 0.5.45 and provides no GNSS protection. The complete filter kit keeps
+  the unchanged program 2026.10.27.2 and plugin 0.6.6, with current EN/UK flash
+  and ArduPlane instructions. Confirm the live catalog before flashing; no raw
+  unpersonalized firmware or per-board secret is included.
+- Follow the [ArduPlane 4.7.1 EKF3 baseline](15_l433_apmpx4_can.md#arduplane-471-ekf3-during-dr1):
+  calibrated compass/pitot, barometric height, no GPS vertical velocity and
+  manual `AHRS_OPTIONS = old | 1`. Check actual EKF health and source selection,
+  reboot/read back, and keep arming/pitot protections. This supports continued
+  flight with an initialized healthy EKF, not every failure or GPS-denied FC
+  restart. AUTO/RTL/LOITER can follow drifting estimates; absolute home/circle
+  accuracy and a 500 km error bound are not guaranteed. DR1 never permits
+  receiver or synthetic GNSS to be injected merely to keep a mode operating.
+- Back up FC/node settings separately before protected SWD updates. Readback
+  alone proves RAM acceptance: wait for `Tune saved` or completed DroneCAN
+  SAVE while disarmed, then restart the L433 and read back again. Keep fuel
+  declaration side effects explicit. Filter defaults remain servo IDs 1–4 and
+  1000–2000 us; do not copy the no-GPS 0.5.45 factory profile blindly.
+- Software, SITL and isolated signed delivery checks passed; physical-board
+  reset/CAN/PWM and flight qualification remain required. H743 and every
+  firmware image remain unchanged. Publication status, exact identities and
+  review limits are maintained in the [release record](../dev/evidence/l433-filter-v0.5.46.md).
+- A separate 500.106 km GPS-denied SITL case retained AUTO/EKF validity but
+  ended with 103.354 km position error. Continuing a mode is not proof of
+  accurate navigation or a reliable return home; short RTL/LOITER samples
+  and simulation do not replace aircraft qualification.
+
+## L433 CAN node 0.5.45 — published, 2026-10-27
+
+- New or explicitly factory-reset secured no-GNSS nodes map Mission Planner
+  Servo 5/6/7/8 to L433 S1/S2/S3/S4. Saved operator mappings still take
+  precedence; an update does not silently remap an existing aircraft.
+- Set up the FC separately: transmit outputs 5–8 with
+  `CAN_D1_UC_SRV_BM=240` and PWM microseconds (`CAN_D1_UC_OPTION` bit 4,
+  value 16); leave CAN FD off. Setting `SERVO5_FUNCTION` through
+  `SERVO8_FUNCTION=0` is a temporary disarmed bench test setup, not a flight
+  function assignment. Existing SERVO1–SERVO4 functions stay unchanged.
+- Keep the DLE60 model, 2200 us maximum, all failsafes and safety/cutoff
+  checks. No fuel is declared or reset. H743 and spoofing-filter firmware
+  remain unchanged. Version 0.5.45 became the program's stable default on
+  2026-10-27 at 16:59:06 UTC; both public catalogs select it first. Existing
+  program 2026.10.27.2 and plugin 0.6.6 are unchanged in the refreshed
+  [full kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/l433-can-node-v0.5.45/AirDroper-L433-2026-10-27-CAN-node-0.5.45-release.zip).
+  Previous 0.5.44 and its kit remain available unchanged. Publication follows
+  the owner's explicit request; no board was flashed and exact-artifact
+  hardware tests remain required before flight. See the
+  [release record](../dev/evidence/l433-can-node-v0.5.45.md).
+
+## L433 CAN node 0.5.44 — published, 2026-10-27
+
+- Newly provisioned secured no-GNSS nodes default to DLE60 / 23x10:
+  diameter 23 in, pitch 10 in, rated power 5.22 kW and maximum servo pulse
+  2200 us. Valid retained settings take priority; protected ST-Link updates can
+  erase them, so back up, restore and read settings back. A factory reset restores
+  this profile. All 33 parameters keep their existing IDs and order.
+- Keep FC setup separate. Set `CAN_D1_UC_OPTION` bit 4 (value 16) for PWM
+  microseconds to preserve calibrated servo positions; the new node envelope
+  maps UNITLESS zero to 1600 us. Mapping 1–4, 50 Hz, 500 ms command timeout,
+  pulse-off failsafes and all safety/cutoff checks remain active.
+- BSFC 700, idle flow 250 and trim 1 are starting values requiring measured
+  fuel calibration. The 11 L / 30:1 fill is not automatically declared on
+  each board or reboot. The normal stopped-engine fuel-load procedure remains
+  necessary; `FUEL_AUTOF` stays off. No fuel counter is reset by this change.
+- Secured no-GNSS 0.5.44 is now the program's stable default, promoted on
+  2026-10-27 at 15:32:07 UTC. Both public catalogs select it first. App
+  2026.10.27.2 and published plugin 0.6.6 remain unchanged in the refreshed
+  [full kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/l433-can-node-v0.5.44/AirDroper-L433-2026-10-27-CAN-node-0.5.44-release.zip). H743, filter 0.5.46 and all earlier firmware payloads remain unchanged.
+  Publication follows the owner's explicit request; exact-artifact hardware
+  tests remain required before flight. Source identity, software checks and
+  kit verification are recorded in the
+  [release record](../dev/evidence/l433-can-node-v0.5.44.md).
+
+## Desktop 2026.10.27.2 / plugin 0.6.6 — published, 2026-10-27
+
+- Correct the Windows EXE's missing PyNaCl native backend, which can stop L433
+  activation. The older 2026.10.26.1 and 2026.10.27.1 EXEs contained PyNaCl files
+  but omitted `_cffi_backend`; checking the archive alone missed the problem.
+- The corrected standalone program includes its runtime. No separate Python or
+  PyNaCl installation is required. An offline self-test checks that the actual
+  packaged program can verify signatures and reject altered data.
+- The corrected [Windows program](https://gps.airdroper.org/download/app),
+  [plugin 0.6.6](https://gps.airdroper.org/download/mission-planner-mod) and
+  [full L433 kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/desktop-2026-10-27-l433-crypto-fix/AirDroper-L433-2026-10-27-release.zip)
+  are published. Downloaded identities and all 20 plugin files were verified.
+  Installing the plugin remains a separate operator action.
+- All firmware remains unchanged, including H743 and secured CAN-node 0.5.43.
+  Filter 0.5.46 remains a bench candidate. Publication does not claim actual
+  board activation or flashing success or require a firmware change to fix the
+  desktop dependency error.
+
+## Mission Planner plugin 0.6.6 — local UI candidate, 2026-10-27
+
+- A compact 48 px status strip keeps the DR state and command result visible.
+  Its single **Open** button opens the workspace without sending a command.
+- One **AirDroper** tab contains **Overview** for commands, **Fuel** for fuel
+  readings/settings, **Diagnostics** for the full readout and map/RF console,
+  and **Log** for events. The separate AirDroper Fuel/Log tab is replaced.
+- Unknown or stale telemetry still disables unavailable controls. L433 still
+  supplies no fake-position stream; firmware and aircraft settings are unchanged.
+- Version 0.6.6 and desktop candidate 2026.10.27.1 are local only: not installed
+  or published, and the desktop is not built. Public downloads remain plugin
+  0.6.5 and desktop 2026.10.26.1. This UI work does not qualify L433 filter
+  0.5.46 for flight or replace its outstanding hardware tests.
+
 ## Desktop 2026.10.26.1 / Mission Planner plugin 0.6.5 — 2026-10-26
 
 - The Windows program includes the full offline Mission Planner package.

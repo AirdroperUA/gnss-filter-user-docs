@@ -80,5 +80,5 @@ HD-15 повністю зайнятий, встановлені I2C sensors ма
 13. `12_video_tutorials.md` - бібліотека YouTube-уроків з прев'ю, вбудованими плеєрами та пов'язаними інструкціями.
 14. `13_h743_dronecan.md` - guide для WeAct H743 DroneCAN: wiring, HD-15 D-sub box pinout, flashing, FC setup, display, validation.
 15. `14_h743_airspeed_node.md` - H743 Airspeed Node: окрема прошивка для тієї самої плати з MS4525 airspeed через DroneCAN, camera tunnel і станом польотного контролера на дисплеї, без GPS-фільтра.
-16. `15_l433_apmpx4_can.md` - плата APMPX4 CAN (STM32L433): збірки з GNSS-фільтром і без GNSS, роз'єми, підключення, прошивання через SWD, налаштування FC і необов'язкові датчики. Ще не випущено.
+16. `15_l433_apmpx4_can.md` - плата APMPX4 CAN (STM32L433): ліцензований GNSS filter 0.5.46 та окремий no-GNSS CAN node 0.5.45, роз'єми, підключення, SWD flashing, налаштування FC, периферії та EKF3 при втраті GPS. Обидва продукти опубліковано; у програмі обирайте потрібний продукт.
 17. `CHANGELOG.md` - повна історія версій прошивки та примітки до релізів.

@@ -29,8 +29,9 @@ compass orientation and calibration, or a staged ground test.
 
 ## L433 peripheral parameters
 
-The following `N_*` parameters apply to development GNSS-filter `0.5.46` and
-the separate no-GNSS CAN-node `0.5.42`/`0.5.43`. H743 is unchanged. Change
+The following `N_*` parameters apply to development GNSS-filter `0.5.46`,
+the separate no-GNSS CAN-node `0.5.42`/`0.5.43`, published secured-node
+`0.5.44` and published secured-node `0.5.45`. H743 is unchanged. Change
 peripheral settings only while the selected controller positively reports
 DISARMED. They are flash-backed: wait for `Tune saved`, power-cycle, and read
 the values back. Existing GNSS tuning retains its separate write policy.
@@ -51,6 +52,58 @@ published or flight-qualified.
 Its retained DR state uses a new format; after upgrading any earlier filter,
 remove all board power for at least 10 seconds. Flash-backed tuning is a
 separate store. See the L433 guide for the QMC compass ID change and recalibration.
+
+**Published secured no-GNSS 0.5.45 servo mapping:** blank stores and explicit
+factory resets use `N_S1_ID=5`, `N_S2_ID=6`, `N_S3_ID=7`, `N_S4_ID=8`.
+Thus Mission Planner Servo 5/6/7/8 addresses L433 S1/S2/S3/S4. This is a
+release-only default overlay, not automatic migration: valid saved IDs still
+take precedence, including the earlier 1–4 mapping. Read back all four IDs.
+The DLE60 model and 1000–2200 us envelope from 0.5.44 remain unchanged.
+Version 0.5.45 became stable/default under target `l433_can_node` on
+2026-10-27 at 16:59:06 UTC. Previous 0.5.44, the existing program, plugin
+and firmware for other targets remain unchanged. No board was flashed for
+publication; exact-artifact physical qualification remains pending. See the
+[release record](../dev/evidence/l433-can-node-v0.5.45.md).
+
+The paired FC setup must transmit channels 5–8 (`CAN_D1_UC_SRV_BM=240`),
+use PWM microseconds (`CAN_D1_UC_OPTION` bit 4, value 16) and leave CAN FD
+bit 2 (value 4) off. Preserve other required bits deliberately. Node firmware
+cannot configure these FC settings. For an explicit disarmed bench test,
+`SERVO5_FUNCTION` through `SERVO8_FUNCTION=0` enable the Servo/Relay buttons;
+they are not flight function defaults. Leave existing SERVO1–SERVO4 functions
+unchanged. No safety, 500 ms per-channel timeout, CAN/reset or stalled-loop
+cutoff is relaxed. Boot still produces no pulses.
+
+**Published secured no-GNSS 0.5.44 factory profile:** blank stores and explicit factory
+resets use `PROP_DIA=23`, `PROP_PITCH=10`, `ENG_PMAXKW=5.22` and
+`N_SRV_MAX=2200`, for the owner's DLE60 / 23x10 installation. All other
+defaults are unchanged, including BSFC 700 g/kWh, idle 250 g/h, trim 1,
+controller ID 10, output IDs 1–4, 50 Hz, 500 ms timeout and pulse-off failsafes.
+Valid retained saved settings take precedence over this release-only overlay.
+Protected ST-Link updates can mass-erase flash and the journal: back up settings
+before updating, restore them afterwards, and read them back after installation.
+Version 0.5.44 became stable/default under target `l433_can_node` at
+2026-10-27 15:32:07 UTC; 0.5.45 later superseded it as default. The existing
+program and published plugin 0.6.6 remain unchanged. Exact-artifact physical
+qualification remains pending. Frozen bench
+0.5.42, GNSS filter 0.5.46 and H743 keep their previous compiled defaults.
+
+The following peripheral table retains the legacy/filter default column.
+Secured 0.5.44/0.5.45 use `N_SRV_MAX=2200`; only release 0.5.45 defaults
+the four `N_Sx_ID` values to 5–8. Earlier nodes and the filter default to 1–4.
+Set FC `CAN_D1_UC_OPTION` bit 4 (value 16) for actual PWM microseconds, preserving
+applicable bits and leaving CAN FD off. UNITLESS zero maps to 1600 us in the
+1000–2200 us envelope; PWM mode preserves the existing 1500 us command and
+2200 us throttle endpoint. FC servo functions, RPM pins, airspeed and compass
+configuration are separate settings.
+
+The reported 11 L / 30:1 premix is approximately 8250 g at the nominal
+`FUEL_DENS=0.75`, not a fuel-load default or an automatic refill.
+`FUEL_CAPG=7500`, `FUEL_DENS=0.75` and `FUEL_AUTOF=0` remain unchanged;
+a new or LOST accounting total is silent until the operator establishes actual
+fuel with the stopped-engine procedure. Do not automatically write CAPG:
+every accepted write resets consumed fuel. Check Hall RPM scaling and calibrate
+the model against measured fuel use. The profile adds no parameters or journal IDs.
 
 | Parameter | Meaning | Default | Min | Max |
 |-----------|---------|---------|-----|-----|
@@ -368,12 +421,21 @@ active.
 
 ## Persistence
 
-- Parameter reads are always available. A change is accepted only while the
-  filter has a fresh, positive **FC disarmed** report; unknown, stale, or armed
-  state is fail-closed. `UBX_RESET`, explicit save, and factory reset use the
-  same gate. On DroneCAN, mutation requests must also come from the configured
-  or currently bound FC node.
-- Accepted changes are applied immediately and then scheduled for persistence.
+- Parameter reads are always available. In standard GNSS-filter builds,
+  ordinary GNSS tuning can change in RAM while armed; the filter reports a
+  warning. This does not save the change to flash. The DR1 release-timing
+  settings `DR_LOCK_MS` and `DR1_MAXMS`, L433 peripheral settings, `UBX_RESET`,
+  explicit save, and factory reset require a positive **FC disarmed** report
+  no older than **3 seconds**. Unknown, stale, or armed state blocks those
+  actions. Fuel capacity and density also require stopped-engine authority.
+  On DroneCAN, mutation requests must additionally come from the configured or
+  currently bound FC node. Make setup changes on the disarmed bench.
+- Accepted changes are scheduled for persistence. Most apply immediately in
+  RAM; `GNSS_TYPE` and `UBX_BAUD` are staged for the next reboot. Every flash
+  save requires the same fresh disarmed report, rechecked during the save.
+  A live parameter echo or refresh confirms RAM acceptance, not persistence.
+  Wait for `Tune saved` or successful completion of an explicit DroneCAN SAVE;
+  `Tune save failed` means the latest change is not confirmed durable.
 - One global 60-second wear limit covers every non-volatile write attempt. The
   first accepted change normally saves after the short debounce; later changes
   remain active and dirty until the cooldown expires. Power loss while a save
@@ -400,8 +462,10 @@ active.
 - `UBX_RESET` is a command, not a stored setting; it returns to `0` after every write.
 - `GNSS_TYPE` and `UBX_BAUD` require reboot to apply.
 - After the final write, allow up to **65 seconds** if another save was attempted
-  during the preceding minute. A refresh confirms the live value; a controlled
-  reboot after that window confirms persistence.
+  during the preceding minute, with healthy flash and fresh disarmed telemetry.
+  Keep the board powered until save completion; elapsed time alone does not
+  prove success. After completion, a controlled reboot and fresh readback
+  confirm persistence.
 - Reboot after every parameter change is **not** required.
 - Reboot STM32 (`NRST` or power cycle) when changing `GNSS_TYPE` or `UBX_BAUD`, or if behavior does not match updated values.
 
@@ -414,7 +478,10 @@ Use Mission Planner to read and write all STM32 filter params:
 3. Click **Refresh Params**.
 4. Confirm the FC is connected and disarmed, then edit one or more values.
 5. Click **Write Params**.
-6. Click **Refresh Params** again to verify saved values.
+6. Click **Refresh Params** again to verify the accepted live values.
+7. Wait for `Tune saved` or a successful completed DroneCAN SAVE, allowing for
+   the cooldown above. Reboot the board on the disarmed bench and refresh again
+   to verify that the saved values reload before flight.
 
 Notes:
 
@@ -425,9 +492,16 @@ Notes:
 
 ## Practical Workflow
 
+For L433 with ArduPlane 4.7.1, configure the FC using the
+[GPS-loss EKF3 baseline in the L433 guide](15_l433_apmpx4_can.md#arduplane-471-ekf3-during-dr1)
+before flight. Node tuning does not set the FC's EKF sources or DCM fallback
+policy.
+
 1. In Mission Planner, click **Save to file** to store a baseline profile.
 2. Change one or two params at a time.
-3. Click **Write Params**, then **Refresh Params** to confirm values.
+3. Click **Write Params**, then **Refresh Params** to confirm live values. Wait
+   for save completion, reboot on the disarmed bench, and read back once to
+   confirm persistence before flight.
 4. Flight test and review logs.
 5. Keep known-good saved files so you can roll back quickly.
 

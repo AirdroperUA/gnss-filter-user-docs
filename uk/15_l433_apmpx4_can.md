@@ -7,15 +7,88 @@
 окрему прошивку периферійного CAN-вузла на меншому STM32L433RCT6.
 Обидві збірки використовують DroneCAN node `42`. Інструкція описує
 GNSS-фільтр `0.5.46`, bench CAN-вузол без GNSS `0.5.42` та захищений
-CAN-вузол `0.5.43`.
+CAN-вузол `0.5.45`, описаний у розділі 7. Версія 0.5.45 є live
+stable/default програми; попередня 0.5.44 доступна для вибору й незмінна.
 
-Фільтр `0.5.46` — bench candidate, не promoted customer firmware і не
+**GNSS-фільтр 0.5.46 опубліковано, 2026-10-28:** target `l433_dronecan`
+став live stable/default о 13:05:46 UTC. У програмі **2026.10.27.2** виберіть
+**L433 APMPX4 CAN (ST-Link)** і версію **0.5.46**, потім активуйте нову плату
+або оновіть наявну зі своїм ліцензійним ключем.
+[Повний комплект фільтра](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/l433-filter-v0.5.46/AirDroper-L433-2026-10-28-Filter-0.5.46-release.zip)
+містить незмінний plugin **0.6.6**, параметри FC та інструкції EN/UK.
+Raw firmware template не потрібний: програма отримує підписаний image,
+прив'язаний до вашої плати. Перед protected update збережіть settings, після
+нього відновіть і перевірте їх. Factory servo IDs фільтра лишаються **1–4**,
+максимум — **2000 us**; профіль окремого no-GNSS вузла 5–8/2200 us тут не діє.
+Software/SITL checks пройдено; physical qualification точного image очікується.
+Публікація не гарантує безпеку польоту чи відсутність DCM при невалідних
+оцінках EKF. Див. розділ 5 і
+[release record](../../dev/evidence/l433-filter-v0.5.46.md).
+
+**Release з новою прив'язкою серво опубліковано, 2026-10-27:** нові захищені вузли та
+explicit factory reset no-GNSS вузлів використовують actuator IDs 5–8 для S1–S4. Вихід S4
+відповідає кнопці Mission Planner **Servo 8**, як у підтвердженому власником
+стендовому тесті; функції FC SERVO1–SERVO4 лишаються окремими. Налаштуйте й
+FC: для каналів 5–8 потрібні `CAN_D1_UC_SRV_BM=240` та PWM у мікросекундах
+(`CAN_D1_UC_OPTION` bit 4, value 16), CAN FD вимкнено. Firmware не записує
+ці параметри FC. Профіль DLE60 та всі safety, command-loss і stalled-loop
+cutoffs збережено. Valid saved settings мають пріоритет; автоматичної
+migration чи safety bypass немає. Обидва public catalogs ставлять 0.5.45
+першою після promotion о 16:59:06 UTC. Наявні програма 2026.10.27.2 та
+опублікований plugin 0.6.6 незмінні в оновленому
+[full kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/l433-can-node-v0.5.45/AirDroper-L433-2026-10-27-CAN-node-0.5.45-release.zip).
+Для публікації плату не прошивали; exact-artifact physical qualification
+очікується. Див. [release record](../../dev/evidence/l433-can-node-v0.5.45.md).
+
+**Factory-profile release опубліковано, 2026-10-27:** нові захищені no-GNSS вузли 0.5.44
+мають профіль DLE60 / 23x10 і максимальний імпульс серво 2200 us. Збережені
+settings мають пріоритет, якщо їх valid journal збережено. Protected ST-Link
+update може його стерти: зробіть backup, відновіть і перечитайте settings.
+Explicit factory reset відновлює новий профіль.
+Ця версія стала stable default програми о 15:32:07 UTC; пізніше її як
+default замінила 0.5.45. Незмінна програма 2026.10.27.2 отримує firmware з catalog
+вибраного target. Опублікований plugin 0.6.6 незмінний і входить до оновленого
+[full kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/l433-can-node-v0.5.44/AirDroper-L433-2026-10-27-CAN-node-0.5.44-release.zip).
+Exact-artifact hardware qualification немає. Frozen bench `0.5.42`, filter
+`0.5.46` і всі H743 firmware
+незмінні. Змінюються defaults вузла, а не параметри FC. Див.
+[release record](../../dev/evidence/l433-can-node-v0.5.44.md).
+
+Фільтр `0.5.46` тепер promoted для ліцензійного встановлення, але не
 кваліфікований для польоту image. Його не перевіряли на фізичній платі.
 Старі стендові докази нижче не кваліфікують нові
 зміни скидання, CAN і периферії.
-Він замінює відкликані bench candidates 0.5.44 і 0.5.45: не прошивайте старі images.
+Він замінює відкликані GNSS-filter bench candidates 0.5.44 і 0.5.45;
+це інші продукти, ніж no-GNSS CAN-node з тими самими номерами версій.
+Не прошивайте ці старі filter images.
 Після оновлення з будь-якого старішого фільтра зніміть усе живлення плати
 щонайменше на 10 секунд перед тестуванням. Перевірте компас за розділом 5.
+
+**Опубліковане виправлення desktop, 2026-10-27:** виправлена standalone-програма
+**2026.10.27.2**, build `l433-crypto-fix`, і plugin **0.6.6** доступні через
+[офіційне завантаження програми](https://gps.airdroper.org/download/app) та
+[плагіна](https://gps.airdroper.org/download/mission-planner-mod).
+[Повний release kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/download/desktop-2026-10-27-l433-crypto-fix/AirDroper-L433-2026-10-27-release.zip)
+містить відповідні checksum і докази випуску. EXE 2026.10.26.1 та
+2026.10.27.1 не містили `_cffi_backend` PyNaCl: активація могла зупинитися,
+хоча файли PyNaCl були в архіві. Виправлення включає потрібне середовище;
+окремо встановлювати Python або PyNaCl не потрібно. Перевіряйте offline crypto
+self-test самого EXE, а не лише вміст архіву; ця перевірка пройшла для
+випущеного EXE. Публічні завантаження та всі 20 plugin payloads перевірено.
+Усі firmware images і catalogs незмінні; успішної активації чи прошивання
+фізичної плати не заявлено. Desktop-помилка залежності не потребує ручного
+відновлення плати: подальші дії визначає звичайна процедура активації.
+Датовані примітки підготовки UI нижче описують попередній candidate
+2026.10.27.1, а не поточний стан публікації.
+
+**Локальний UI candidate, 2026-10-27:** plugin **0.6.6** замінює високий блок
+та другу зовнішню вкладку Fuel/Log смугою стану висотою 48 px, однією кнопкою
+**Open** та єдиною вкладкою **AirDroper**. Її внутрішні розділи **Overview**,
+**Fuel**, **Diagnostics** і **Log** містять команди, паливо, повні дані з доступом
+до map/RF та події. Навігація не надсилає команд; UNKNOWN/STALE і обмеження
+доступності кнопок збережено. Plugin 0.6.6 і desktop candidate `2026.10.27.1`
+ще не встановлено й не опубліковано; desktop candidate не зібрано.
+Публічні версії та статус firmware нижче залишаються чинними.
 
 **Статус, 2026-10-26:** desktop `2026.10.26.1` містить повний offline пакет
 Mission Planner plugin **0.6.5**. Кнопка **Mission Planner plugin 0.6.5**
@@ -23,7 +96,7 @@ Mission Planner plugin **0.6.5**. Кнопка **Mission Planner plugin 0.6.5**
 presets і не прошиває плату. Завантажте програму через
 [офіційний desktop download](https://gps.airdroper.org/download/app), або
 [plugin package](https://gps.airdroper.org/download/mission-planner-mod) окремо.
-Захищений CAN-вузол `0.5.43` лишається customer release. Фільтр `0.5.46`
+Захищений CAN-вузол 0.5.43 лишається customer release. Фільтр `0.5.46`
 надано лише для bench testing; physical DR1/reset/CAN/PWM checks ще потрібні.
 Повний L433 handover містить окремі flashing paths та checksums.
 EXE використовує reviewed production trust anchor; manual build без GitHub
@@ -62,7 +135,7 @@ CAN і скидання ще потребують перевірки. Це ст�
 | Збірка | Що робить | Як встановлюється |
 |--------|-----------|-------------------|
 | `apmpx4_can_l433rc_dronecan` | GNSS-фільтр від спуфінгу: GNSS лише на CN2, відфільтрований GPS виходить як DroneCAN; плюс airspeed, компас, камера, паливо та спільні функції периферії з розділу 7. | Desktop app (release image) або напряму через SWD (bench image) |
-| `apmpx4_can_l433rc_dronecan_nognss` / `_nognss_release` | Периферійний CAN-вузол: airspeed, компас на платі, виходи серво S1–S4, мости CN1/CN2/CN3, керування зумером/RGB, калібровані аналогові входи, паливо й параметри вузла. Без GNSS-фільтра та DR0/DR1. | Bench image `0.5.42` напряму через SWD або захищений `0.5.43` через desktop target `l433_can_node`; hardware validation часткова |
+| `apmpx4_can_l433rc_dronecan_nognss` / `_nognss_release` | Периферійний CAN-вузол: airspeed, компас на платі, виходи серво S1–S4, мости CN1/CN2/CN3, керування зумером/RGB, калібровані аналогові входи, паливо й параметри вузла. Без GNSS-фільтра та DR0/DR1. | Bench image `0.5.42` напряму через SWD або live захищений `0.5.45` через desktop target `l433_can_node`; hardware validation часткова |
 
 У desktop `2026.10.23.1` або новішому виберіть **[!] L433 CAN Node (NO GPS filter)**
 та ST-Link/SWD. Для периферійного вузла не вибирайте продукт L433 GNSS filter.
@@ -79,7 +152,8 @@ Template `apmpx4_can_l433rc_dronecan_nognss_release` не є bench binary для
 з версією hardware `2.0` (у WeAct H743 — `1.0`). Поле VCS в інформації про
 вузол містить повну версію прошивки: інструмент, що показує його в hex,
 показує `00000546` для фільтра 0.5.46, `00000542` для bench CAN-вузла 0.5.42
-або `00000543` для захищеного CAN-вузла 0.5.43.
+`00000543` для захищеного CAN-вузла 0.5.43, `00000544` для попереднього
+захищеного CAN-вузла 0.5.44 або `00000545` для поточного release 0.5.45.
 
 Якщо два вузли з ID `42` таки опиняться на одній шині, кожен із них кожні 10 с
 повідомляє `CAN: another node uses ID 42 - ID clash` і показує себе unhealthy,
@@ -205,8 +279,10 @@ packet не повертає значення попереднього апар�
 на L433. RF diagnostics потребує свіжих u-blox MON-RF; непідтримуваний receiver
 profile може нормально фільтрувати без цих diagnostics. Strict saved RF-axis
 capture також потребує moving private DR-reference stream, якого L433 не
-публікує. Servo diagnostics записуються у Fuel/Log, якщо надходять; servo,
-compass та airspeed працюють через звичайні DroneCAN pages FC. Цей plugin path
+публікує. У локальному candidate 0.6.6 відкрийте **AirDroper → Diagnostics**
+для рядка Position diagnostics і map/RF console або **Log** для servo diagnostics,
+якщо вони надходять (0.6.5 використовує AirDroper Fuel/Log). Servo, compass та
+airspeed працюють через звичайні DroneCAN pages FC. Цей plugin path
 стосується GNSS filter, а не окремого no-GNSS CAN-node product.
 
 Monitor зберігає boot-clock barrier між каналами. Якщо сам вузол справді
@@ -340,15 +416,16 @@ pull-up/pull-down, які вона вмикає, знімають із мікр�
 ID цієї плати, перевіряє його підпис, записує через ST-Link, читає назад і
 блокує чип (RDP1). Кнопки скидання на платі немає: коли app попросить
 перепідключити живлення плати, а також коли він закінчить, повністю зніміть
-живлення щонайменше на 10 секунд і подайте знову. Для цього потрібен
-опублікований реліз GNSS-фільтра L433, тому цей шлях поки не працює
-(див. «Статус» вище). Захищений CAN-вузол має target `l433_can_node` і версію
-`0.5.43`; GitHub bench image CAN-вузла 0.5.42 встановлюють напряму через SWD.
+живлення щонайменше на 10 секунд і подайте знову. Шлях встановлення
+GNSS-фільтра тепер надає stable **0.5.46** у target `l433_dronecan`.
+Окремий захищений CAN-вузол має target `l433_can_node` і stable **0.5.45**.
+Старий bench image CAN-вузла 0.5.42 не є шляхом ліцензійного встановлення фільтра.
 
 Після прошивання L433 **GNSS-фільтром** app також виводить «Ключ підпису автентифікованого
 відновлення DR» цієї плати (в англійському інтерфейсі —
 `Authenticated DR-recovery signing key`) і просить зберегти його одразу: ключ
-один на плату, і пізніше його не відновити. Тримайте його в секреті, як
+один на плату; зберігайте захищену копію, не покладаючись на повторний показ
+під час наступного update. Тримайте його в секреті, як
 пароль: будь-хто, хто його має, може авторизувати вихід цієї плати з DR1.
 CAN-вузол без GNSS не має DR recovery key чи функції відновлення DR1.
 
@@ -454,6 +531,12 @@ STM32_Programmer_CLI -c port=SWD mode=NORMAL -ob RDP=0xAA
 
 ### ArduPlane 4.7.1: EKF3 під час DR1
 
+Це рекомендована базова конфігурація для втрати GPS на звичайному fixed-wing
+літаку зі справними й відкаліброваними компасом, барометром і pitot. Це
+**параметри flight controller**: завантаження чи збереження параметрів вузла
+L433 їх не налаштовує. Мета — зберегти EKF3 після втрати GPS aiding, залишивши
+основні джерела yaw та висоти доступними без GPS.
+
 **Обов'язковий ручний крок: збережіть `AHRS_OPTIONS` і встановіть біт 0.**
 Прочитайте поточне ціле значення й запишіть `old | 1`: `0 → 1`, `16 → 17`,
 `17 → 17`. Перечитайте його. Не замінюйте невідому бітову маску на `1`.
@@ -463,24 +546,75 @@ STM32_Programmer_CLI -c port=SWD mode=NORMAL -ob RDP=0xAA
 придатні attitude та вертикальні оцінки. Це **не абсолютна гарантія
 never-DCM**: `_active_EKF_type()` може вибрати DCM раніше під час запуску
 або коли ці оцінки EKF недоступні.
-Див. [офіційний код AHRS Plane-4.7.1](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_AHRS/AP_AHRS.cpp#L1896-L2058).
+Див. [офіційний код AHRS Plane-4.7.1](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_AHRS/AP_AHRS.cpp#L2044-L2215).
 
-Новий companion file
+Warm reset L433 і перезапуск FC — різні випадки. L433 зберігає DR1, але не
+відновлює стан estimator на FC. Якщо FC перезапускається, поки DR1 блокує GPS,
+stock fixed-wing EKF3 може лишатися неініціалізованим, бо його bootstrap
+потребує 3D GPS fix. `AHRS_OPTIONS` не змінює цей bootstrap і не відновлює
+стан, зокрема після watchdog reset. Профіль підтримує продовження роботи вже
+ініціалізованого EKF; він не забезпечує відновлення FC після перезапуску без
+GPS. Ніколи не обходьте DR1 і не вводьте synthetic GPS для примусової
+ініціалізації. Див. [pinned EKF3 bootstrap](https://github.com/ArduPilot/ardupilot/blob/dbe792162d06cab66c3475fd5556bf7a120f119e/libraries/AP_NavEKF3/AP_NavEKF3_core.cpp).
+
+Під час уже розпочатого польоту AUTO, RTL і LOITER можуть продовжувати
+використовувати доступну оцінку позиції ініціалізованого справного EKF при
+втраті GPS, з урахуванням вимог налаштованого режиму й failsafe. У forward
+flight airspeed та zero-sideslip aiding можуть
+підтримувати dead reckoning відносно повітряної маси. RTL і LOITER тоді
+обчислюють команди за оцінкою позиції літака, яка дрейфує: повернення до
+фізичної точки home чи політ по фіксованому географічному колу не гарантовані.
+Жоден параметр не гарантує обмеженої глобальної похибки позиції на 500 км чи
+будь-якій іншій фіксованій відстані без GPS.
+Див. pinned [логіку aiding і validity](https://github.com/ArduPilot/ardupilot/blob/dbe792162d06cab66c3475fd5556bf7a120f119e/libraries/AP_NavEKF3/AP_NavEKF3_Control.cpp)
+та [виведення позиції](https://github.com/ArduPilot/ardupilot/blob/dbe792162d06cab66c3475fd5556bf7a120f119e/libraries/AP_NavEKF3/AP_NavEKF3_Outputs.cpp).
+
+Companion file
 `presets/arduplane_FC_4.7.1_l433_filter_EKF3_after_calibration.param` у
-Mission Planner package містить такі налаштування:
+Mission Planner package містить наведені нижче дев'ять налаштувань. Крок
+`AHRS_OPTIONS` виконайте окремо: файл не може зберегти невідому бітову маску.
 
 | Параметр FC | Значення / призначення |
 |-------------|------------------------|
-| `AHRS_EKF_TYPE` / `EK3_ENABLE` | `3` / `1`: EKF3 |
-| `EK3_SRC1_POSXY` / `EK3_SRC1_VELXY` | `3` / `3`: filtered GPS, коли доступний |
-| `EK3_SRC1_POSZ` / `EK3_SRC1_VELZ` | `1` / `0`: барометрична висота; без GPS vertical velocity |
-| `EK3_SRC1_YAW` | `1`: відкалібрований компас |
-| `ARSPD_TYPE` / `ARSPD_USE` | `8` / `1`: відкалібрований DroneCAN pitot для керування |
+| `AHRS_EKF_TYPE` | `3`: обрати EKF3 для керування польотом |
+| `EK3_ENABLE` | `1`: увімкнути EKF3; потрібен reboot |
+| `EK3_SRC1_POSXY` | `3`: горизонтальна позиція filtered GPS, поки доступна |
+| `EK3_SRC1_VELXY` | `3`: горизонтальна швидкість filtered GPS, поки доступна |
+| `EK3_SRC1_POSZ` | `1`: барометрична висота й після втрати GPS |
+| `EK3_SRC1_VELZ` | `0`: не вимагати GPS vertical-velocity aiding |
+| `EK3_SRC1_YAW` | `1`: відкалібрований компас для yaw |
+| `ARSPD_TYPE` | `8`: DroneCAN pitot на L433 |
+| `ARSPD_USE` | `1`: відкалібрований pitot для керування |
 
 Значення джерел відповідають [офіційним визначенням EKF](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_NavEKF/AP_NavEKF_Source.cpp).
 `ARSPD_USE = 1` вмикає використання для керування: завантажуйте файл
 **лише після** перевірки й калібрування встановленої трубки Піто, згідно з
 [офіційними параметрами airspeed](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_Airspeed/AP_Airspeed_Params.cpp).
+
+Також перевірте наведені нижче значення й джерела. Companion file навмисно
+не перезаписує вибір компаса чи власну конфігурацію джерел конкретного літака:
+
+- Після завершення калібрування airspeed задайте **`ARSPD_AUTOCAL = 0`**.
+  Збережіть виміряні offset і ratio встановленого датчика; не копіюйте
+  калібрування чи skip-calibration values із SITL.
+- Увімкніть використання для yaw фактичного відкаліброваного компаса через
+  відповідний **`COMPASS_USE`, `COMPASS_USE2` або `COMPASS_USE3`**. Перевірте
+  його пріоритет і орієнтацію в Mission Planner. Компас L433 не обов'язково
+  є першим compass instance на FC.
+- Для цього простого профілю source set 1 **біти 0 і 3 `EK3_SRC_OPTIONS`
+  мають бути скинуті** (зазвичай значення `0`). Біт 0 може додати velocity
+  з інших sets, зокрема GPS vertical velocity попри `EK3_SRC1_VELZ = 0`;
+  біт 3 призначає різні source sets різним EKF cores. Перед зміною бітової
+  маски перевірте власну конфігурацію. Також перевірте перемикання джерел
+  через RC, Lua й MAVLink: source set 1 має лишатися запланованим вибором.
+
+Зберігайте належні перевірки відмови airspeed. Не додавайте автоматично біт 2
+`AHRS_OPTIONS` (значення `4`) і не задавайте `ARSPD_OPTIONS = 0` як виправлення
+DCM: біт 2 обходить EKF pitot-consistency guard. ArduPlane 4.7.1 уже не виконує
+цей AHRS rejection під час dead reckoning, а airspeed health logic повертає
+використання airspeed за GPS status нижче 3D, якщо раніше автоматично вимкнула
+`ARSPD_USE = 1`. Див. [вибір pitot в AHRS](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_AHRS/AP_AHRS.cpp#L1002-L1021)
+та [airspeed health handling](https://github.com/ArduPilot/ardupilot/blob/Plane-4.7.1/libraries/AP_Airspeed/AP_Airspeed_Health.cpp).
 
 1. Збережіть усі параметри FC. Під час стендової зміни FC має бути disarmed,
    запалювання й тяги серво — від'єднані. Виконайте transport setup вище й
@@ -488,20 +622,39 @@ Mission Planner package містить такі налаштування:
 2. Перевірте орієнтацію/калібрування встановленого компаса, справний барометр
    і відкалібрований pitot. Файл зберігає їхні індивідуальні калібрування,
    servo functions та aircraft failsafes.
-3. Підтвердьте активний source set 1. Перевірте RC/script switching, інші
-   набори й біти 0/3 `EK3_SRC_OPTIONS` (all-velocity fusion/per-core sources):
-   вони не повинні додавати GPS-залежні вертикальні чи yaw джерела за цим
-   профілем. Власну конфігурацію джерел узгодьте до завантаження файлу.
+3. Підтвердьте активний source set 1 і виконайте перевірки джерел, компаса
+   та калібрування вище. Власну конфігурацію джерел узгодьте до завантаження
+   файлу.
 4. Завантажте companion file, запишіть дев'ять значень і виконайте
    обов'язковий крок `AHRS_OPTIONS = old | 1` вище. Файл навмисно не містить
    статичного присвоєння `AHRS_OPTIONS` і без цього кроку не є повним.
 5. Перечитайте всі змінені параметри, перезавантажте disarmed FC й перечитайте
    їх знову. Перевірте фактичний стан EKF3 і датчиків: саме збережене
    `AHRS_EKF_TYPE = 3` не доводить, що активний estimator — EKF3.
+   До запуску дочекайтеся активного EKF3 і свіжого EKF status із придатними
+   attitude, вертикальною швидкістю та вертикальною позицією. Старого
+   повідомлення `AHRS: EKF3 active` недостатньо. Не вимикайте arming checks.
 6. До польоту виконайте контрольовані bench/SITL перевірки втрати й повернення
-   GPS. Dead reckoning EKF3 дрейфує й не зберігає надійну глобальну позицію
+   GPS. Перевірте, що FC повідомляє втрату GPS і далі обирає EKF3, доки
+   attitude та вертикальні оцінки придатні. Якщо після запуску з'являється DCM,
+   перевіряйте IMU vibration/clipping, справність компаса й вплив тиску на
+   барометр замість простого послаблення EKF rejection thresholds.
+   Dead reckoning EKF3 дрейфує й не зберігає надійну глобальну позицію
    необмежено довго. Цей preset не задає failsafe response конкретного
    літака й не кваліфікує політ при втраті GNSS.
+
+У стандартному ArduPlane 4.7.1 режим автоматичного TAKEOFF потребує статусу
+3D GPS fix на FC. Щойно FC повідомляє статус нижче 3D, поки DR1 блокує GNSS,
+цей режим не почне зліт. DR1 не є окремим блокуванням запуску на FC:
+кешований статус 3D може короткочасно лишатися після latch або втрати CAN.
+Перевіряйте фактичний стан GPS та EKF на FC. Ніколи не обходьте DR1 і не
+повертайте неперевірені GNSS-дані, щоб дозволити запуск.
+У стабілізованому режимі з керуванням пілота EKF3 може зберігати оцінки
+attitude, висоти та вертикальної швидкості, коли глобальна позиція й навігація
+недоступні; це не є звичайною автономною навігацією чи кваліфікацією польоту.
+Перевірте процедуру
+запуску й втрати GNSS для конкретного літака разом із кваліфікованим пілотом,
+перш ніж покладатися на неї.
 
 ## 6) Необов'язкові датчики
 
@@ -566,6 +719,77 @@ BTN4 і може натомість знайти старіший legacy snapsho
 `l433_can_node`; це інший artifact, який не успадковує exact-artifact
 hardware qualification від 0.5.42.
 
+### Опублікована прив'язка серво захищеного вузла (0.5.45)
+
+Release `apmpx4_can_l433rc_dronecan_nognss_release` містить наведений профіль
+для порожнього settings store та explicit factory reset. Release-only overlay
+`FILTER_L433_CAN_NODE_DLE60_DEFAULTS` працює до capture defaults і replay
+journal. Наявні valid retained saved records мають пріоритет. Protected ST-Link
+update може зняти RDP1 та mass-erase flash разом із journal: перед update
+зробіть backup, потім відновіть і перечитайте settings. Після provisioning також
+перечитайте всі settings; reboot FC не перезавантажує цей вузол. Версія
+0.5.45 змінює лише чотири default actuator IDs з 1–4 на 5–8, зберігаючи
+профіль DLE60 із 0.5.44. Збережена прив'язка 1–4 чи максимум 2000 us не
+змінюються при update, якщо valid journal уцілів; явно перечитайте всі IDs та
+endpoints. Не скидайте весь налаштований літак лише заради чотирьох IDs:
+запишіть їх свідомо в DISARMED, збережіть і перечитайте.
+Опублікована 0.5.45 є live default catalog. Її
+[full kit](https://github.com/AirdroperUA/gnss-filter-releases/releases/tag/l433-can-node-v0.5.45)
+містить відповідні приклади параметрів і незмінні EXE/plugin 0.6.6.
+Попередня 0.5.44 та її kit доступні й незмінні. Публікацію виконано за прямим
+запитом власника; exact-artifact physical qualification очікується.
+
+| Параметр вузла | Factory value нового захищеного вузла |
+|----------------|---------------------------------------|
+| `PROP_DIA` / `PROP_PITCH` | `23` / `10` дюймів |
+| `ENG_PMAXKW` | `5.22` kW для DLE60 |
+| `FUEL_BSFC` / `FUEL_IDLE` / `FUEL_TRIM` | `700` g/kWh / `250` g/h / `1` |
+| `N_FC_ID` | `10` |
+| `N_SRV_HZ` / `N_SRV_TMO` | `50` Hz / `500` ms |
+| `N_SRV_MIN` / `N_SRV_MAX` | `1000` / `2200` us |
+| `N_S1_ID` / `N_S2_ID` / `N_S3_ID` / `N_S4_ID` | `5` / `6` / `7` / `8` |
+| `N_S1_FS` / `N_S2_FS` / `N_S3_FS` / `N_S4_FS` | `0` / `0` / `0` / `0` (без імпульсів) |
+| `FUEL_AUTOF` | `0` (вимкнено) |
+
+[DLE60 має номінальну потужність](https://www.dlengine.com/en/rcengine/dle60)
+7 hp, приблизно 5.22 kW. BSFC, idle flow і trim — некалібровані початкові
+значення; перевірте scaling прямого Hall RPM і відкалібруйте витрату за
+виміряним споживанням, перш ніж покладатися на оцінку. Drivers airspeed та
+компаса на платі вже ввімкнено; фізичне виявлення сенсорів, калібрування й
+наведене нижче налаштування FC лишаються потрібними. Прошивка не призначає
+функції серво чи RPM pins на FC.
+
+Із fresh defaults release **Servo 5 → S1**, **Servo 6 → S2**,
+**Servo 7 → S3**, **Servo 8 → S4**. Кнопки Mission Planner Servo/Relay
+використовують номери виходів FC, а не роз'ємів L433. FC має передавати ці
+номери; саме лише робоче UDP-з'єднання не встановлює таку прив'язку.
+
+[Інструкція параметрів](../../../tools/mission_planner/l433_can_node_presets/README_UK.md)
+містить окремі приклади [загальної інтеграції FC](../../../tools/mission_planner/l433_can_node_presets/arduplane_FC_4.7.1_l433_CAN_node_CAN1.param),
+[тимчасових bench functions](../../../tools/mission_planner/l433_can_node_presets/bench_S1-S4_Servo5-8_DO_NOT_USE_IN_FLIGHT.param)
+та [лише вузла 42](../../../tools/mission_planner/l433_can_node_presets/node42_only/l433-can-node-0.5.45.param).
+Завантажуйте кожен лише в зазначений пристрій. Загальний приклад FC не
+призначає функції серво й не змінює safety; чотири bench function changes —
+окремий явний вибір оператора. Жоден файл не оголошує кількість палива.
+
+**На FC використовуйте PWM у мікросекундах:** задайте `CAN_D1_UC_OPTION`
+bit 4 (value `16`), зберігши інші придатні біти та лишивши CAN FD вимкненим.
+Так зберігаються калібровані імпульси, зокрема throttle endpoint 2200 us.
+За діапазону вузла 1000–2200 us UNITLESS `-1`, `0`, `+1` означає
+1000, 1600, 2200 us; передавання UNITLESS натомість зсунуло б середину.
+Перевірте допустимий фактичний хід кожного серво й підключеного механізму.
+
+Власник повідомив про 11 L бензиново-оливної суміші 30:1. За номінального
+`FUEL_DENS=0.75` це приблизно 8250 g, **а не factory declaration палива**.
+Зважте фактичне паливо й використовуйте штатну stopped-engine процедуру
+`FUEL_CAPG` після кожної справжньої заправки. Compiled `FUEL_CAPG=7500`,
+`FUEL_DENS=0.75` і `FUEL_AUTOF=0` незмінні; 7500 не доводить наявність палива.
+Новий або LOST total мовчить до належного встановлення. Кожен accepted CAPG
+write скидає consumed fuel, навіть якщо значення те саме, тому його немає
+в автоматичних setup defaults. Нових параметрів, journal slots або migration
+немає. Legacy bench 0.5.42, secured 0.5.43 і filter 0.5.46 зберігають свою
+модель 27x12 / 8.6 kW і максимум серво 2000 us, доки їх явно не налаштувати.
+
 **Hardware validation часткова.** Після підключення зовнішнього BEC вихід S4
 перемістив камеру при зміні команди з 1800 до 1200 µs і повернув її близько
 до початкового виду при 1800 µs. Серво було підключене лише до S4;
@@ -610,9 +834,9 @@ DISARMED від вибраного FC. Адміністративні MAVLink-т
 | `CAN_P1_DRIVER` / `CAN_D1_PROTOCOL` | `1` / `1` |
 | `CAN_P1_BITRATE` | `1000000` |
 | `CAN_D1_UC_NODE` | `10`, як у `N_FC_ID` вузла |
-| `CAN_D1_UC_SRV_BM` | `15` для передавання SERVO1–SERVO4 |
+| `CAN_D1_UC_SRV_BM` | `240` для IDs 5–8 у 0.5.45; legacy IDs 1–4 використовують `15`. Це заміна mask; інші потрібні CAN output bits збережіть свідомо |
 | `CAN_D1_UC_SRV_RT` | `50` |
-| `CAN_D1_UC_OPTION` | Збережіть інші біти; біт `4` (значення `16`) за бажанням вмикає PWM у мікросекундах |
+| `CAN_D1_UC_OPTION` | Збережіть придатні біти; біт `4` (значення `16`) вмикає PWM у мікросекундах для захищених профілів 0.5.44/0.5.45; CAN FD bit `2` (value `4`) лишіть вимкненим |
 | `ARSPD_TYPE` | `8` для airspeed MS4525 |
 
 Для початкового налаштування використовуйте ID контролера `10`. Щоб змінити
@@ -626,8 +850,10 @@ Factory reset повертає `N_FC_ID` у `10`; налаштуйте FC від
 
 Задайте потрібні `SERVOx_FUNCTION` на FC. Вузол приймає стандартні команди
 DroneCAN `actuator.ArrayCommand`: UNITLESS (`0`) або PWM (`4`);
-за замовчуванням unitless `-1`, `0`, `+1` перетворюються на `1000`, `1500`,
-`2000` us. Для початку імпульсів стан safety FC має бути свіжим і **off**;
+за legacy/filter defaults unitless `-1`, `0`, `+1` перетворюються на
+`1000`, `1500`, `2000` us. Захищені профілі 0.5.44/0.5.45 натомість дають
+`1000`, `1600`, `2200` us; використовуйте PWM mode FC, щоб зберегти
+калібрування в мікросекундах. Для початку імпульсів стан safety FC має бути свіжим і **off**;
 самого армінгу чи надсилання команди недостатньо.
 
 Під’єднайте сигнальні піни S1–S4 (`PA8`–`PA11`) і GND. Середній пін кожного
@@ -687,7 +913,8 @@ GNSS gate лишається незалежним від servo authority.
 
 ### Діагностика серво в Mission Planner
 
-CAN-node `0.5.42`/`0.5.43` і фільтр `0.5.46` автоматично передають один INFO-рядок `SV*` щосекунди через
+CAN-node `0.5.42`/`0.5.43`, захищений вузол `0.5.44`/`0.5.45` і фільтр
+`0.5.46` автоматично передають один INFO-рядок `SV*` щосекунди через
 MAVLink-тунель вузла. Відкрийте **Flight Data → Messages** і зачекайте
 щонайменше 12 s на повний цикл; читання/запис параметрів тимчасово призупиняє
 ці рядки. Кожен рядок — новий знімок стану, тому час вимірювання в різних
@@ -727,9 +954,15 @@ guard і не змінює PWM. Додаткових параметрів для
 нескінченним/NaN значенням чи значенням поза припустимим діапазоном);
 `NONE` — відхилень ще не зафіксовано.
 
-Для тимчасової перевірки кнопками Mission Planner залиште на FC
-`SERVO5`–`SERVO8_FUNCTION=0`, включіть канали 5–8 у `CAN_D1_UC_SRV_BM`,
-а на вузлі задайте `N_S1_ID`–`N_S4_ID` як `5`–`8`. Із вимкненим safety
+Для explicit тимчасового стендового тесту від'єднайте ignition і linkages,
+задайте FC `SERVO5_FUNCTION`–`SERVO8_FUNCTION=0`,
+`CAN_D1_UC_SRV_BM=240` для каналів 5–8 та PWM у мікросекундах, як вище.
+Наявні функції SERVO1–SERVO4 FC лишіть незмінними. Ці зміни функцій FC —
+bench settings, а не flight defaults. `N_S1_ID`–`N_S4_ID` на вузлі мають
+читатися як `5`–`8`; fresh release 0.5.45 дає їх за замовчуванням, а старі
+firmware чи retained saved values потребують явної зміни. Кнопки Mission
+Planner Servo 5/6/7/8 відповідають L433 S1/S2/S3/S4.
+Із вимкненим safety
 та роззброєним FC натискання кнопок має збільшувати відповідний `n` і
 змінювати `p`. Для зіставлення утримуйте одне значення щонайменше 15 s.
 При 50 Hz і частоті таймера 80 MHz рядок `SVTIM p24 a63999` означає
@@ -753,8 +986,8 @@ node `42`. Запис потребує свіжого DISARMED від вибра
 |---------------|---------|-------------|
 | `N_FC_ID` | `10` | CAN node ID вибраного контролера FC tunnel/status і серво |
 | `N_SRV_HZ` / `N_SRV_TMO` | `50` / `500` | Спільна частота PWM Hz / тайм-аут окремого каналу ms |
-| `N_SRV_MIN` / `N_SRV_MAX` | `1000` / `2000` | Кінцеві значення імпульсу, us |
-| `N_S1_ID` / `N_S2_ID` / `N_S3_ID` / `N_S4_ID` | `1` / `2` / `3` / `4` | Actuator ID для S1–S4; `0` вимикає вихід |
+| `N_SRV_MIN` / `N_SRV_MAX` | `1000` / `2000` legacy/filter; `1000` / `2200` захищені профілі 0.5.44/0.5.45 | Кінцеві значення імпульсу, us |
+| `N_S1_ID` / `N_S2_ID` / `N_S3_ID` / `N_S4_ID` | `5` / `6` / `7` / `8` у 0.5.45; `1` / `2` / `3` / `4` у попередніх вузлах/filter | Actuator ID для S1–S4; `0` вимикає вихід |
 | `N_S1_FS` / `N_S2_FS` / `N_S3_FS` / `N_S4_FS` | `0` / `0` / `0` / `0` | Імпульс failsafe за тайм-аутом команд, us; `0` вимикає імпульси |
 | `N_V1_MULT` / `N_V2_MULT` | `0` / `0` | Калібрування дільника напруги; `0` вимикає публікацію |
 | `N_I1_GAIN` / `N_I2_GAIN` | `0` / `0` | Коефіцієнт зовнішнього датчика струму, A/V; `0` означає невідомий струм |

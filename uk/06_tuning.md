@@ -29,8 +29,9 @@ H743 також потрібна log-based перевірка jump thresholds. �
 
 ## Параметри периферії L433
 
-Наведені `N_*` діють у development GNSS-фільтрі `0.5.46` та окремому
-no-GNSS CAN-node `0.5.42`/`0.5.43`. H743 не змінено. Змінюйте параметри
+Наведені `N_*` діють у development GNSS-фільтрі `0.5.46`, окремому
+no-GNSS CAN-node `0.5.42`/`0.5.43`, опублікованому захищеному вузлі
+`0.5.44` та опублікованому захищеному вузлі `0.5.45`. H743 не змінено. Змінюйте параметри
 периферії лише коли вибраний контролер підтверджує DISARMED. Значення
 зберігаються у flash: дочекайтеся `Tune saved`, вимкніть і ввімкніть живлення
 та перечитайте їх. Для наявного GNSS-тюнінгу збережено окремі правила запису.
@@ -51,6 +52,58 @@ snapshot. Перед зміною прошивки збережіть парам
 Збережений DR state має новий формат; після оновлення будь-якого старішого
 фільтра зніміть усе живлення плати щонайменше на 10 секунд. Flash-backed tuning
 зберігається окремо. Зміна ID компаса QMC і калібрування описані в інструкції L433.
+
+**Опублікована прив'язка серво захищеного no-GNSS 0.5.45:** порожні settings
+stores та explicit factory reset дають `N_S1_ID=5`, `N_S2_ID=6`,
+`N_S3_ID=7`, `N_S4_ID=8`. Кнопки Mission Planner Servo 5/6/7/8 відповідають
+L433 S1/S2/S3/S4. Це release-only overlay defaults, а не автоматична migration:
+valid saved IDs мають пріоритет, включно зі старою прив'язкою 1–4.
+Перечитайте всі чотири IDs. Модель DLE60 і діапазон 1000–2200 us із 0.5.44
+збережено. Версія 0.5.45 стала stable/default target `l433_can_node`
+2026-10-27 о 16:59:06 UTC. Попередня 0.5.44, наявні програма, plugin і
+firmware інших targets незмінні. Для публікації плату не прошивали;
+exact-artifact physical qualification очікується. Див.
+[release record](../../dev/evidence/l433-can-node-v0.5.45.md).
+
+Парний FC setup має передавати канали 5–8 (`CAN_D1_UC_SRV_BM=240`),
+використовувати PWM у мікросекундах (`CAN_D1_UC_OPTION` bit 4, value 16)
+і лишати CAN FD bit 2 (value 4) вимкненим. Інші потрібні біти збережіть
+свідомо. Firmware вузла не налаштовує ці параметри FC. Для explicit
+disarmed bench test `SERVO5_FUNCTION`–`SERVO8_FUNCTION=0` дозволяють
+кнопки Servo/Relay; це не defaults функцій для польоту. Наявні функції
+SERVO1–SERVO4 лишіть незмінними. Safety, timeout 500 ms кожного каналу,
+CAN/reset і stalled-loop cutoffs не послаблено. При boot імпульсів немає.
+
+**Опублікований factory profile захищеного no-GNSS 0.5.44:** порожні settings stores та
+explicit factory resets використовують `PROP_DIA=23`, `PROP_PITCH=10`,
+`ENG_PMAXKW=5.22` і `N_SRV_MAX=2200` для DLE60 / 23x10 власника.
+Решта defaults незмінні, включно з BSFC 700 g/kWh, idle 250 g/h, trim 1,
+controller ID 10, output IDs 1–4, 50 Hz, timeout 500 ms і failsafe без імпульсів.
+Наявні valid retained settings мають пріоритет над цим release-only overlay.
+Protected ST-Link update може mass-erase flash і journal: перед update зробіть
+backup, потім відновіть settings та перечитайте їх після встановлення.
+Версія 0.5.44 стала stable/default target `l433_can_node` о
+2026-10-27 15:32:07 UTC; пізніше її як default замінила 0.5.45.
+Наявна програма та опублікований plugin 0.6.6 незмінні.
+Exact-artifact physical qualification очікується. Frozen bench 0.5.42,
+GNSS filter 0.5.46 і H743 зберігають попередні compiled defaults.
+
+Наступна таблиця периферії лишає колонку legacy/filter defaults.
+Захищені 0.5.44/0.5.45 використовують `N_SRV_MAX=2200`; лише release
+0.5.45 має defaults чотирьох `N_Sx_ID` 5–8. Старі вузли та filter мають 1–4.
+Задайте на FC `CAN_D1_UC_OPTION` bit 4 (value 16) для PWM у мікросекундах,
+зберігши придатні біти й лишивши CAN FD вимкненим. UNITLESS zero дає
+1600 us у діапазоні 1000–2200 us; PWM mode зберігає команду 1500 us і
+throttle endpoint 2200 us. Функції серво, RPM pins, airspeed і compass
+на FC налаштовуються окремо.
+
+Повідомлені 11 L суміші 30:1 — приблизно 8250 g за номінального
+`FUEL_DENS=0.75`, а не fuel-load default чи автоматична заправка.
+`FUEL_CAPG=7500`, `FUEL_DENS=0.75` і `FUEL_AUTOF=0` незмінні;
+новий або LOST total мовчить, доки оператор не встановить фактичне паливо
+штатною stopped-engine процедурою. Не записуйте CAPG автоматично:
+кожен accepted write скидає consumed fuel. Перевірте Hall RPM scaling та
+відкалібруйте модель за виміряною витратою. Нових параметрів чи journal IDs немає.
 
 | Параметр | Призначення | Default | Min | Max |
 |----------|-------------|---------|-----|-----|
@@ -349,12 +402,22 @@ FC GPS raw-UART bypass все одно немає. DR1 зупиняє лише n
 
 ## Збереження
 
-- Читання параметрів доступне завжди. Зміна приймається лише за наявності
-  свіжого явного підтвердження **FC disarmed**; unknown, stale або armed state
-  блокує запис. Той самий gate діє для `UBX_RESET`, explicit save і factory
-  reset. Через DroneCAN mutation request також має надходити від configured або
-  поточного bound FC node.
-- Прийняті зміни застосовуються одразу та плануються для persistence.
+- Читання параметрів доступне завжди. У стандартних GNSS-filter builds звичайні
+  GNSS settings можуть змінюватися в RAM навіть у стані armed; фільтр повідомляє
+  warning. Це не зберігає зміну у flash. Параметри часу release DR1 `DR_LOCK_MS`
+  і `DR1_MAXMS`, L433 peripheral settings, `UBX_RESET`, explicit save та factory
+  reset потребують явного підтвердження **FC disarmed** не старшого за
+  **3 секунди**. Unknown, stale або armed state блокує ці дії. Fuel capacity і
+  density додатково потребують stopped-engine authority. Через DroneCAN mutation
+  request також має надходити від configured або поточного bound FC node.
+  Змінюйте setup на disarmed стенді.
+- Прийняті зміни плануються для persistence. Більшість діють одразу в RAM;
+  `GNSS_TYPE` та `UBX_BAUD` готуються до наступного reboot. Кожен flash save
+  потребує того самого fresh disarmed report, який перевіряється повторно під
+  час save. Live parameter echo або refresh підтверджує прийняття в RAM, а не
+  persistence. Дочекайтеся `Tune saved` або успішного завершення explicit
+  DroneCAN SAVE; `Tune save failed` означає, що durability останньої зміни не
+  підтверджена.
 - Один глобальний 60-секундний wear limit охоплює кожну спробу запису у NVM.
   Перша зміна зазвичай зберігається після короткого debounce; наступні зміни
   залишаються active і dirty до завершення cooldown. Втрата живлення під час
@@ -382,8 +445,10 @@ FC GPS raw-UART bypass все одно немає. DR1 зупиняє лише n
 - `UBX_RESET` — це команда, а не збережене налаштування; після кожного запису вона повертається в `0`.
 - `GNSS_TYPE` та `UBX_BAUD` застосовуються тільки після перезавантаження.
 - Після останньої зміни зачекайте до **65 секунд**, якщо протягом попередньої
-  хвилини вже була спроба save. Refresh підтверджує live value; контрольований
-  reboot після цього інтервалу підтверджує persistence.
+  хвилини вже була спроба save, за справної flash і fresh disarmed telemetry.
+  Не вимикайте живлення плати до завершення save; сам час очікування не доводить
+  успіх. Після завершення контрольований reboot і fresh readback підтверджують
+  persistence.
 - Перезавантаження після кожної зміни параметра **не** обов'язкове.
 - Перезавантажуйте STM32 (`NRST` або power cycle) при зміні `GNSS_TYPE` або `UBX_BAUD`, або якщо поведінка не відповідає новим значенням.
 
@@ -396,7 +461,10 @@ FC GPS raw-UART bypass все одно немає. DR1 зупиняє лише n
 3. Натисніть **Refresh Params**.
 4. Переконайтеся, що FC підключений і disarmed, потім змініть значення.
 5. Натисніть **Write Params**.
-6. Натисніть **Refresh Params** ще раз і перевірте, що значення збережені.
+6. Натисніть **Refresh Params** ще раз і перевірте прийняті live values.
+7. Дочекайтеся `Tune saved` або успішного завершення DroneCAN SAVE з урахуванням
+   cooldown вище. Перезавантажте плату на disarmed стенді та повторіть refresh,
+   щоб до польоту перевірити завантаження збережених значень.
 
 Примітки:
 
@@ -407,9 +475,15 @@ FC GPS raw-UART bypass все одно немає. DR1 зупиняє лише n
 
 ## Практичний робочий процес
 
+Для L433 з ArduPlane 4.7.1 до польоту налаштуйте FC за
+[базовим профілем EKF3 при втраті GPS в інструкції L433](15_l433_apmpx4_can.md#arduplane-471-ekf3-під-час-dr1).
+Налаштування вузла не задає джерела EKF чи політику переходу FC на DCM.
+
 1. У Mission Planner натисніть **Save to file**, щоб зберегти базовий профіль.
 2. Змінюйте 1–2 параметри за раз.
-3. Натисніть **Write Params**, потім **Refresh Params** для перевірки.
+3. Натисніть **Write Params**, потім **Refresh Params**, щоб підтвердити live
+   values. Дочекайтеся завершення save, перезавантажте плату на disarmed стенді
+   та виконайте readback, щоб до польоту підтвердити persistence.
 4. Проведіть льотні тести і перегляньте логи.
 5. Зберігайте перевірені профілі для швидкого відкату.
 
